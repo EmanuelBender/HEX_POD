@@ -2,21 +2,33 @@
 #include <pgmspace.h>
 
 
+void handleRoot() {
+  if (!server.authenticate("hexpod", "noguess8142")) {
+    return server.requestAuthentication();
+  }
+  server.send(200, "text/html", generateHomePage());
+}
+
+void handleSensors() {
+  if (!server.authenticate("hexpod", "noguess8142")) {
+    return server.requestAuthentication();
+  }
+  server.send(200, "text/html", generateSensorsPage());
+}
+
+void handleUtility() {
+  if (!server.authenticate("hexpod", "noguess8142")) {
+    return server.requestAuthentication();
+  }
+  server.send(200, "text/html", generateUtilityPage());
+}
+
 
 void setupWebInterface() {
 
-  server.on("/", []() {
-    if (!server.authenticate("hexpod", "noguess8142")) {
-      return server.requestAuthentication();
-    }
-    server.send(200, "text/html", generateHomePage());
-  });
-  server.on("/sensors", []() {
-    server.send(200, "text/html", generateSensorsPage());
-  });
-  server.on("/utility", []() {
-    server.send(200, "text/html", generateUtilityPage());
-  });
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/sensors", HTTP_GET, handleSensors);
+  server.on("/utility", HTTP_GET, handleUtility);
 
   server.on("/toggleLED", []() {
     LEDon = !LEDon;
@@ -43,7 +55,6 @@ void setupWebInterface() {
   });
   server.on("/updateLoggingInterval", HTTP_GET, []() {
     loggingInterval = server.arg("value").toInt();
-    // Convert 'value' to an integer and use it in your code
     bmeInterval = loggingInterval;
     taskManager.cancelTask(BMEID);
     taskManager.cancelTask(SGPID);
@@ -66,8 +77,6 @@ void setupWebInterface() {
 
   server.on("/updateBMEsamples", HTTP_GET, []() {
     bmeSamples = server.arg("value").toInt();
-    // Convert 'value' to an integer and use it in your code
-    // bmeSamples = value;
     taskManager.cancelTask(BMEID);
     taskManager.cancelTask(SGPID);
     taskManager.cancelTask(LOG);
@@ -87,8 +96,6 @@ void setupWebInterface() {
 
   server.on("/updateBMEpause", HTTP_GET, []() {
     bmeProfilePause = server.arg("value").toInt();
-    // Convert 'value' to an integer and use it in your code
-    // = value;
     preferences.begin("my - app", false);
     preferences.putUInt("bmePause", bmeProfilePause);
     preferences.end();
@@ -343,7 +350,7 @@ String generateHomePage() {
   page += "<tr><td><b>Log Period</td>";
   page += "<td><label for='loggingInterval'>Interval " + String(loggingInterval / 1000) + "</label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
-  page += secondsOptions(loggingInterval);
+  page += generateTimeOptions(loggingInterval);
   page += "</select></td></tr>";
   page += "</table>";
 
@@ -387,37 +394,45 @@ String generateConsole() {
 }
 
 
-String secondsOptions(int selectedValue) {
-  String pageS = "";
-  /*
-  for (i = 500; i <= 1000; i += 100) {  // Values: 1 sec - 1000 msec
-    if (i > 5 && i < 110) i -= 1;
-    pageS += "<option value='" + String(i) + "'>" + String(i) + " millis</option>";
-  } */
-  for (i = 2; i <= 60; i += 5) {  // Values: 1 sec - 60 sec
-    if (i == 7) i -= 2;
-    pageS += "<option value='" + String(i * 1000) + "'>" + String(i) + "s</option>";
-  }
-  for (i = 1; i <= 60; i += 15) {  // Values: 1 min - 60 min
-    if (i > 5 && i < 20) i -= 1;
-    pageS += "<option value='" + String(i * MINUTES_IN_HOUR * 1000) + "'>" + String(i) + "m</option>";
-  }
-  for (i = 1; i <= 24; i++) {  // Values: 1 h - 24 h
-    pageS += "<option value='" + String(i * HOURS_IN_DAY * 1000) + "'>" + String(i) + "h</option>";
-  }
 
-  for (i = 2; i <= 60; i += 5) {
+String generateTimeOptions(int selectedValue) {
+  String pageS = "";
+
+  // Seconds
+  for (int i = 2; i <= 59; i += 5) {
     if (i == 7) i -= 2;
     int value = i * 1000;
-    pageS += "<option value='" + String(value) + "'";
+    pageS += "<option value='" + String(value) + "s'";
     if (value == selectedValue) {
       pageS += " selected";
     }
-    pageS += ">" + String(i) + "</option>";
+    pageS += ">" + String(i) + "s</option>";
+  }
+
+  // Minutes
+  for (int i = 1; i <= 59; i += 15) {
+    if (i > 5 && i < 20) i -= 1;
+    int value = i * MINUTES_IN_HOUR * 1000;
+    pageS += "<option value='" + String(value) + "m'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "m</option>";
+  }
+
+  // Hours
+  for (int i = 1; i <= 24; i++) {
+    int value = i * HOURS_IN_DAY * 1000;
+    pageS += "<option value='" + String(value) + "h'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "h</option>";
   }
 
   return pageS;
 }
+
 
 String valueOptions(int selectedValue) {
   String pageS = "";
@@ -444,7 +459,7 @@ String generateSensorsPage() {
 
   page += "<tr><td><label for='loggingInterval'><b> Interval</b>[s]</label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
-  page += secondsOptions(loggingInterval);
+  page += generateTimeOptions(loggingInterval);
   page += "</select></td>";
   page += "</tr>";
 

@@ -1,10 +1,17 @@
 
-
 #include <pgmspace.h>
+
+void pollServer() {
+  TAG = "handleServer() ";
+  timeTracker = micros();
+  server.handleClient();
+  debugF(timeTracker);
+  clientTracker = (micros() - timeTracker) / 1000.0;
+}
+
 
 
 void launchUtility() {
-
   TAG = "launchUtility()";
   timeTracker = micros();
   taskManager.reset();

@@ -91,8 +91,6 @@ String WiFiIP;
 const char* hostname = "[HEX]POD";
 const int WiFiTimeout = 8000;
 String webHost, webPw;
-// int rssi;
-// String ssid;
 // uint8_t MainMAC[] = { 0x30, 0xA0, 0xA5, 0x07, 0x0D, 0x66 };  // 3600
 const char* ntpServer1 = "pool.ntp.org";   // NTP Time server
 const char* ntpServer2 = "time.nist.gov";  // fallback
@@ -301,7 +299,6 @@ uint8_t durProf_1[] = {
 #include <VOCGasIndexAlgorithm.h>
 #include <NOxGasIndexAlgorithm.h>
 
-// float sampling_interval = 1;
 VOCGasIndexAlgorithm voc_algorithm;
 NOxGasIndexAlgorithm nox_algorithm;
 SensirionI2CSgp41 sgp41;
@@ -352,9 +349,7 @@ void setup() {
     ESP_LOGI(TAG, "Serial bus Initialized.");
   }
 
-  // Wire.setPins(sda, scl);
   if (Wire.begin(sda, scl, I2C_SPEED)) {  // sda= , scl= in pins_arduino.h
-    // Wire.setClock(I2C_SPEED);
     delay(20);
     if (DEBUG) {
       ESP_LOGI(TAG, "I2C bus Initialized.");
@@ -366,8 +361,7 @@ void setup() {
   webHost = preferences.getString("webHost");  // hexpod
   webPw = preferences.getString("webPw");
 
-  // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);  // INADDR_NONE, IP, dns, gateway, subnet
-  // WiFi.setHostname(hostname);  //define hostname
+  WiFi.setHostname(hostname);  //define hostname
   WiFi.begin(preferences.getString("ssid", "NaN"), preferences.getString("pw", "NaN"));
   delay(200);
 
@@ -414,16 +408,19 @@ void setup() {
   tft.setTextPadding(100);
 
   TAG = "SD";
+  pinMode(GPIO_NUM_47, INPUT);  // SD present
   SDinserted = digitalRead(GPIO_NUM_47);
   if (SDinserted) {
     ESP_LOGI(TAG, "SD card present.");
+
     sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
     sdSPI.setFrequency(SPI_FREQUENCY / 2);
-    // sdSPI.setDataMode(SPI_MODE0);
+    sdSPI.setDataMode(SPI_MODE0);
+
     if (SD.begin(SD_CS, sdSPI, SPI_FREQUENCY / 2, "/sd", 50)) {
       ESP_LOGI(TAG, "SD card mounted.");
     } else {
-      ESP_LOGI(TAG, "SD card not mounted.");
+      ESP_LOGI(TAG, "SD card Init Failed.");
     }
   }
 
@@ -478,7 +475,6 @@ void setup() {
   io.write(PCA95x5::Port::P15, PCA95x5::Level::H);                               // led off
   // io.write(PCA95x5::Port::P16, PCA95x5::Level::L);  // PER_PWR On
   // io.write(PCA95x5::Port::P17, PCA95x5::Level::L);  // SNS_PWR On
-  // Serial.println("MULTIPLEXER Good.");
 
   //___________________________ INITIALIZE LIS3DH ______________________
   /* lis.settings.adcEnabled = 0;
@@ -548,30 +544,6 @@ void setup() {
   sgp41.begin(Wire);
   configSGP();
 
-  /*
-  preferences.begin("my - app", true);
-  preferences.getUInt("sgp_io_nox", index_offset);
-  preferences.getUInt("sgp_ltoh_nox", learning_time_offset_hours);
-  preferences.getUInt("sgp_ltgh_nox", learning_time_gain_hours);
-  preferences.getUInt("sgp_gmdm_nox", gating_max_duration_minutes);
-  preferences.getUInt("sgp_si_nox", std_initial);
-  preferences.getUInt("sgp_gf_nox", gain_factor);
-
-  nox_algorithm.get_tuning_parameters(
-    index_offset, learning_time_offset_hours, learning_time_gain_hours,
-    gating_max_duration_minutes, std_initial, gain_factor);
-  
-  preferences.getUInt("sgp_io_voc", index_offset);
-  preferences.getUInt("sgp_ltoh_voc", learning_time_offset_hours);
-  preferences.getUInt("sgp_ltgh_voc", learning_time_gain_hours);
-  preferences.getUInt("sgp_gmdm_voc", gating_max_duration_minutes);
-  preferences.getUInt("sgp_si_voc", std_initial);
-  preferences.getUInt("sgp_gf_voc", gain_factor);
-  preferences.end();
-*/
-
-
-
   //___________________________ INITIALIZE OLED ________________________
   if (OLEDon) {
     u8g2.begin();
@@ -591,10 +563,6 @@ void setup() {
 
   //___________________________ TASK MANAGER ________________________
 
-  // taskManager.setInterruptCallback(interruptTask);  // add interrupt routine for the button input
-  // taskManager.addInterrupt(&interruptAbstraction1, GPIO_NUM_0, FALLING);
-  // taskManager.addInterrupt(&interruptAbstraction1, GPIO_NUM_38, FALLING);
-  // FLOW_MENU();
   launchUtility();  // launch utility Menu, setup tasks
   lastInputTime = micros();
   //___________________________ END REPORT _____________________________
@@ -613,15 +581,7 @@ void setup() {
 }
 
 
-void pollServer() {
-  TAG = "handleServer() ";
-  timeTracker = micros();
 
-  server.handleClient();
-
-  debugF(timeTracker);
-  clientTracker = (micros() - timeTracker) / 1000.0;
-}
 
 void loop() {
 
