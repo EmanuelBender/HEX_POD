@@ -146,7 +146,7 @@ void setupWebInterface() {
     preferences.begin("my - app", false);
     preferences.putBool("debug", DEBUG);
     preferences.end();
-    emptyLogArray();
+    empty2DArray(console);
     server.send(200, "text/plain", "DEBUG mode enabled");
   });
   server.on("/toggleLOGBME", []() {
@@ -155,7 +155,7 @@ void setupWebInterface() {
     preferences.begin("my - app", false);
     preferences.putBool("bmelog", serialPrintBME1);
     preferences.end();
-    emptyLogArray();
+    empty2DArray(console);
     server.send(200, "text/plain", "BME LOG enabled");
   });
   server.on("/triggerUP", []() {
@@ -484,7 +484,6 @@ String generateSensorsPage() {
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   page += generateTimeOptions(loggingInterval);
   page += "</select></td>";
-  page += "<td>Int/Spl</td><td>" + String((bmeInterval / 1000.0) / bmeSamples) + "s</td>";
   page += "</tr>";
 
   // page += "<tr><td><b>Samples</b></td>";
@@ -509,7 +508,7 @@ String generateSensorsPage() {
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> Conditioning </td><td>" + String(conditioning_duration) + "s</td></tr>";
-  page += "<tr><td><b> Offs Delta </td><td>" + String(offsetDelta) + "</td></tr>";
+  page += "<tr><td><b> Offst Delta </td><td>" + String(offsetDelta) + "</td></tr>";
   page += "<tr><td><b> Smpl Delta </td><td>" + String(samplingDelta) + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
 
@@ -541,7 +540,7 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(bmeTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastBMEpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(bmeInterval / 1000) + "s</div></td>";
+  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String((bmeInterval / 1000.0) / bmeSamples) + "s</div></td>";
   page += "<td></td><td></td><td></td><td></td><td></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'><td></td><td><b> GAS_AVG </td><td><b> Temp </td><td><b >Humid </td><td><b> Press </td><td><b> Alt </td></tr>";
@@ -572,7 +571,7 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(sgpTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastSGPpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / 1000) + "s</div></td>";
+  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / 1000.0) + "s</div></td>";
   page += "<td></td><td></td><td></td><td></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";

@@ -2,7 +2,7 @@
 #include <pgmspace.h>
 
 void pollServer() {
-  TAG = "handleServer() ";
+  TAG = "pollWeb()      ";
   timeTracker = micros();
   server.handleClient();
   debugF(timeTracker);
@@ -100,8 +100,8 @@ void PowerStates() {
 
   previousPowerState = currentPowerState;
 
-  powerStTracker = (micros() - powerStTracker) / 1000.0;
   debugF(powerStTracker);
+  powerStTracker = (micros() - powerStTracker) / 1000.0;
 }
 
 
@@ -234,24 +234,6 @@ void statusLED(bool LEDon) {
 
 
 
-String convertTime(int pass_hour, int pass_min, int pass_sec, char seperator) {
-
-  char buffer[9];  // Assuming HH:MM:SS format
-  sprintf(buffer, "%02d%c%02d%c%02d", pass_hour, seperator, pass_min, seperator, pass_sec);
-
-  return buffer;
-}
-
-String convertSecToTime(uint32_t pass_sec) {
-
-  char buffer[9];  // Assuming HH:MM:SS format
-  int hours = pass_sec / 3600;
-  int minutes = (pass_sec % 3600) / MINUTES_IN_HOUR;
-  int seconds = pass_sec % SECONDS_IN_MINUTE;
-  sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
-
-  return buffer;
-}
 
 void updateTime() {
   TAG = "updateTime() ";
@@ -259,9 +241,9 @@ void updateTime() {
   uTimeTracker = micros();
 
   if (getLocalTime(&timeinfo)) {
-    printTime = String(convertTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':'));
-    printDate = String(convertTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.'));
-    uptimeString = String(convertSecToTime(millis() / 1000));
+    printTime = formatTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':');
+    printDate = formatTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.');
+    uptimeString = convertSecToTimestamp<String>(millis() / 1000);
   } else {
     // getNTP();
   }
@@ -391,7 +373,7 @@ void pollINA2() {
 void pollBME() {
   TAG = "pollBME2()   ";
   bmeTracker = micros();
-  lastBMEpoll = convertSecToTime(bmeTracker / 1000 / 1000);
+  lastBMEpoll = convertSecToTime<String>(bmeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (bme.checkStatus()) {
@@ -435,13 +417,22 @@ void pollBME() {
     bme_gas_avg = 0;
 
     if (!conditioning_duration) {
-      for (int i = 0; i < numProfiles; ++i) {  // calc Average
+
+      for (int i = 0; i < numProfiles; ++i) {  // calc Average Samples
         bme_resistance[i] /= bmeSamples;
+      }
+      // offsetDelta =                                                          ((1000 - bme_gas_avg) * -1);
+      // for centering Values
+      samplingDelta = ((bmeInterval / 1000.0) * bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
+
+      for (int i = 0; i < numProfiles; ++i) {  // apply sampl delta
+        bme_resistance[i] *= samplingDelta;
         bme_gas_avg += bme_resistance[i];
       }
       bme_gas_avg /= numProfiles;
-      samplingDelta = ((bmeInterval / 1000.0) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
-      offsetDelta = (1000 - bme_gas_avg) * -1;                                            // for centering Values
+      smallestValue = findSmallestValue(bme_resistance);
+      offsetDelta = smallestValue;
+
 
       // Serial.printf("Curr Meas: %d", repeater);
       // Serial.println();
@@ -451,7 +442,7 @@ void pollBME() {
       // Serial.println();
 
       for (int i = 0; i < numProfiles; ++i) {
-        bme_resistance_avg[i] = (bme_resistance[i] - offsetDelta) /* * samplingDelta*/;  // work in progress
+        bme_resistance_avg[i] = (bme_resistance[i] - offsetDelta);  // work in progress
 
         if (serialPrintBME1) {
           console[consoleLine][i] = String(bme_resistance_avg[i]);
@@ -481,10 +472,12 @@ void pollBME() {
 
 
 
+
+
 void pollSGP() {
   TAG = "pollSGP()    ";
   timeTracker = micros();
-  lastSGPpoll = convertSecToTime(timeTracker / 1000 / 1000);
+  lastSGPpoll = convertSecToTime<String>(timeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   auto compensationT = static_cast<uint16_t>((data.temperature + 45) * 65535 / 175);
@@ -536,8 +529,6 @@ void configSGP() {
 
 
 
-
-
 void debugF(uint32_t tracker) {
   if (DEBUG) {
     float elapsedTime = (micros() - tracker) / 1000.0;
@@ -551,7 +542,7 @@ void debugF(uint32_t tracker) {
 
     // Clear remaining console entries
     for (int b = 4; b < numProfiles; b++) {
-      console[consoleLine][b] = "";
+      console[consoleLine][b] = String();
     }
 
     consoleLine++;
@@ -564,10 +555,10 @@ void debugF(uint32_t tracker) {
 }
 
 
-void emptyLogArray() {
-  for (int i = 0; i < 55; i++) {
-    for (int b = 0; b < numProfiles; b++) {
-      console[i][b] = "";
+void empty2DStringArray(String array[][consoleColumns], int rows) {
+  for (int i = 0; i < rows; i++) {
+    for (int b = 0; b < consoleColumns; b++) {
+      array[i][b] = String();
     }
   }
 }

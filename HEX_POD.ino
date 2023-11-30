@@ -147,14 +147,16 @@ SPIClass sdSPI = SPIClass(HSPI);
 uint32_t loggingInterval;        // stored in Prefs
 uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Prefs
 
-
-String SDarray[50][65];
+const byte consoleColumns = 50;
+String SDarray[55][consoleColumns];
 uint32_t SDIndex = 0;
 bool SDinserted;
 uint8_t serialColumn;
 
 uint8_t consoleLine;
-String console[55][65];
+String console[55][consoleColumns];
+
+// delete[] myStringArray;
 
 uint32_t file_system_size, file_system_used, free_size, program_size, psramSize, freePsram;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz;
@@ -251,7 +253,7 @@ uint32_t bmeInterval;  //  interval polling Sensor
 const byte numProfiles = 14;
 uint32_t bme_resistance[numProfiles];  // = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint32_t bme_resistance_avg[numProfiles];
-uint32_t bme_gas_avg;
+uint32_t bme_gas_avg, smallestValue;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 double Altitude, samplingDelta;
@@ -288,19 +290,19 @@ uint16_t heatProf_1[] = {
 };
 */
 uint16_t durProf_1[] = {
-  10,  // 1
-  10,  // 2
-  10,  // 3
-  10,  // 4
-  10,  // 5
-  10,  // 6
-  10,  // 7
-  10,  // 8
-  10,  // 9
-  10,  // 10
-  10,  // 11
-  10,  // 12
-  10,  // 13
+  5,  // 1
+  5,  // 2
+  5,  // 3
+  5,  // 4
+  5,  // 5
+  5,  // 6
+  5,  // 7
+  5,  // 8
+  5,  // 9
+  5,  // 10
+  5,  // 11
+  5,  // 12
+  5,  // 13
 };
 
 
@@ -589,4 +591,57 @@ void setup() {
 void loop() {
 
   taskManager.runLoop();
+}
+
+
+
+// Templates
+
+String formatTime(int pass_hour, int pass_min, int pass_sec, char seperator) {  //
+
+  char buffer[9];  // Assuming HH:MM:SS format
+  sprintf(buffer, "%02d%c%02d%c%02d", pass_hour, seperator, pass_min, seperator, pass_sec);
+
+  return buffer;
+}
+
+template<typename T>
+T convertSecToTimestamp(uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
+  int hours = pass_sec / 3600;
+  int minutes = (pass_sec % 3600) / MINUTES_IN_HOUR;
+  int seconds = pass_sec % SECONDS_IN_MINUTE;
+
+  char buffer[9];  // Assuming HH:MM:SS format
+  sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
+
+  return T(buffer);
+}
+
+
+template<typename T, size_t N>
+T findSmallestValue(const T (&array)[N]) {
+  if (N <= 0) {
+    // Handle empty array case
+    // You can return a sentinel value or throw an exception, depending on your needs
+    return T();  // Return default-constructed value
+  }
+
+  T smallestValue = array[0];  // Initialize with the first element
+
+  for (size_t i = 1; i < N; ++i) {
+    if (array[i] < smallestValue) {
+      smallestValue = array[i];
+    }
+  }
+
+  return smallestValue;
+}
+
+template<typename T, size_t Rows, size_t Columns>
+void empty2DArray(T (&array)[Rows][Columns]) {
+  for (size_t i = 0; i < Rows; ++i) {
+    for (size_t b = 0; b < Columns; ++b) {
+      array[i][b] = T();
+    }
+  }
 }
