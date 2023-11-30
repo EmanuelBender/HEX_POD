@@ -436,8 +436,8 @@ void pollBME() {
     bme_gas_avg = 0;
     if (!conditioning_duration) {
       for (int i = 0; i < numProfiles; ++i) {
-        float samplingDelta = (((bmeInterval / ONEMILLION) * bmeSamples) + durProf_1[0] / ((bmeInterval / ONEMILLION) / bmeSamples));  // work in progress,
-        bme_resistance_avg[i] = (bme_resistance[i] / samplingDelta) /* - bmeFloorOffs*/;                                               // work in progress,
+        float samplingDelta = ((bmeInterval / ONEMILLION) / bmeSamples) + durProf_1[0];   // work in progress,
+        bme_resistance_avg[i] = (bme_resistance[i] / samplingDelta) /* - bmeFloorOffs*/;  // work in progress,
         bme_gas_avg += bme_resistance_avg[i];
 
         if (serialPrintBME1) {
