@@ -36,7 +36,7 @@ void launchUtility() {
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
   BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
   SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-  LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
+  LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
   IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
@@ -286,16 +286,16 @@ void getNTP() {
   ntpTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (WiFi.status() != WL_CONNECTED) {
-    // WiFi.reconnect();
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(100);
-      if (millis() - ntpTracker > WiFiTimeout) {
-        ESP_LOGE("NTP", "WiFi Timeout. None found.");
-        break;
-      }
+  //if (WiFi.status() != WL_CONNECTED) {
+  // WiFi.reconnect();
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(100);
+    if (millis() - ntpTracker > WiFiTimeout) {
+      ESP_LOGE("NTP", "WiFi Timeout. None found.");
+      break;
     }
   }
+  // }
 
   if (DEBUG) {
     ESP_LOGI("NTP", "Getting time..");
@@ -348,7 +348,7 @@ void pollTemp() {
 
 void pollIMU() {
   TAG = "pollIMU()   ";
-  timeTracker = micros();
+  imuTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   lis.read();
   X = lis.x;
@@ -360,8 +360,8 @@ void pollIMU() {
   X = event.acceleration.x;
   Y = event.acceleration.y;
   Z = event.acceleration.z; */
-  debugF(timeTracker);
-  imuTracker = (micros() - timeTracker) / 1000.0;
+  debugF(imuTracker);
+  imuTracker = (micros() - imuTracker) / 1000.0;
 }
 
 
@@ -390,8 +390,8 @@ void pollINA2() {
 
 void pollBME() {
   TAG = "pollBME2()   ";
-  timeTracker = micros();
-  lastBMEpoll = convertSecToTime(timeTracker / 1000 / 1000);
+  bmeTracker = micros();
+  lastBMEpoll = convertSecToTime(bmeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (bme.checkStatus()) {
@@ -404,11 +404,14 @@ void pollBME() {
   }
 
   Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
+
+
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
   bme.setFilter(bmeFilter);
   bme.fetchData();
   bme.getData(data);
   bme.setAmbientTemp(data.temperature);
+
   repeater++;
 
   for (bmeProfile = 0; bmeProfile < numProfiles; bmeProfile++) {
@@ -416,6 +419,7 @@ void pollBME() {
     heaterTemp = heatProf_1[bmeProfile];
 
     delay(bmeProfilePause);
+    bme.setAmbientTemp(data.temperature);
     bme.setHeaterProf(heaterTemp, duration);
     bme.setOpMode(BME68X_FORCED_MODE);
     // delayMicroseconds(bme.getMeasDur());
@@ -432,7 +436,8 @@ void pollBME() {
     bme_gas_avg = 0;
     if (!conditioning_duration) {
       for (int i = 0; i < numProfiles; ++i) {
-        bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - bmeFloorOffs;
+        float samplingDelta = (((bmeInterval / ONEMILLION) * bmeSamples) + durProf_1[0] / ((bmeInterval / ONEMILLION) / bmeSamples));  // work in progress,
+        bme_resistance_avg[i] = (bme_resistance[i] / samplingDelta) /* - bmeFloorOffs*/;                                               // work in progress,
         bme_gas_avg += bme_resistance_avg[i];
 
         if (serialPrintBME1) {
@@ -453,10 +458,12 @@ void pollBME() {
       }
     }
   }
-
   bme.setOpMode(BME68X_SLEEP_MODE);
-  debugF(timeTracker);
-  bmeTracker = (micros() - timeTracker) / 1000.0;
+
+
+
+  debugF(bmeTracker);
+  bmeTracker = (micros() - bmeTracker) / 1000.0;
 }
 
 
@@ -490,7 +497,6 @@ void pollSGP() {
 
 
 void configSGP() {
-
   // error = sgp41.turnHeaterOff();
   error = sgp41.executeSelfTest(sgpError);
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));

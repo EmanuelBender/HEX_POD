@@ -258,37 +258,49 @@ uint16_t duration, heaterTemp;
 float Altitude;
 
 uint16_t heatProf_1[] = {
-  80,   // 1
-  90,   // 2
-  100,  // 3
-  120,  // 4
-  140,  // 5
-  160,  // 6
-  180,  // 7
-  200,  // 8
-  220,  // 9
-  240,  // 10
-  260,  // 11
-  280,  // 12
-  300,  // 13
-  320,  // 14
+  90,   // 0
+  100,  // 1
+  120,  // 2
+  140,  // 3
+  160,  // 4
+  180,  // 5
+  200,  // 6
+  220,  // 7
+  240,  // 8
+  260,  // 9
+  280,  // 10
+  300,  // 11
+  320,  // 12
+  340,  // 13
 };
-
-uint8_t durProf_1[] = {
-  6,  // 1
-  5,  // 2
-  5,  // 3
-  5,  // 4
-  5,  // 5
-  5,  // 6
-  5,  // 7
-  5,  // 8
-  5,  // 9
-  5,  // 10
-  5,  // 11
-  5,  // 12
-  5,  // 13
-  5,  // 14
+/*
+uint16_t heatProf_1[] = {
+  100,  // 1
+  110,  // 2
+  120,  // 3
+  130,  // 4
+  140,  // 5
+  150,  // 6
+  170,  // 7
+  200,  // 8
+  250,  // 9
+  350,  // 10
+};
+*/
+uint16_t durProf_1[] = {
+  15,  // 1
+  15,  // 2
+  15,  // 3
+  15,  // 4
+  15,  // 5
+  15,  // 6
+  15,  // 7
+  15,  // 8
+  15,  // 9
+  15,  // 10
+  15,  // 11
+  15,  // 12
+  15,  // 13
 };
 
 
@@ -503,8 +515,8 @@ void setup() {
     INA2.setMaxCurrentShunt(1, 0.001);  //  maxCurrent, shunt
     INA2.setBusVoltageRange(16);        // 16,32
     INA2.setGain(8);                    // 1,2,4,8
-    //INA2.setBusADC(3);
-    //INA2.setShuntADC(3);
+    // INA2.setBusADC(3);
+    // INA2.setShuntADC(3);
     // INA2.setMode(7);
     // INA2.setModeShuntBusTrigger();
   }
@@ -521,9 +533,9 @@ void setup() {
     }
   }
 
-  // Set BME68X settings
   bmeInterval = loggingInterval;
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
+  // bme.setTPH();
   bme.fetchData();
   bme.getData(data);
   bme.setOpMode(BME68X_SLEEP_MODE);

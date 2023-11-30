@@ -55,7 +55,7 @@ void setupWebInterface() {
   });
   server.on("/updateLoggingInterval", HTTP_GET, []() {
     loggingInterval = server.arg("value").toInt();
-    bmeInterval = loggingInterval;
+
     taskManager.cancelTask(BMEID);
     taskManager.cancelTask(SGPID);
     taskManager.cancelTask(LOG);
@@ -64,19 +64,18 @@ void setupWebInterface() {
     preferences.begin("my - app", false);
     preferences.putUInt("logItvl", loggingInterval);
     preferences.end();
+    bmeInterval = loggingInterval;
 
     repeater = 0;
     consoleLine = 0;
-    bme_gas_avg = 0;
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
-      // bme_resistance_avg[i] = 0;
     }
 
     TEMPID = taskManager.schedule(repeatMillis(loggingInterval), pollTemp);
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
     server.send(200, "text/plain", "Logging interval updated");
   });
 
@@ -92,15 +91,13 @@ void setupWebInterface() {
 
     repeater = 0;
     consoleLine = 0;
-    bme_gas_avg = 0;
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
-      // bme_resistance_avg[i] = 0;
     }
 
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
     server.send(200, "text/plain", "BME samples updated");
   });
 
@@ -462,7 +459,7 @@ String valueOptions(int selectedValue) {
   String pageS = "";
   int i;
 
-  for (i = 0; i <= 30; i += 1) {
+  for (i = 0; i <= 100; i += 1) {
     int value = i;
     pageS += "<option value='" + String(value) + "'";
     if (value == selectedValue) {
@@ -690,7 +687,7 @@ String generateUtilityPage() {
 }
 
 void handleNotFound() {
-  String message = "File Not Found\n\n";
+  String message = "Page Not Found\n\n";
   message += "URI: ";
   message += server.uri();
   message += "\nMethod: ";
