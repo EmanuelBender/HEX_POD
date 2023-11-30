@@ -249,13 +249,13 @@ Bme68x bme;
 String BME_ERROR, lastBMEpoll;
 uint32_t bmeInterval;  //  interval polling Sensor
 const byte numProfiles = 14;
-const uint16_t bmeFloorOffs = 5684;
 uint32_t bme_resistance[numProfiles];  // = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint32_t bme_resistance_avg[numProfiles];
-double bme_gas_avg;
+uint32_t bme_gas_avg;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
-float Altitude;
+double Altitude, samplingDelta;
+int32_t offsetDelta;
 
 uint16_t heatProf_1[] = {
   90,   // 0
@@ -288,19 +288,19 @@ uint16_t heatProf_1[] = {
 };
 */
 uint16_t durProf_1[] = {
-  15,  // 1
-  15,  // 2
-  15,  // 3
-  15,  // 4
-  15,  // 5
-  15,  // 6
-  15,  // 7
-  15,  // 8
-  15,  // 9
-  15,  // 10
-  15,  // 11
-  15,  // 12
-  15,  // 13
+  10,  // 1
+  10,  // 2
+  10,  // 3
+  10,  // 4
+  10,  // 5
+  10,  // 6
+  10,  // 7
+  10,  // 8
+  10,  // 9
+  10,  // 10
+  10,  // 11
+  10,  // 12
+  10,  // 13
 };
 
 
@@ -377,6 +377,7 @@ void setup() {
   loggingInterval = preferences.getUInt("logItvl", 30000);
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
+
   bmeFilter = preferences.getUInt("bmeFilter", 0);
   bmeProfilePause = preferences.getUInt("bmePause", 0);
   // System Prefs

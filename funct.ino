@@ -406,7 +406,7 @@ void pollBME() {
   Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
 
 
-  bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
+  bme.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
   bme.setFilter(bmeFilter);
   bme.fetchData();
   bme.getData(data);
@@ -425,27 +425,39 @@ void pollBME() {
     // delayMicroseconds(bme.getMeasDur());
 
     while (!bme.fetchData()) {
-      delay(1);
+      delay(5);
     }
     bme.getData(data);
     if (!conditioning_duration) bme_resistance[bmeProfile] += data.gas_resistance;
   }
 
   if (repeater == bmeSamples) {
-    repeater = 0;
     bme_gas_avg = 0;
+
     if (!conditioning_duration) {
+      for (int i = 0; i < numProfiles; ++i) {  // calc Average
+        bme_resistance[i] /= bmeSamples;
+        bme_gas_avg += bme_resistance[i];
+      }
+      bme_gas_avg /= numProfiles;
+      samplingDelta = ((bmeInterval / 1000.0) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
+      offsetDelta = (1000 - bme_gas_avg) * -1;                                            // for centering Values
+
+      // Serial.printf("Curr Meas: %d", repeater);
+      // Serial.println();
+      // Serial.printf("Offset Delta:%d", offsetDelta);
+      // Serial.println();
+      // Serial.printf("Sampling Delta: %f", samplingDelta);
+      // Serial.println();
+
       for (int i = 0; i < numProfiles; ++i) {
-        float samplingDelta = ((bmeInterval / ONEMILLION) / bmeSamples) + durProf_1[0];   // work in progress,
-        bme_resistance_avg[i] = (bme_resistance[i] / samplingDelta) /* - bmeFloorOffs*/;  // work in progress,
-        bme_gas_avg += bme_resistance_avg[i];
+        bme_resistance_avg[i] = (bme_resistance[i] - offsetDelta) /* * samplingDelta*/;  // work in progress
 
         if (serialPrintBME1) {
           console[consoleLine][i] = String(bme_resistance_avg[i]);
-          Serial.print("BME" + String(i + 1) + ":" + String(bme_resistance_avg[i]) + "\t");
+          Serial.print("BME" + String(i) + ":" + String(bme_resistance_avg[i]) + "\t");
         }
       }
-      bme_gas_avg /= numProfiles;
 
       if (serialPrintBME1) {
         consoleLine++;
@@ -457,6 +469,7 @@ void pollBME() {
         bme_resistance[i] = 0;
       }
     }
+    repeater = 0;
   }
   bme.setOpMode(BME68X_SLEEP_MODE);
 

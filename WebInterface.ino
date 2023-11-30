@@ -68,6 +68,7 @@ void setupWebInterface() {
 
     repeater = 0;
     consoleLine = 0;
+    offsetDelta = 0;
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
@@ -91,6 +92,7 @@ void setupWebInterface() {
 
     repeater = 0;
     consoleLine = 0;
+    offsetDelta = 0;
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
@@ -217,8 +219,8 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "fetch('/updateBMEsamples?value=' + selectedValue);"
          "}"
          "function updateBMEfilter() { "
-         "var filterMs = document.getElementById('bmeFilter');"
-         "var selectedValue = filterMs.options[filterMs.selectedIndex].value;"
+         "var filter = document.getElementById('bmeFilter');"
+         "var selectedValue = filter.options[filter.selectedIndex].value;"
          "fetch('/updateBMEfilter?value=' + selectedValue);"
          "}"
          "function updateBMEpause() { "
@@ -482,6 +484,7 @@ String generateSensorsPage() {
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   page += generateTimeOptions(loggingInterval);
   page += "</select></td>";
+  page += "<td>Int/Spl</td><td>" + String((bmeInterval / 1000.0) / bmeSamples) + "s</td>";
   page += "</tr>";
 
   // page += "<tr><td><b>Samples</b></td>";
@@ -504,7 +507,10 @@ String generateSensorsPage() {
   page += "</select></td>";
   page += "</tr>";
 
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> Conditioning </td><td>" + String(conditioning_duration) + "s</td></tr>";
+  page += "<tr><td><b> Offs Delta </td><td>" + String(offsetDelta) + "</td></tr>";
+  page += "<tr><td><b> Smpl Delta </td><td>" + String(samplingDelta) + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
 
   page += "<tr style='font-size: 12px;'><td><b> Profile Heater </td>";
