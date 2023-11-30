@@ -3,7 +3,7 @@
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
 <p align=center><b>Your companion for the next Apocalypse</b></p>
-<p style='text-align:center font-size:10px;'> by eBender <br>
+<p align=center font-size=10px > by eBender <br>
 ⚠️ This project is in an early dev stage. </p>
   
   <p align=center><b><a href="https://hackaday.io/project/177083-h6x-pod">Hackaday</a> <br>
@@ -15,7 +15,14 @@
 <br></b>
 
 ![a11 2 darkRoom 6 3](https://user-images.githubusercontent.com/46021872/226058171-460dcfab-38cb-4363-80db-4e1024c49589.jpg)
-
+<p>
+<h3>Sensors</h3>
+<table>
+<tr><td>BME688 (x2)</td></tr>
+<tr><td>SGP41</td></tr>
+<tr><td>SCD41</td></tr>
+</table>
+</p>
 <p>
 <b>How the idea found me:</b><br/>
 
