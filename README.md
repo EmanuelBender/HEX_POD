@@ -21,6 +21,9 @@
 <tr><td>BME688 (x2)</td></tr>
 <tr><td>SGP41</td></tr>
 <tr><td>SCD41</td></tr>
+<tr><td>LIS3DH</td></tr>
+<tr><td>LTR-308</td></tr>
+<tr><td>DS18B20 (x6)</td></tr>
 </table>
 </p>
 <p>
