@@ -16,8 +16,8 @@
 
 ![a11 2 darkRoom 6 3](https://user-images.githubusercontent.com/46021872/226058171-460dcfab-38cb-4363-80db-4e1024c49589.jpg)
 <p>
-<h3>Sensors</h3>
 <table>
+<tr><td><b> Sensors </b></td></tr>
 <tr><td>BME688 (x2)</td></tr>
 <tr><td>SGP41</td></tr>
 <tr><td>SCD41</td></tr>

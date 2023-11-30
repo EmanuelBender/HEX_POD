@@ -65,8 +65,13 @@ void setupWebInterface() {
     preferences.putUInt("logItvl", loggingInterval);
     preferences.end();
 
-    repeater = bmeSamples - 1;
+    repeater = 0;
     consoleLine = 0;
+    bme_gas_avg = 0;
+    for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
+      bme_resistance[i] = 0;
+      // bme_resistance_avg[i] = 0;
+    }
 
     TEMPID = taskManager.schedule(repeatMillis(loggingInterval), pollTemp);
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
@@ -85,8 +90,13 @@ void setupWebInterface() {
     preferences.putUInt("bmeSpls", bmeSamples);
     preferences.end();
 
-    repeater = bmeSamples - 1;
+    repeater = 0;
     consoleLine = 0;
+    bme_gas_avg = 0;
+    for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
+      bme_resistance[i] = 0;
+      // bme_resistance_avg[i] = 0;
+    }
 
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
@@ -471,7 +481,7 @@ String generateSensorsPage() {
   // Settings table
   page += "<tr><td><h2> Sensor Settings </h2></td></tr>";
 
-  page += "<tr><td><label for='loggingInterval'><b> Interval</b>[s]</label></td>";
+  page += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   page += generateTimeOptions(loggingInterval);
   page += "</select></td>";
@@ -491,7 +501,7 @@ String generateSensorsPage() {
   page += "</tr>";
 
   //page += "<tr><td><b> Pause</b>[ms]</td>";
-  page += "<tr><td><label for='bmeSamples'><b> Pause</b>[ms]</label></td>";
+  page += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>";
   page += "<td><select id='bmePause' onchange='updateBMEpause()'>";
   page += valueOptions(bmeProfilePause);
   page += "</select></td>";

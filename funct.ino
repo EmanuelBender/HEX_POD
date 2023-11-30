@@ -11,14 +11,12 @@ void pollServer() {
 
 void IRAM_ATTR CTR_ISR() {
   BUTTON = true;
-  BTNID = taskManager.schedule(onceMicros(10), pollButtons);
+  BTNID = taskManager.schedule(onceMicros(5), pollButtons);
 }
 void IRAM_ATTR UDLR_ISR() {
   INT_TRGR = true;
   BTNID = taskManager.schedule(onceMicros(1), pollButtons);
 }
-
-
 
 
 void launchUtility() {
@@ -40,11 +38,11 @@ void launchUtility() {
   SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
   LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
-  WEB = taskManager.schedule(repeatMillis(100), pollServer);
+  WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
   IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
   taskManager.setTaskEnabled(IMUID, false);
 
-  // if (!blockMenu) taskManager.schedule(onceMicros(10), reloadMenu);
+  if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
 }
 
 
@@ -88,6 +86,7 @@ void PowerStates() {
       while (TFTbrightness > 0.0) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
+        taskManager.yieldForMicros(500);
       }
 
     } else if (currentPowerState == IDLE) {
@@ -288,9 +287,8 @@ void getNTP() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.reconnect();
+    // WiFi.reconnect();
     while (WiFi.status() != WL_CONNECTED) {
-      WiFiIP = WiFi.localIP().toString();
       delay(100);
       if (millis() - ntpTracker > WiFiTimeout) {
         ESP_LOGE("NTP", "WiFi Timeout. None found.");
@@ -309,6 +307,7 @@ void getNTP() {
     delay(20);
     updateTime();
     lastNTPtime = printTime + " " + printDate;
+    WiFiIP = WiFi.localIP().toString();
 
     // setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
     //tzset();
@@ -404,14 +403,12 @@ void pollBME() {
     }
   }
 
-  /*bme.setHeaterProf(heatProf_1[0] / 2, durProf_1[0] * 2);  // warm-up
-  bme.setOpMode(BME68X_FORCED_MODE);
-  delayMicroseconds(bme.getMeasDur()); */
+  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
+  bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
   bme.setFilter(bmeFilter);
+  bme.fetchData();
   bme.getData(data);
   bme.setAmbientTemp(data.temperature);
-  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
-
   repeater++;
 
   for (bmeProfile = 0; bmeProfile < numProfiles; bmeProfile++) {
@@ -421,42 +418,43 @@ void pollBME() {
     delay(bmeProfilePause);
     bme.setHeaterProf(heaterTemp, duration);
     bme.setOpMode(BME68X_FORCED_MODE);
-    delayMicroseconds(bme.getMeasDur());
+    // delayMicroseconds(bme.getMeasDur());
 
-    if (bme.fetchData()) {
-
-      bme.getData(data);
-      bme_resistance[bmeProfile] += data.gas_resistance;
+    while (!bme.fetchData()) {
+      delay(1);
     }
+    bme.getData(data);
+    if (!conditioning_duration) bme_resistance[bmeProfile] += data.gas_resistance;
   }
 
   if (repeater == bmeSamples) {
     repeater = 0;
     bme_gas_avg = 0;
+    if (!conditioning_duration) {
+      for (int i = 0; i < numProfiles; ++i) {
+        bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - bmeFloorOffs;
+        bme_gas_avg += bme_resistance_avg[i];
 
-    for (int i = 0; i < numProfiles; ++i) {
-      bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - bmeFloorOffs;
-      bme_gas_avg += bme_resistance_avg[i];
+        if (serialPrintBME1) {
+          console[consoleLine][i] = String(bme_resistance_avg[i]);
+          Serial.print("BME" + String(i + 1) + ":" + String(bme_resistance_avg[i]) + "\t");
+        }
+      }
+      bme_gas_avg /= numProfiles;
 
       if (serialPrintBME1) {
-        console[consoleLine][i] = String(bme_resistance_avg[i]);
-        Serial.print("BME" + String(i + 1) + ":" + String(bme_resistance_avg[i]) + "\t");
+        consoleLine++;
+        if (consoleLine >= 55) consoleLine = 0;
+        Serial.println();
       }
-    }
-    bme_gas_avg /= numProfiles;
 
-    if (serialPrintBME1) {
-      consoleLine++;
-      if (consoleLine >= 55) consoleLine = 0;
-      Serial.println();
-    }
-
-    for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
-      bme_resistance[i] = 0;
+      for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
+        bme_resistance[i] = 0;
+      }
     }
   }
 
-  // bme.setOpMode(BME68X_SLEEP_MODE);
+  bme.setOpMode(BME68X_SLEEP_MODE);
   debugF(timeTracker);
   bmeTracker = (micros() - timeTracker) / 1000.0;
 }

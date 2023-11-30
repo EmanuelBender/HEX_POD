@@ -6,7 +6,7 @@ void reloadMenu() {  // one-shot
   TAG = "reloadMenu()";
   timeTracker = micros();
 
-  taskManager.schedule(onceMicros(30), statusBar);
+
 
   tft.setTextColor(TFT_WHITE);
   tft.setTextDatum(TL_DATUM);
@@ -27,6 +27,7 @@ void reloadMenu() {  // one-shot
   }
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  taskManager.schedule(onceMicros(3), statusBar);
 }
 
 

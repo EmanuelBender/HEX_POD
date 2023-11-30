@@ -6,25 +6,34 @@
 #include "SPI.h"
 #include <WiFi.h>
 #include <ArduinoBLE.h>
-// #include <Credentials.h>
 #include <Preferences.h>
+#include "time.h"
+#include "SPIFFS.h"
+#include "FS.h"
+#include "SD.h"
 
 #define sda GPIO_NUM_18
 #define scl GPIO_NUM_17
 
 #include <PCA95x5.h>
-#include <DallasTemperature.h>
 #include <OneWire.h>
 
-#include "SPIFFS.h"
-#include "FS.h"
-#include "SD.h"
+#include "TFT_eSPI.h"
+#include <U8g2lib.h>
 
-// #include <AsyncTCP.h>
-// #include <ESPAsyncWebServer.h>
+#include <Adafruit_Sensor.h>
+#include "INA219.h"
+#include "bme68xLibrary.h"
+#include <SensirionI2CSgp41.h>
+#include <VOCGasIndexAlgorithm.h>
+#include <NOxGasIndexAlgorithm.h>
+#include <DallasTemperature.h>
+#include <Adafruit_LIS3DH.h>
+
 //AsyncWebServer server(80);
-#include <ESPmDNS.h>
 #include <WebServer.h>
+#include <ESPmDNS.h>
+#include "esp_sntp.h"
 // #include <WebSocketsServer.h>
 WebServer server(80);
 uint8_t webServerPollMs = 100;
@@ -40,6 +49,7 @@ uint8_t webServerPollMs = 100;
 #include "esp_log.h"
 #include <esp_system.h>
 #include <esp_cpu.h>
+#include <ESP32Servo.h>
 
 #include "TaskManagerIO.h"
 #include <BasicInterruptAbstraction.h>
@@ -84,9 +94,7 @@ String menuOptions[5] = {
 
 
 
-#include "time.h"  // ____________________________  TIME  __________________________
-#include "esp_sntp.h"
-// byte WiFistatus, WiFiRSSI;
+// ____________________________  TIME  __________________________
 String WiFiIP;
 const char* hostname = "[HEX]POD";
 const int WiFiTimeout = 8000;
@@ -118,7 +126,6 @@ String taskArray[slotsSize];
 String TaskNames[slotsSize];
 
 //________________________________________________________________  GENERAL  _______________________
-
 Preferences preferences;
 
 bool DEBUG = false;
@@ -133,12 +140,12 @@ SPIClass sdSPI = SPIClass(HSPI);
 #define SD_SCLK 12
 #define SD_CS 21
 
-#define SPI_FREQUENCY 60000000       // 80000000 tested ok
-#define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
-#define I2C_SPEED 400000             // 800000   tested ok
+// #define SPI_FREQUENCY 60000000       // 80000000 tested ok
+// #define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
+#define I2C_SPEED 400000  // 800000   tested ok
 
-uint32_t loggingInterval = 5;    // logAll
-uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins
+uint32_t loggingInterval;        // stored in Prefs
+uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Prefs
 
 
 String SDarray[50][65];
@@ -193,9 +200,7 @@ uint8_t click;
 int PCABITS = 0b0000000000000000;
 
 //TFT_eSPI_______________________________________________________________
-#include "TFT_eSPI.h"
 TFT_eSPI tft = TFT_eSPI();  // before TFT_eSPI library updates, save 'Setup203_ST7789.h', 'User_Setup_Select.h', 'User_Setup.h'. Replace after updating.
-#include <ESP32Servo.h>
 ESP32PWM pwm;
 float TFTbrightness;
 
@@ -216,15 +221,12 @@ uint16_t colors[12];
 
 
 //OLED______________________________________________________________________
-#include <U8g2lib.h>
 U8G2_SH1106_128X32_VISIONOX_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 const byte oledDatum_X = 0;
 const byte oledDatum_Y = 32;
 bool OLEDon = false;
 
 //LIS3______________________________________________________________________
-#include <Adafruit_LIS3DH.h>
-#include <Adafruit_Sensor.h>
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 int X, Y, Z;
 // #define CLICKTHRESHHOLD 80
@@ -234,15 +236,12 @@ uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 25
 uint8_t imuSampleCount;
 
 //DS18B20___________________________________________________________________
-
 OneWire oneWire(8);
 DallasTemperature tempSens(&oneWire);
 DeviceAddress tempProbe1 = { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 };
 double temp1;
 
 //BME688___________________________________________________________________
-#include "bme68xLibrary.h"
-
 #define NEW_GAS_MEAS (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK | BME68X_NEW_DATA_MSK)
 bme68xData data;
 Bme68x bme;
@@ -259,8 +258,8 @@ uint16_t duration, heaterTemp;
 float Altitude;
 
 uint16_t heatProf_1[] = {
-  75,   // 1
-  85,   // 2
+  80,   // 1
+  90,   // 2
   100,  // 3
   120,  // 4
   140,  // 5
@@ -295,10 +294,6 @@ uint8_t durProf_1[] = {
 
 
 //SGP41___________________________________________________________________
-#include <SensirionI2CSgp41.h>
-#include <VOCGasIndexAlgorithm.h>
-#include <NOxGasIndexAlgorithm.h>
-
 VOCGasIndexAlgorithm voc_algorithm;
 NOxGasIndexAlgorithm nox_algorithm;
 SensirionI2CSgp41 sgp41;
@@ -324,7 +319,6 @@ int32_t VOC, NOX;
 
 
 // INA219B_____________________________________________
-#include "INA219.h"
 INA219 INA2(0x40);
 float BUS2_BusVoltage;
 float BUS2_ShuntVoltage;
@@ -357,21 +351,18 @@ void setup() {
   }
 
   //_________________ INITIALIZE Preferences & WiFi ____________________
-
+  // Credential Prefs
   preferences.begin("credentials", true);      // true : read only
   webHost = preferences.getString("webHost");  // hexpod
   webPw = preferences.getString("webPw");
-
+  delay(200);
   WiFi.setHostname(hostname);  //define hostname
   WiFi.begin(preferences.getString("ssid", "NaN"), preferences.getString("pw", "NaN"));
-  delay(200);
-
   preferences.end();
 
   preferences.begin("my - app", false);
-
   // Sensor Prefs
-  loggingInterval = preferences.getUInt("logItvl", 15000);
+  loggingInterval = preferences.getUInt("logItvl", 30000);
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
   bmeFilter = preferences.getUInt("bmeFilter", 0);
@@ -379,7 +370,7 @@ void setup() {
   // System Prefs
   SLEEPENABLE = preferences.getBool("sleep", 0);
   OLEDon = preferences.getBool("oled", 1);
-  DEBUG = preferences.getBool("debug", 0);
+  DEBUG = preferences.getBool("debug", 1);
   restarts = preferences.getUInt("counter", 0);
   restarts++;
   preferences.putUInt("counter", restarts);
@@ -407,7 +398,7 @@ void setup() {
   tft.setTextDatum(TC_DATUM);
   tft.setTextPadding(100);
 
-  /*
+
   TAG = "SD";
   pinMode(GPIO_NUM_47, INPUT);  // SD present
   SDinserted = digitalRead(GPIO_NUM_47);
@@ -424,7 +415,7 @@ void setup() {
       ESP_LOGI(TAG, "SD card Init Failed.");
     }
   }
-*/
+
   //_________________________ INITIALIZE GPIO __________________________
   void IRAM_ATTR UDLR_ISR();
   void IRAM_ATTR CTR_ISR();
@@ -448,7 +439,7 @@ void setup() {
   attachInterrupt(GPIO_NUM_38, UDLR_ISR, FALLING);
   // pinMode(GPIO_NUM_45, INPUT);  // free, bootstrap
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
-  pinMode(GPIO_NUM_47, INPUT);  // SD present
+  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
   // pinMode(GPIO_NUM_48, INPUT);  // free
 
   //_______________________ INITIALIZE MULTIPLEXER ______________________
@@ -519,10 +510,7 @@ void setup() {
   }
 
   //___________________________ INITIALIZE BME688 _____________________
-
   bme.begin(0x77, Wire);
-
-  bmeInterval = loggingInterval;
 
   if (bme.checkStatus()) {
     if (bme.checkStatus() == BME68X_ERROR) {
@@ -534,18 +522,11 @@ void setup() {
   }
 
   // Set BME68X settings
+  bmeInterval = loggingInterval;
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
-  bme.setFilter(bmeFilter);
-  // bme.setOpMode(BME68X_SLEEP_MODE);
-
-  // pollBME();  // pre-conditioning
-  // pollBME();
-
-  bme.setHeaterProf(100, 200);
-  bme.setOpMode(BME68X_FORCED_MODE);
-  delayMicroseconds(bme.getMeasDur());
-  bme.setHeaterProf(320, 20);
-  bme.setOpMode(BME68X_FORCED_MODE);
+  bme.fetchData();
+  bme.getData(data);
+  bme.setOpMode(BME68X_SLEEP_MODE);
 
   //___________________________ INITIALIZE SGP41 _____________________
   sgp41.begin(Wire);
