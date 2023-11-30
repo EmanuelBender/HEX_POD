@@ -232,7 +232,6 @@ const uint8_t imuAvg = 55;  // averaging samples
 uint16_t imuInterval = 1000;
 uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 256
 uint8_t imuSampleCount;
-bool isFalling;
 
 //DS18B20___________________________________________________________________
 
@@ -255,7 +254,7 @@ const uint16_t bmeFloorOffs = 5684;
 uint32_t bme_resistance[numProfiles];  // = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint32_t bme_resistance_avg[numProfiles];
 double bme_gas_avg;
-uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause;
+uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 float Altitude;
 
@@ -357,6 +356,7 @@ void setup() {
     }
   }
 
+  //_________________ INITIALIZE Preferences & WiFi ____________________
 
   preferences.begin("credentials", true);      // true : read only
   webHost = preferences.getString("webHost");  // hexpod
@@ -368,18 +368,17 @@ void setup() {
 
   preferences.end();
 
-
-  //_________________ INITIALIZE Preferences ____________________
   preferences.begin("my - app", false);
 
   // Sensor Prefs
-  serialPrintBME1 = preferences.getBool("bmelog", 0);
-  SLEEPENABLE = preferences.getBool("sleep", 0);
-  OLEDon = preferences.getBool("oled", 1);
-  bmeSamples = preferences.getUInt("bmeSpls", 1);
   loggingInterval = preferences.getUInt("logItvl", 15000);
+  serialPrintBME1 = preferences.getBool("bmelog", 0);
+  bmeSamples = preferences.getUInt("bmeSpls", 1);
+  bmeFilter = preferences.getUInt("bmeFilter", 0);
   bmeProfilePause = preferences.getUInt("bmePause", 0);
   // System Prefs
+  SLEEPENABLE = preferences.getBool("sleep", 0);
+  OLEDon = preferences.getBool("oled", 1);
   DEBUG = preferences.getBool("debug", 0);
   restarts = preferences.getUInt("counter", 0);
   restarts++;
@@ -408,6 +407,7 @@ void setup() {
   tft.setTextDatum(TC_DATUM);
   tft.setTextPadding(100);
 
+  /*
   TAG = "SD";
   pinMode(GPIO_NUM_47, INPUT);  // SD present
   SDinserted = digitalRead(GPIO_NUM_47);
@@ -424,14 +424,14 @@ void setup() {
       ESP_LOGI(TAG, "SD card Init Failed.");
     }
   }
-
+*/
   //_________________________ INITIALIZE GPIO __________________________
-  void IRAM_ATTR UDLR_INT();
-  void IRAM_ATTR CTR_INT();
+  void IRAM_ATTR UDLR_ISR();
+  void IRAM_ATTR CTR_ISR();
   ESP32PWM::allocateTimer(0);
 
-  pinMode(GPIO_NUM_0, INPUT_PULLDOWN);  // BUTTON
-  attachInterrupt(GPIO_NUM_0, CTR_INT, FALLING);
+  pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
+  attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
 
   TFTbrightness = 1;
   pinMode(GPIO_NUM_1, OUTPUT);          // FAN_CTL
@@ -440,12 +440,12 @@ void setup() {
 
   // pinMode(GPIO_NUM_3, INPUT);
   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
-  // attachInterrupt(GPIO_NUM_7, CTR_INT, RISING);
+  // attachInterrupt(GPIO_NUM_7, CTR_ISR, RISING);
   // pinMode(GPIO_NUM_8, INPUT);   // free
   // pinMode(GPIO_NUM_14, INPUT);  // free
   // pinMode(GPIO_NUM_21, INPUT);  // free
-  pinMode(GPIO_NUM_38, INPUT_PULLDOWN);  // PCA_INT
-  attachInterrupt(GPIO_NUM_38, UDLR_INT, FALLING);
+  pinMode(GPIO_NUM_38, INPUT_PULLUP);  // PCA_INT
+  attachInterrupt(GPIO_NUM_38, UDLR_ISR, FALLING);
   // pinMode(GPIO_NUM_45, INPUT);  // free, bootstrap
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
   pinMode(GPIO_NUM_47, INPUT);  // SD present
@@ -486,10 +486,14 @@ void setup() {
   lis.settings.yAccelEnabled = 1;
   lis.settings.zAccelEnabled = 1;
   // lis.configureFreeFallInterrupt(true); */
+
   lis.begin(0x18);
+  // 0 = turn off click detection & interrupt
+  // 1 = single click only interrupt output
+  // 2 = double click only interrupt output, detect single click
   // lis.setClick(2, 70);  // THRESHOLD 80
   lis.setRange(LIS3DH_RANGE_2_G);
-  // lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_1K6HZ);
+  // lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   //___________________________ INITIALIZE DS18B20 _____________________
@@ -497,7 +501,7 @@ void setup() {
   DS = tempSens.getDeviceCount();
   tempSens.setWaitForConversion(false);
   tempSens.setResolution(10);                 // set global resolution to 9, 10 (default), 11, or 12 bits
-  tempSens.setHighAlarmTemp(tempProbe1, 60);  // Dallas tempProbe Alarm Thresholds
+  tempSens.setHighAlarmTemp(tempProbe1, 65);  // Dallas tempProbe Alarm Thresholds
   tempSens.setLowAlarmTemp(tempProbe1, -2);
 
 
@@ -531,9 +535,17 @@ void setup() {
 
   // Set BME68X settings
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
-  bme.setFilter(3);
+  bme.setFilter(bmeFilter);
   // bme.setOpMode(BME68X_SLEEP_MODE);
 
+  // pollBME();  // pre-conditioning
+  // pollBME();
+
+  bme.setHeaterProf(100, 200);
+  bme.setOpMode(BME68X_FORCED_MODE);
+  delayMicroseconds(bme.getMeasDur());
+  bme.setHeaterProf(320, 20);
+  bme.setOpMode(BME68X_FORCED_MODE);
 
   //___________________________ INITIALIZE SGP41 _____________________
   sgp41.begin(Wire);
@@ -554,17 +566,18 @@ void setup() {
   }
 
   getNTP();
-  // updateTime();
   setupWebInterface();
 
   //___________________________ TASK MANAGER ________________________
 
   launchUtility();  // launch utility Menu, setup tasks
+  taskManager.schedule(onceMicros(10), reloadMenu);
   lastInputTime = micros();
   //___________________________ END REPORT _____________________________
 
+  WiFiIP = WiFi.localIP().toString();
+
   if (DEBUG) {
-    WiFiIP = WiFi.localIP().toString();
     Serial.println();
     Serial.println(WiFiIP);
     Serial.println();

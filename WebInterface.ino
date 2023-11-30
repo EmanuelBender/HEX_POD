@@ -94,6 +94,15 @@ void setupWebInterface() {
     server.send(200, "text/plain", "BME samples updated");
   });
 
+  server.on("/updateBMEfilter", HTTP_GET, []() {
+    bmeFilter = server.arg("value").toInt();
+    preferences.begin("my - app", false);
+    preferences.putUInt("bmeFilter", bmeFilter);
+    preferences.end();
+
+    server.send(200, "text/plain", "BME filter updated");
+  });
+
   server.on("/updateBMEpause", HTTP_GET, []() {
     bmeProfilePause = server.arg("value").toInt();
     preferences.begin("my - app", false);
@@ -200,6 +209,11 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "var selectedValue = sampleSelect.options[sampleSelect.selectedIndex].value;"
          "fetch('/updateBMEsamples?value=' + selectedValue);"
          "}"
+         "function updateBMEfilter() { "
+         "var filterMs = document.getElementById('bmeFilter');"
+         "var selectedValue = filterMs.options[filterMs.selectedIndex].value;"
+         "fetch('/updateBMEfilter?value=' + selectedValue);"
+         "}"
          "function updateBMEpause() { "
          "var pauseMs = document.getElementById('bmePause');"
          "var selectedValue = pauseMs.options[pauseMs.selectedIndex].value;"
@@ -218,7 +232,6 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "function toggleFAN() { fetch('/toggleFAN'); }"
          "function restartESP() { fetch('/restart'); }"
          "function updateNTP() { fetch('/updateNTP'); }"
-
 
          "function updateTFTbrightness(value) {"
          "  document.getElementById('TFTslider').value = value;"
@@ -320,8 +333,9 @@ String generateNavBar() {
   String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a></div><br>";
   pageN += "<div style='text-align:center; font-size:11px; '>" + server.uri() + "<br>" + printTime + "<br>" + printDate + "</div>";
   pageN += "<div style='text-align:center; font-size:11px; '>" + String(restarts) + " Restarts<br>";
-  pageN += "Uptime " + uptimeString;
-  pageN += "</div>";
+  pageN += "Uptime " + uptimeString + "<br>";
+  pageN += WiFiIP;
+  pageN += "</div><br>";
   pageN += "<table style='border: solid 1px #505050; border-radius: 15px; max-width: 150px; max-height:150px; text-align:center; display: inline-block; background-color: transparent;'>";
   pageN += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td>";
   pageN += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td><button onclick='triggerCTR()'>&#9678;</button></td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";
@@ -454,7 +468,7 @@ String valueOptions(int selectedValue) {
 String generateSensorsPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
   page += "<table style=' margin: 20px; padding: 20px; '>";
-
+  // Settings table
   page += "<tr><td><h2> Sensor Settings </h2></td></tr>";
 
   page += "<tr><td><label for='loggingInterval'><b> Interval</b>[s]</label></td>";
@@ -467,6 +481,12 @@ String generateSensorsPage() {
   page += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>";
   page += "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
   page += valueOptions(bmeSamples);
+  page += "</select></td>";
+  page += "</tr>";
+
+  page += "<tr><td><label for='bmeFilter'><b>Filter</b></label></td>";
+  page += "<td><select id='bmeFilter' onchange='updateBMEfilter()'>";
+  page += valueOptions(bmeFilter);
   page += "</select></td>";
   page += "</tr>";
 

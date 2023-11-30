@@ -30,6 +30,27 @@ void reloadMenu() {  // one-shot
 }
 
 
+void statusBar() {
+  statBaTracker = micros();
+
+  tft.drawFastHLine(5, 10, 240, TFT_WHITE);
+  tft.setTextPadding(20);
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+  // tft.drawRoundRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 41, TFT_WHITE); // Screen Border 41px rounded radius
+
+  tft.setTextDatum(TL_DATUM);
+  tft.drawString(uptimeString, 33, 0, 1);
+
+  tft.drawString(printTime, 95, 0, 1);
+
+  tft.setTextDatum(TR_DATUM);
+  tft.drawString(String(restarts) + " rst", TFT_WIDTH - 37, 0, 1);
+
+  debugF(statBaTracker);
+  statBaTracker = (micros() - statBaTracker) / 1000.0;
+}
+
+
 
 
 void homePage() {

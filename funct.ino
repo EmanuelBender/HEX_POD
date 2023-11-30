@@ -9,11 +9,11 @@ void pollServer() {
   clientTracker = (micros() - timeTracker) / 1000.0;
 }
 
-void IRAM_ATTR CTR_INT() {
+void IRAM_ATTR CTR_ISR() {
   BUTTON = true;
   BTNID = taskManager.schedule(onceMicros(10), pollButtons);
 }
-void IRAM_ATTR UDLR_INT() {
+void IRAM_ATTR UDLR_ISR() {
   INT_TRGR = true;
   BTNID = taskManager.schedule(onceMicros(1), pollButtons);
 }
@@ -41,10 +41,10 @@ void launchUtility() {
   LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(100), pollServer);
-  // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
+  IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
   taskManager.setTaskEnabled(IMUID, false);
 
-  if (!blockMenu) taskManager.schedule(onceMicros(10), reloadMenu);
+  // if (!blockMenu) taskManager.schedule(onceMicros(10), reloadMenu);
 }
 
 
@@ -106,33 +106,6 @@ void PowerStates() {
 }
 
 
-/*
-void accClick() {
-  timeTracker = micros();
-  click = lis.getClick();
-  if (click != 0) {
-    if (!(click & 0x30)) {
-      CLICK_LEFT = true;
-    }
-    if (click & 0x10) {  // single click
-      INT_TRGR = true;
-      CLICK_DOWN = true;
-    }
-    if (click & 0x20) {  // double click
-      INT_TRGR = true;
-      CLICK = true;
-    }
-  }
-  timeTracker = (micros() - timeTracker) / 1000;
-  ESP_LOGI(TAG, "%.3lfms", timeTracker);
-} */
-
-
-
-inline bool isBitSet(uint16_t value, uint8_t mask) {
-  return !(value & (1 << mask));
-}
-
 
 
 
@@ -168,7 +141,6 @@ void pollButtons() {
       LEFT = false;
       CLICK_LEFT = false;
       blockMenu = false;
-      taskManager.setTaskEnabled(IMUID, false);
       lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
       launchUtility();
       taskManager.schedule(onceMicros(2), reloadMenu);
@@ -251,6 +223,9 @@ void pollMultiplexer() {
 }
 
 
+inline bool isBitSet(uint16_t value, uint8_t mask) {
+  return !(value & (1 << mask));
+}
 
 void statusLED(bool LEDon) {
   io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
@@ -258,27 +233,6 @@ void statusLED(bool LEDon) {
 }
 
 
-
-
-void statusBar() {
-  statBaTracker = micros();
-
-  tft.drawFastHLine(5, 10, 240, TFT_WHITE);
-  tft.setTextPadding(20);
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  // tft.drawRoundRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 41, TFT_WHITE); // Screen Border 41px rounded radius
-
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString(uptimeString, 33, 0, 1);
-
-  tft.drawString(printTime, 95, 0, 1);
-
-  tft.setTextDatum(TR_DATUM);
-  tft.drawString(String(restarts) + " rst", TFT_WIDTH - 37, 0, 1);
-
-  debugF(statBaTracker);
-  statBaTracker = (micros() - statBaTracker) / 1000.0;
-}
 
 
 String convertTime(int pass_hour, int pass_min, int pass_sec, char seperator) {
@@ -310,10 +264,10 @@ void updateTime() {
     printDate = String(convertTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.'));
     uptimeString = String(convertSecToTime(millis() / 1000));
   } else {
-    getNTP();
+    // getNTP();
   }
 
-  if (timeinfo.tm_year < 23 || timeTracker < 10000) { getNTP(); }
+  // if (timeinfo.tm_year < 23 || timeTracker < 10000) { getNTP(); }
 
   if (OLEDon) {
     u8g2.clearBuffer();
@@ -453,6 +407,7 @@ void pollBME() {
   /*bme.setHeaterProf(heatProf_1[0] / 2, durProf_1[0] * 2);  // warm-up
   bme.setOpMode(BME68X_FORCED_MODE);
   delayMicroseconds(bme.getMeasDur()); */
+  bme.setFilter(bmeFilter);
   bme.getData(data);
   bme.setAmbientTemp(data.temperature);
   Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
