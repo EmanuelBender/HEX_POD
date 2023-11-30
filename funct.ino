@@ -9,6 +9,16 @@ void pollServer() {
   clientTracker = (micros() - timeTracker) / 1000.0;
 }
 
+void IRAM_ATTR CTR_INT() {
+  BUTTON = true;
+  BTNID = taskManager.schedule(onceMicros(10), pollButtons);
+}
+void IRAM_ATTR UDLR_INT() {
+  INT_TRGR = true;
+  BTNID = taskManager.schedule(onceMicros(1), pollButtons);
+}
+
+
 
 
 void launchUtility() {
@@ -31,7 +41,7 @@ void launchUtility() {
   LOG = taskManager.schedule(repeatMillis(loggingInterval / bmeSamples), logging);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(100), pollServer);
-  IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
+  // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
   taskManager.setTaskEnabled(IMUID, false);
 
   if (!blockMenu) taskManager.schedule(onceMicros(10), reloadMenu);
@@ -117,14 +127,6 @@ void accClick() {
   ESP_LOGI(TAG, "%.3lfms", timeTracker);
 } */
 
-void IRAM_ATTR CTR_INT() {
-  BUTTON = true;
-  BTNID = taskManager.schedule(onceMicros(10), pollButtons);
-}
-void IRAM_ATTR UDLR_INT() {
-  INT_TRGR = true;
-  BTNID = taskManager.schedule(onceMicros(1), pollButtons);
-}
 
 
 inline bool isBitSet(uint16_t value, uint8_t mask) {
@@ -207,7 +209,6 @@ void pollButtons() {
             }
             tft.drawString("Sensors", 15, 15, 4);
             lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
-            // IMUID = taskManager.schedule(repeatMillis(50), pollIMU);
             taskManager.setTaskEnabled(IMUID, true);
             SNSID = taskManager.schedule(repeatMillis(50), sensorPage);
             break;
@@ -305,25 +306,9 @@ void updateTime() {
   uTimeTracker = micros();
 
   if (getLocalTime(&timeinfo)) {
-
     printTime = String(convertTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':'));
     printDate = String(convertTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.'));
     uptimeString = String(convertSecToTime(millis() / 1000));
-
-    // uint32_t uptimeSeconds = millis() / 1000;
-
-    /*String minutesString = (minutes < 10) ? "0" + String(minutes) : String(minutes);
-    String secondsString = (seconds < 10) ? "0" + String(seconds) : String(seconds);
-    if (uptimeSeconds < 60) {
-      uptimeString = secondsString + "s";
-    } else if (uptimeSeconds < 3600) {
-      uptimeString = minutesString + ":" + String(secondsString) + "m";
-    } else {
-      String hoursString = (hours < 10) ? "0" + String(hours) : String(hours);
-      uptimeString = hoursString + ":" + minutesString + "h";
-    }*/
-
-
   } else {
     getNTP();
   }

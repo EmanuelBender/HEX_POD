@@ -232,6 +232,7 @@ const uint8_t imuAvg = 55;  // averaging samples
 uint16_t imuInterval = 1000;
 uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 256
 uint8_t imuSampleCount;
+bool isFalling;
 
 //DS18B20___________________________________________________________________
 
@@ -438,8 +439,8 @@ void setup() {
   pwm.writeScaled(TFTbrightness);
 
   // pinMode(GPIO_NUM_3, INPUT);
-  // pinMode(GPIO_NUM_7, INPUT);  // LIS3_INT
-  // attachInterrupt(GPIO_NUM_7, LIS_ISR, RISING);
+  // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
+  // attachInterrupt(GPIO_NUM_7, CTR_INT, RISING);
   // pinMode(GPIO_NUM_8, INPUT);   // free
   // pinMode(GPIO_NUM_14, INPUT);  // free
   // pinMode(GPIO_NUM_21, INPUT);  // free
@@ -485,14 +486,10 @@ void setup() {
   lis.settings.yAccelEnabled = 1;
   lis.settings.zAccelEnabled = 1;
   // lis.configureFreeFallInterrupt(true); */
-
   lis.begin(0x18);
-  // 0 = turn off click detection & interrupt
-  // 1 = single click only interrupt output
-  // 2 = double click only interrupt output, detect single click
-  // lis.setClick(2, CLICKTHRESHHOLD);  // THRESHOLD 80
+  // lis.setClick(2, 70);  // THRESHOLD 80
   lis.setRange(LIS3DH_RANGE_2_G);
-  // lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
+  // lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_1K6HZ);
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   //___________________________ INITIALIZE DS18B20 _____________________
@@ -535,10 +532,8 @@ void setup() {
   // Set BME68X settings
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
   bme.setFilter(3);
-
-  pollBME();
-  // pollBME();
   // bme.setOpMode(BME68X_SLEEP_MODE);
+
 
   //___________________________ INITIALIZE SGP41 _____________________
   sgp41.begin(Wire);
@@ -559,6 +554,7 @@ void setup() {
   }
 
   getNTP();
+  // updateTime();
   setupWebInterface();
 
   //___________________________ TASK MANAGER ________________________
