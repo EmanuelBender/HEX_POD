@@ -406,7 +406,7 @@ void setup() {
     sdSPI.setHwCs(true);
     sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
     sdSPI.setFrequency(10000000);                   // Try different frequencies
-    sdSPI.setDataMode(SPI_MODE0);                   // Try different modes
+    sdSPI.setDataMode(SPI_MODE1);
 
     if (SD.begin(SD_CS, sdSPI, 10000000, "/", 10)) {
       ESP_LOGI(TAG, "SD card mounted.");
@@ -619,8 +619,6 @@ T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value t
 template<typename T, size_t N>
 T findSmallestValue(const T (&array)[N]) {  // find smalles value in a 1D Array
   if (N <= 0) {
-    // Handle empty array case
-    // You can return a sentinel value or throw an exception, depending on your needs
     throw std::out_of_range("Array index out of bounds");
   }
 
@@ -648,11 +646,3 @@ void empty2DArray(T (&array)[Rows][Columns]) {
     }
   }
 }
-/*
-void empty2DStringArray(String array[][consoleColumns], int rows) {
-  for (int i = 0; i < rows; i++) {
-    for (int b = 0; b < consoleColumns; b++) {
-      array[i][b] = String();
-    }
-  }
-}*/

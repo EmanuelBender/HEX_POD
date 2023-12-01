@@ -340,7 +340,7 @@ void pollIMU() {
   X = lis.x;
   Y = lis.y;
   Z = lis.z;
-  
+
   /*
   sensors_event_t event;
   lis.getEvent(&event);
@@ -381,6 +381,8 @@ void pollBME() {
   bmeTracker = micros();
   lastBMEpoll = convertSecToTimestamp<String>(bmeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+  int i;
 
   if (bme.checkStatus()) {
     if (bme.checkStatus() == BME68X_ERROR) {
@@ -424,13 +426,13 @@ void pollBME() {
 
     if (!conditioning_duration) {
 
-      for (int i = 0; i < numProfiles; ++i) {  // calc Average Samples
+      for (i = 0; i < numProfiles; ++i) {  // calc Average Samples
         bme_resistance[i] /= bmeSamples;
       }
 
       // samplingDelta = ((bmeInterval / 1000.0) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
 
-      for (int i = 0; i < numProfiles; ++i) {  // apply sampl delta & average
+      for (i = 0; i < numProfiles; ++i) {  // apply sampl delta & average
         // bme_resistance[i] *= samplingDelta; work in progress
         bme_gas_avg += bme_resistance[i];
       }
@@ -445,7 +447,7 @@ void pollBME() {
       // Serial.printf("Sampling Delta: %f", samplingDelta);
       // Serial.println();
 
-      for (int i = 0; i < numProfiles; ++i) {
+      for (i = 0; i < numProfiles; ++i) {
         bme_resistance_avg[i] = (bme_resistance[i] - offsetDelta);  // work in progress
 
         if (serialPrintBME1) {
@@ -460,7 +462,7 @@ void pollBME() {
         Serial.println();
       }
 
-      for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
+      for (i = 0; i < numProfiles; ++i) {  // empty resistance array
         bme_resistance[i] = 0;
       }
     }
