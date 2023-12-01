@@ -9,6 +9,7 @@
 #include <Preferences.h>
 #include "time.h"
 #include "SPIFFS.h"
+#include <LittleFS.h>
 #include "FS.h"
 #include "SD.h"
 
@@ -33,7 +34,7 @@
 #include "esp_sntp.h"
 // #include <WebSocketsServer.h>
 WebServer server(80);
-uint8_t webServerPollMs = 100;
+uint8_t webServerPollMs = 80;
 
 
 // ________________  ESP32 UTILITY  ____________________
@@ -57,7 +58,6 @@ BasicArduinoInterruptAbstraction interruptAbstraction1;                         
 taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB;  // task IDs
 uint32_t tmTracker;
 int i;
-const byte menuRowM = 26;
 
 esp_chip_info_t chip_info;
 esp_reset_reason_t resetReason;
@@ -69,8 +69,8 @@ struct BLEData {
   String result;
   int rssi;
 };
-int BLEresults = 40;
-BLEData scanData[40];
+const byte BLEresults = 40;
+BLEData scanData[BLEresults];
 
 const char* wifiStatusChar[] = {
   "Idle",
@@ -116,7 +116,7 @@ int DS;
 String uptimeString;
 uint32_t lastInputTime;
 uint32_t timeTracker;
-double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
+double elapsedTime, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
 
 const byte slotsSize = 24;
 char taskFreeSlots[slotsSize];  // Free TaskManagerIO slots
@@ -148,21 +148,22 @@ uint32_t loggingInterval;        // stored in Prefs
 uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Prefs
 
 const byte consoleColumns = 50;
-String SDarray[55][consoleColumns];
+const byte consoleRows = 50;
+String SDarray[consoleRows][consoleColumns];
 uint32_t SDIndex = 0;
-bool SDinserted;
+
 uint8_t serialColumn;
+const byte menuRowM = 26;
 
 uint8_t consoleLine;
-String console[55][consoleColumns];
-
-// delete[] myStringArray;
+String console[consoleRows][consoleColumns];
 
 uint32_t file_system_size, file_system_used, free_size, program_size, psramSize, freePsram;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz;
 uint32_t flash_size;
 int chiprevision;
-bool LEDon, FANon, isFading;
+bool LEDon, FANon, isFading, OLEDon;
+bool SDinserted;
 
 String TAG = "ESP";
 
@@ -192,7 +193,6 @@ const float pi = 3.14159265358979323846264338327950;
 
 
 //PCA9585_______________________________________________________________
-
 PCA9555 io;
 bool INT_TRGR;
 int UP, DOWN, LEFT, RIGHT;
@@ -227,14 +227,13 @@ uint16_t colors[12];
 U8G2_SH1106_128X32_VISIONOX_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 const byte oledDatum_X = 0;
 const byte oledDatum_Y = 32;
-bool OLEDon = false;
 
 //LIS3______________________________________________________________________
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 int X, Y, Z;
 // #define CLICKTHRESHHOLD 80
 const uint8_t imuAvg = 55;  // averaging samples
-uint16_t imuInterval = 1000;
+uint16_t imuInterval = 500;
 uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 256
 uint8_t imuSampleCount;
 
@@ -335,8 +334,6 @@ void setup() {
   timeTracker = millis();
 
   //___________________________ INITIALIZE COMMS __________________________
-
-
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   delay(40);  //relax...
@@ -558,12 +555,11 @@ void setup() {
   setupWebInterface();
 
   //___________________________ TASK MANAGER ________________________
-
   launchUtility();  // launch utility Menu, setup tasks
   taskManager.schedule(onceMicros(10), reloadMenu);
   lastInputTime = micros();
-  //___________________________ END REPORT _____________________________
 
+  //___________________________ END REPORT _____________________________
   WiFiIP = WiFi.localIP().toString();
 
   if (DEBUG) {
@@ -589,7 +585,6 @@ void loop() {
 
 
 // Templates
-
 String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
 
   char buffer[9];

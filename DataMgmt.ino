@@ -119,13 +119,30 @@ void mountSD() {
   }
 }
 
+
+void handleSPIFFS() {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextDatum(TL_DATUM);
+  tft.setTextPadding(60);
+
+  if (!LittleFS.begin()) { // FORMAT_LITTLEFS_IF_FAILED
+     tft.drawString("LittleFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+    return;
+  }
+  listDir(LittleFS, "/", 0);
+
+  LittleFS.end();
+}
+
+
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   // Serial.printf("Listing directory: %s\n", dirname);
   uint8_t filesCount = 0;
 
   File root = fs.open(dirname);
   if (!root) {
-    // tft.drawString("Failed to open " + String(dirname), 60, 100, 3);
+     tft.drawString("Failed to open " + String(dirname), 60, 100, 3);
     return;
   }
   if (!root.isDirectory()) {
@@ -136,7 +153,7 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   File file = root.openNextFile();
   while (file) {
     if (file.isDirectory()) {
-      // tft.drawString(" -" + String(file.name()));
+      tft.drawString(" -" + String(file.name()));
       // Serial.print("  DIR : ");
       // Serial.println(file.name());
       if (levels) {
@@ -144,7 +161,7 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
       }
     } else {
       filesCount++;
-      // tft.drawString(String(file.name()) + " Size: " + String(file.size()), 20, 40 + (12 * filesCount), 2);
+      tft.drawString(String(file.name()) + " Size: " + String(file.size()), 20, 40 + (12 * filesCount), 2);
       /*Serial.print("  FILE: ");
       Serial.print(file.name());
       Serial.print("  SIZE: ");
@@ -153,6 +170,8 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
     file = root.openNextFile();
   }
 }
+
+
 
 
 void createDir(fs::FS &fs, const char *path) {

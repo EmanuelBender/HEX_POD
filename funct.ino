@@ -248,23 +248,22 @@ void updateTime() {
     printTime = formatTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':');
     printDate = formatTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.');
     uptimeString = convertSecToTimestamp<String>(millis() / 1000);
-  } else {
-    // getNTP();
   }
 
-  // if (timeinfo.tm_year < 23 || timeTracker < 10000) { getNTP(); }
-
-  if (OLEDon) {
-    u8g2.clearBuffer();
-    u8g2.drawStr(0, 32, printTime.c_str());
-    u8g2.sendBuffer();
-  }
+  printToOLED(uptimeString);
 
   debugF(uTimeTracker);
   uTimeTracker = (micros() - uTimeTracker) / 1000.0;
 }
 
 
+void printToOLED(String oledString) {
+  if (OLEDon) {
+    u8g2.clearBuffer();
+    u8g2.drawStr(0, 32, oledString.c_str());
+    u8g2.sendBuffer();
+  }
+}
 
 
 void getNTP() {
@@ -272,33 +271,24 @@ void getNTP() {
   ntpTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  //if (WiFi.status() != WL_CONNECTED) {
-  // WiFi.reconnect();
+  if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
+
   while (WiFi.status() != WL_CONNECTED) {
-    delay(100);
-    if (millis() - ntpTracker > WiFiTimeout) {
-      ESP_LOGE("NTP", "WiFi Timeout. None found.");
+    delay(500);
+    if (micros() - ntpTracker > (WiFiTimeout * 8000)) {
+      ESP_LOGE("NTP", "WiFi Connect Timeout. Check settings.");
       break;
     }
   }
-  // }
-
-  if (DEBUG) {
-    ESP_LOGI("NTP", "Getting time..");
-  }
 
   if (WiFi.status() == WL_CONNECTED) {
-    // taskManagerLock.lock();
     configTzTime(time_zone, ntpServer1, ntpServer2);  // gets the time from the NTP server
-    delay(20);
     updateTime();
     lastNTPtime = printTime + " " + printDate;
     WiFiIP = WiFi.localIP().toString();
 
     // setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
     //tzset();
-    // taskManagerLock.unlock();
-
   } else {
     ESP_LOGE("NTP", "Update failed.");
     lastNTPtimeFail = printTime + " " + printDate;
@@ -538,21 +528,20 @@ void configSGP() {
 
 void debugF(uint32_t tracker) {
   if (DEBUG) {
-    float elapsedTime = (micros() - tracker) / 1000.0;
-    ESP_LOGI(TAG, "%.3lfms", elapsedTime);
+    elapsedTime = (micros() - tracker) / 1000.0;
+    ESP_LOGI(TAG, "%.3fms", elapsedTime);
 
     console[consoleLine][0] = printTime;
     console[consoleLine][1] = String(tracker / 1000) + "ms";
     console[consoleLine][2] = TAG;
     console[consoleLine][3] = String(elapsedTime) + "ms";
 
-    // Clear remaining console entries
-    for (int b = 4; b < numProfiles; b++) {
+    for (int b = 4; b < numProfiles; b++) {  // Clear remaining console entries
       console[consoleLine][b] = String();
     }
 
     consoleLine++;
-    if (consoleLine >= 55) consoleLine = 0;
+    if (consoleLine >= consoleRows) consoleLine = 0;
   }
 
   if (carousel == 4 && blockMenu) {

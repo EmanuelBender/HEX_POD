@@ -13,12 +13,6 @@ void FLOW_MENU() {
   tft.fillScreen(TFT_BLACK);
   taskManager.reset();
 
-  SECID = taskManager.schedule(repeatMillis(1000), updateTime);
-  MENUID = taskManager.schedule(repeatMillis(150), pollMENU);
-  BTNID = taskManager.schedule(onceMillis(1), pollBUTTONS);
-  NTPID = taskManager.schedule(repeatSeconds(60), getNTP);
-  TEMPID = taskManager.schedule(repeatMillis(1500), pollTemp);
-
   // sprite1.createSprite(50, 50);
   if (DEBUG) {
     timeTracker = (micros() - timeTracker) / 1000;

@@ -58,7 +58,7 @@ void homePage() {
   TAG = "homePage";
   timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  taskManager.schedule(onceMicros(30), statusBar);
+  taskManager.schedule(onceMicros(20), statusBar);
 
   tft.setTextDatum(TC_DATUM);
   tft.setTextPadding(180);
@@ -100,25 +100,13 @@ void sensorPage() {
   tft.drawString("D" + String(bme_resistance_avg[3]), 20, (26 * 8), 2);
   tft.drawString("E" + String(bme_resistance_avg[4]), 90, (26 * 8), 2);
   tft.drawString("D" + String(bme_resistance_avg[5]), 160, (26 * 8), 2);
-  // tft.setTextPadding(50);
-  // tft.drawString("A" + String(data1.idac), 110, (26 * 8), 2);
-  // tft.drawString("B" + String(data2.idac), 148, (26 * 8), 2);
-  // tft.drawString("C" + String(data3.idac), 186, (26 * 8), 2);
-  // tft.drawString("M: " + String(data1.meas_index), 160, (26 * 8) , 2);
   tft.setTextPadding(90);
   tft.drawString("VOC " + String(srawVoc), 20, (26 * 9), 2);  // sgpHumidity, sgpTemperature
   tft.drawString("NOX " + String(srawNox), 115, (26 * 9), 2);
-  // tft.drawString("T " + String(sgpTemperature), 30, (26 * 9) , 2);  // sgpHumidity, sgpTemperature
-  // tft.drawString("H " + String(sgpHumidity), 80, (26 * 9) , 2);
-
-  // tft.drawString("BME TMP  " + String(data1.temperature), 30, (26 * 11), 2);
-  // tft.drawString("BME HUM  " + String(data1.humidity), 30, (26 * 12), 2);
-  // tft.drawString("BME PRS  " + String(data1.pressure), 30, (26 * 13), 2);
 }
 
 
 void utilPage() {
-
   TAG = "utilPage()  ";
   timeTracker = micros();
   tft.setTextDatum(TL_DATUM);
@@ -145,7 +133,6 @@ void utilPage() {
       LEFT = false;
       launchUtility();
       UTILID = taskManager.schedule(onceMicros(10), utilPage);
-      // taskManager.schedule(onceMicros(2), reloadMenu);
       // return;
     }
 
@@ -184,7 +171,7 @@ void utilPage() {
           debugF(timeTracker);
           taskManager.reset();
           WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-          taskManager.schedule(onceMicros(10), mountSD);
+          taskManager.schedule(onceMicros(10), handleSPIFFS);
           break;
         case 5:
           LEDon = !LEDon;
