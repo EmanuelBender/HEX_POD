@@ -8,9 +8,9 @@
 #include <ArduinoBLE.h>
 #include <Preferences.h>
 #include "time.h"
-#include "SPIFFS.h"
-#include <LittleFS.h>
+// #include "SPIFFS.h"
 #include "FS.h"
+#include <LittleFS.h>
 #include "SD.h"
 
 #include <PCA95x5.h>
@@ -34,7 +34,7 @@
 #include "esp_sntp.h"
 // #include <WebSocketsServer.h>
 WebServer server(80);
-uint8_t webServerPollMs = 80;
+uint8_t webServerPollMs = 200;
 
 
 // ________________  ESP32 UTILITY  ____________________
@@ -51,10 +51,10 @@ uint8_t webServerPollMs = 80;
 #include <stdexcept>
 
 #include "TaskManagerIO.h"
-#include <BasicInterruptAbstraction.h>
-#include <SimpleSpinLock.h>
-SimpleSpinLock taskManagerLock;
-BasicArduinoInterruptAbstraction interruptAbstraction1;                                                                                               // INT for buttons
+// #include <BasicInterruptAbstraction.h>
+// #include <SimpleSpinLock.h>
+// SimpleSpinLock taskManagerLock;
+// BasicArduinoInterruptAbstraction interruptAbstraction1;                                                                                               // INT for buttons
 taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB;  // task IDs
 uint32_t tmTracker;
 int i;
@@ -147,8 +147,8 @@ SPIClass sdSPI = SPIClass(HSPI);
 uint32_t loggingInterval;        // stored in Prefs
 uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Prefs
 
-const byte consoleColumns = 50;
-const byte consoleRows = 50;
+const byte consoleColumns = 55;
+const byte consoleRows = 55;
 String SDarray[consoleRows][consoleColumns];
 uint32_t SDIndex = 0;
 
@@ -164,6 +164,7 @@ uint32_t flash_size;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
+uint8_t filesCount;
 
 String TAG = "ESP";
 
@@ -189,6 +190,7 @@ uint32_t powersaveDelay = 240000 * 1000;  // 3 min
 // uint32_t lightsleepDelay = 600000 * 1000; // 10 min
 
 const double ONEMILLION = 1000000.0;
+const double ONEMILLIONB = 1024.0 * 1024.0;
 const float pi = 3.14159265358979323846264338327950;
 
 
@@ -384,11 +386,19 @@ void setup() {
   cpu_freq_mhz = getCpuFrequencyMhz();
   cpu_xtal_mhz = getXtalFrequencyMhz();
   cpu_abp_hz = getApbFrequency();
-  SPIFFS.begin(true);
+  /*
+  SPIFFS.begin();
   file_system_size = SPIFFS.totalBytes();
   file_system_used = SPIFFS.usedBytes();
   SPIFFS.end();
+*/
+  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+  }
 
+  file_system_size = LittleFS.totalBytes();
+  file_system_used = LittleFS.usedBytes();
+  LittleFS.end();
 
   //___________________________ INITIALIZE SD _________________________
   TAG = "SD";
@@ -411,6 +421,7 @@ void setup() {
       ESP_LOGI(TAG, "SD card Init Failed.");
     }
   }
+
 
 
   //___________________________ INITIALIZE TFT _________________________

@@ -23,12 +23,29 @@ void handleUtility() {
   server.send(200, "text/html", generateUtilityPage());
 }
 
+void handleFS() {
+  if (!server.authenticate("hexpod", "noguess8142")) {
+    return server.requestAuthentication();
+  }
+  server.send(200, "text/html", generateFileSystemPage());
+}
+
+String generateFileContentPage(String content) {
+  String page = "<div style='display: flex;'>";
+  page += "<table style='min-width: 1000px; padding:20x; margin: 25px; '>";
+  page += "<tr><td><h2>File Content</h2></td></tr>";
+  page += "<tr><td><pre>" + content + "</pre></td></tr>";
+  page += "</table></div>";
+  return generateCommonPageStructure(page);
+}
+
 
 void setupWebInterface() {
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/sensors", HTTP_GET, handleSensors);
   server.on("/utility", HTTP_GET, handleUtility);
+  server.on("/filesystem", HTTP_GET, handleFS);
 
   server.on("/toggleLED", []() {
     LEDon = !LEDon;
@@ -120,6 +137,32 @@ void setupWebInterface() {
 
     server.send(200, "text/plain", "BME pause updated");
   });
+  server.on("/getFileContent", HTTP_GET, []() {  // implement displaying file content in the table here, or put condition in listWebDir funct and call it from here
+    String fileId = server.arg("id");
+    String filename;
+
+    filename = "/" + fileId.substring(4);  // Remove the "fil_" prefix
+    Serial.println(filename);
+
+    File file = LittleFS.open(filename);
+    if (file) {
+      String content;
+      while (file.available()) {
+        content += char(file.read());
+      }
+      Serial.println(content);
+      file.close();
+
+      String page = generateFileContentPage(content);
+      Serial.println(page);
+      server.send(200, "text/html", page);
+    } else {
+      server.send(500, "text/plain", "Error reading file");
+    }
+  });
+
+
+
 
   server.on("/updateTFTbrightness", []() {
     String value = server.arg("value");
@@ -248,33 +291,17 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);"
          "  xhr.send();"
          "}"
-         /*
-         "var chartData = {"
-         "labels: Array.from({ length: bme_resistance_avg[0].length }, (_, i) => i + 1),"
-         "datasets: bme_resistance_avg.map((data, index) => ({"
-         "label: 'Dataset ' + (index + 1),"
-         "data: data,"
-         "fill: false,"
-         "borderColor: 'rgba(140, 140, 140, 1)',"  // Adjust color as needed
-         "})),"
-         "};"
 
-         "var ctx = document.getElementById('myChart').getContext('2d');"
-         "var myChart = new Chart(ctx, {"
-         "type: 'line',"
-         "data: chartData,"
-         "options: {"
-         "responsive: true,"
-         "maintainAspectRatio: false,"
-         "scales: {"
-         "x: {"
-         "type: 'linear',"
-         "position: 'bottom',"
-         "},"
-         "},"
-         "},"
+         "document.addEventListener('click', function(e) {"
+         "  var target = e.target;"
+         "  if (target.classList.contains('dir') || target.classList.contains('file')) {"
+         "    var fileId = target.id;"
+         "    fetch('/getFileContent?id=' + encodeURIComponent(fileId))"
+         "      .then(response => response.text())"
+         "      .then(content => { document.body.innerHTML = content; });"
+         "  }"
          "});"
-*/
+
          "document.addEventListener('keydown', function(event) {"
          "  switch(event.key) {"
          "    case 'ArrowUp':"
@@ -339,7 +366,7 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a></div><br>";
+  String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>FS</a></div><br>";
   pageN += "<div style='text-align:center; font-size:11px; '>" + server.uri() + "<br>" + printTime + "<br>" + printDate + "</div>";
   pageN += "<div style='text-align:center; font-size:11px; '>" + String(restarts) + " Restarts<br>";
   pageN += "Uptime " + uptimeString + "<br>";
@@ -362,6 +389,56 @@ String generateNavBar() {
   // pageN += "</table>";
   pageN += "</div>";
   return pageN;
+}
+
+
+
+String generateFileSystemPage() {
+
+  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+    // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+  }
+  file_system_size = LittleFS.totalBytes();
+  file_system_used = LittleFS.usedBytes();
+  double percentLeftLFS = (file_system_size + file_system_used) / file_system_used;
+
+  String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
+  page += "<table style='max-width: auto; padding: 20x; margin: 25px; '>";
+  page += "<tr><td><h2>FS</h2></td></tr>";
+
+  page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "mb</td></tr>";
+  page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "mb</td></tr>";
+  page += "<tr><td>Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+  page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
+  page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
+
+  page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
+  page += "</table>";
+  page += "</div>";
+
+
+  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+  File file = LittleFS.open("/_LOG/deviceLOG.txt", "a");
+  String content;
+  while (file.available()) {
+    content += file.read();
+  }
+  double fileSizeMB = double(file.size()) / ONEMILLIONB;
+  page += "<table style='max-width: auto; padding: 20x; margin: 25px; '>";
+  page += "<tr><td>" + String(file.name()) + "</td></tr>";
+  page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
+  page += "<tr><td>" + String(content) + "</td></tr>";
+  page += "</table>";
+  page += "</div>";
+
+  // Serial.println(content);
+  // deleteFile(LittleFS, "/_LOG/test.txt");
+  filesCount = 0;
+  file.close();
+  LittleFS.end();
+
+  return generateCommonPageStructure(page);
 }
 
 
@@ -629,15 +706,15 @@ String generateUtilityPage() {
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ" + "</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLION) + "MB " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td></tr>";
-  page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1000) + "KB</td><td>  Free: " + String(ESP.getFreePsram() / 1000) + "KB</td></tr>";
-  page += "<tr><td><b>SPIFFS</td><td> Used: " + String(file_system_size / ONEMILLION) + "MB</td><td>  Free: " + String(free_size / ONEMILLION) + "MB</td></tr>";
+  page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 1) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td></tr>";
+  page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024) + "Kb</td></tr>";
+  page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> Sketch Size </td>";
-  page += "<tr><td>" + String(esp_get_free_heap_size() / 1000.0) + "KB</td>";
-  page += "<td>" + String(esp_get_minimum_free_heap_size() / 1000.0) + "KB</td> ";
-  page += "<td>" + String(esp_get_free_internal_heap_size() / 1000.0) + "KB</td>";
-  page += "<td>" + String(program_size / 1000.0) + "KB</td></tr>";
+  page += "<tr><td>" + String(esp_get_free_heap_size() / 1024.0) + "Kb</td>";
+  page += "<td>" + String(esp_get_minimum_free_heap_size() / 1024.0) + "Kb</td> ";
+  page += "<td>" + String(esp_get_free_internal_heap_size() / 1024.0) + "Kb</td>";
+  page += "<td>" + String(program_size / ONEMILLIONB, 3) + "Mb</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> WiFi SSID </td><td><b> Status </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
   page += "<tr>";

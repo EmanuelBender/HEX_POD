@@ -225,7 +225,7 @@ void utilPage() {
       tft.drawString("3D Cube Demo", 30, 55, 2);
       tft.drawString("WiFi Network Scanner", 30, 55 + menuRowM, 2);
       tft.drawString("BLE Scanner", 30, 55 + (menuRowM * 2), 2);
-      tft.drawString("SD Card", 30, 55 + (menuRowM * 3), 2);
+      tft.drawString("LittleFS", 30, 55 + (menuRowM * 3), 2);
       if (LEDon) {
         tft.drawString("LED On", 30, 55 + (menuRowM * 4), 2);
       } else {

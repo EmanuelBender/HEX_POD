@@ -46,19 +46,34 @@ void logging() {  // Assign values to the array at the current index
 
 
   SDIndex++;  // Move to the next row for the next measurements
-  if (SDIndex >= 50) SDIndex = 0;
+  if (SDIndex >= consoleRows) SDIndex = 0;
 
-  if (serialPrintLOG) {
-    for (int j = 0; j < 50; ++j) {
-      if (SDarray[SDIndex][j] != "") {
-        Serial.print(SDarray[SDIndex][j]);
-        consoleLine++;
-        console[consoleLine][i] = String(SDarray[SDIndex][j]);
-        Serial.print('\t');
-      }
+  // if (serialPrintLOG) {
+  String logLine;
+  for (int j = 0; j < consoleColumns; ++j) {
+    if (SDarray[SDIndex][j] != "") {
+      // Serial.print(SDarray[SDIndex][j]);
+
+      // consoleLine++;
+      // console[consoleLine][i] = String(SDarray[SDIndex][j]);
+      // Serial.print('\t');
+      logLine += SDarray[SDIndex][j] + ", ";
     }
-    Serial.println();
   }
+  Serial.println();
+
+  LittleFS.begin();
+  // const char *logLineCStr = logLine.c_str();
+  const char *logLineCStr = SDarray[SDIndex][0].c_str();
+
+  appendFile(LittleFS, "/_LOG/deviceLOG.txt", logLineCStr);
+  // appendFile(LittleFS, "/_LOG/test.txt", logLineCStr);
+
+  LittleFS.end();
+  Serial.print("Data: ");
+  Serial.println(logLine);
+
+  // }
 
   debugF(timeTracker);
   loggingTracker = (micros() - timeTracker) / 1000.0;
@@ -126,14 +141,68 @@ void handleSPIFFS() {
   tft.setTextDatum(TL_DATUM);
   tft.setTextPadding(60);
 
-  if (!LittleFS.begin()) { // FORMAT_LITTLEFS_IF_FAILED
-     tft.drawString("LittleFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
     return;
   }
-  listDir(LittleFS, "/", 0);
+
+  file_system_size = LittleFS.totalBytes();
+  file_system_used = LittleFS.usedBytes();
+
+  // createDir(LITTLEFS, "/_LOG/test.txt");
+
+  // listDir(LittleFS, "/", 3);
+  createDir(LittleFS, "/_LOG");
+  writeFile(LittleFS, "/_LOG/test.txt", "test");
+  // listDir(LittleFS, "/", 3);
 
   LittleFS.end();
 }
+
+
+
+
+String listWebDir(fs::FS &fs, const char *dirname, uint8_t levels) {
+  String fsString = "";
+  File root = fs.open(dirname);
+
+  if (!root) {
+    return "<tr><td>Failed to open directory</td></tr>";
+  }
+
+  if (!root.isDirectory()) {
+    return "<tr><td>Not a Directory</td></tr>";
+  }
+
+  File file = root.openNextFile();
+  int fileId = 0;
+  while (file) {
+    String fileIdStr = String(fileId);
+    if (file.isDirectory()) {
+      fsString += "<tr>";
+      fsString += "<div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr; " + String(file.name()) + "</td></div>";
+      fsString += "</tr>";
+      if (levels) {
+        fsString += listWebDir(fs, file.path(), levels - 1);
+      }
+    } else {
+      filesCount++;
+      fsString += "<tr>";
+      fsString += "<td><div style='color:black;' class='file' id='fil_" + fileIdStr + "'><td>&nbsp;</td><td>" + "&rarr;</td>";
+      double fileSizeMB = double(file.size()) / 1024.0 / 1024.0;
+      fsString += "<td>" + String(file.name()) + "</td>";
+      fsString += "<td>" + String(fileSizeMB, 3) + "MB</td>";
+      fsString += "</div></tr>";
+    }
+    file = root.openNextFile();
+    fileId++;
+  }
+
+
+  return fsString;
+}
+
+
 
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
@@ -142,7 +211,7 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
 
   File root = fs.open(dirname);
   if (!root) {
-     tft.drawString("Failed to open " + String(dirname), 60, 100, 3);
+    Serial.println("- failed to open directory");
     return;
   }
   if (!root.isDirectory()) {
@@ -153,19 +222,19 @@ void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   File file = root.openNextFile();
   while (file) {
     if (file.isDirectory()) {
-      tft.drawString(" -" + String(file.name()));
-      // Serial.print("  DIR : ");
-      // Serial.println(file.name());
+      // tft.drawString(String(file.name()));
+      Serial.print("  DIR : ");
+      Serial.println(file.name());
       if (levels) {
         listDir(fs, file.path(), levels - 1);
       }
     } else {
       filesCount++;
-      tft.drawString(String(file.name()) + " Size: " + String(file.size()), 20, 40 + (12 * filesCount), 2);
-      /*Serial.print("  FILE: ");
+      // tft.drawString(String(file.name())), 20, 40 + (12 * filesCount), 2); //  + " Size: " + String(file.size()
+      Serial.print("  FILE: ");
       Serial.print(file.name());
       Serial.print("  SIZE: ");
-      Serial.println(file.size()); */
+      Serial.println(file.size());
     }
     file = root.openNextFile();
   }
