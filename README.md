@@ -18,7 +18,7 @@
 
 <p>
 <table>
-<tr><td><b> Sensors </b></td><td>I/O</td></tr>
+<tr><td><b> Sensors </b></td><td>I/O</td><td>tbc...</td></tr>
 <tr><td>BME688 (x2)</td><td>16 GPIO PINS</td></tr>
 <tr><td>SGP41</td><td></td<td></zd>MTDI/JTAG</td></tr>
 <tr><td>SCD41</td><td>SD Reader</td></tr>
