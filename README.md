@@ -2,7 +2,7 @@
 <!-- HTML comment -->
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
-<p align=center><b>Your companion for the next Apocalypse</b></p>
+<p align=center><b></b></b></p>
 <p align=center font-size=10px > by eBender <br>
 ⚠️ This project is dev stage.</p>
   
@@ -12,18 +12,21 @@
 <a href="https://www.reddit.com/r/hex_pod/">Reddit</a> <br>
 <a href="https://www.patreon.com/eBender">Patreon</a> <br><br>
 <!-- <b>PCB production generously sponsored by <a href="https://www.pcbway.com">PCBway</a> -->
-<br></b>
+<br>
 
-![a11 2 darkRoom 6 3](https://user-images.githubusercontent.com/46021872/226058171-460dcfab-38cb-4363-80db-4e1024c49589.jpg)
+![Cam7](https://github.com/EmanuelBender/HEX_POD/assets/46021872/df71b219-04f3-4234-96c8-c194a497d02c)
+![Cam6_noShell](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1aac6172-bb19-46d3-8815-2ff2f8ee651f)
+
+
 <p>
 <table>
-<tr><td><b> Sensors </b></td></tr>
-<tr><td>BME688 (x2)</td></tr>
-<tr><td>SGP41</td></tr>
-<tr><td>SCD41</td></tr>
-<tr><td>LIS3DH</td></tr>
-<tr><td>LTR-308</td></tr>
-<tr><td>DS18B20 (x6)</td></tr>
+<tr><td><b> Sensors </b></td><td>I/O</td></tr>
+<tr><td>BME688 (x2)</td><td>16 GPIO PINS</td></tr>
+<tr><td>SGP41</td><td></td<td></zd>MTDI/JTAG</td></tr>
+<tr><td>SCD41</td><td>SD Reader</td></tr>
+<tr><td>LIS3DH</td><td>Joystick</td></tr>
+<tr><td>LTR-308</td><td>2 Buttons</td></tr>
+<tr><td>DS18B20 (x6)</td><td></td></tr>
 </table>
 </p>
 <p>
