@@ -400,15 +400,17 @@ String generateFileSystemPage() {
   }
   file_system_size = LittleFS.totalBytes();
   file_system_used = LittleFS.usedBytes();
-  double percentLeftLFS = (file_system_size + file_system_used) / file_system_used;
+  percentUsedLFS = (file_system_used * 100.0) / file_system_size;
+  percentLeftLFS = 100.0 - percentUsedLFS;
+
 
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   page += "<table style='max-width: auto; padding: 20x; margin: 25px; '>";
   page += "<tr><td><h2>FS</h2></td></tr>";
 
-  page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "mb</td></tr>";
-  page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "mb</td></tr>";
+  page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+  page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   page += "<tr><td>Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
   page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
   page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
@@ -708,7 +710,8 @@ String generateUtilityPage() {
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
   page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 1) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td></tr>";
   page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024) + "Kb</td></tr>";
-  page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td></tr>";
+  page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
+
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> Sketch Size </td>";
   page += "<tr><td>" + String(esp_get_free_heap_size() / 1024.0) + "Kb</td>";

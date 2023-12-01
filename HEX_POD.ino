@@ -161,6 +161,7 @@ String console[consoleRows][consoleColumns];
 uint32_t file_system_size, file_system_used, free_size, program_size, psramSize, freePsram;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz;
 uint32_t flash_size;
+double percentLeftLFS, percentUsedLFS;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
