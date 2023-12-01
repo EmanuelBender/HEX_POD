@@ -34,7 +34,7 @@
 #include "esp_sntp.h"
 // #include <WebSocketsServer.h>
 WebServer server(80);
-uint8_t webServerPollMs = 200;
+uint8_t webServerPollMs = 120;
 
 
 // ________________  ESP32 UTILITY  ____________________
@@ -113,7 +113,7 @@ String printTime, printDate;
 long int restarts, uptime;
 int DS;
 
-String uptimeString;
+String uptimeString, lastRestart;
 uint32_t lastInputTime;
 uint32_t timeTracker;
 double elapsedTime, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
@@ -394,11 +394,8 @@ void setup() {
   SPIFFS.end();
 */
   if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
-    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
   }
-
-  file_system_size = LittleFS.totalBytes();
-  file_system_used = LittleFS.usedBytes();
+  getSPIFFSsizes();
   LittleFS.end();
 
   //___________________________ INITIALIZE SD _________________________
@@ -570,6 +567,8 @@ void setup() {
   launchUtility();  // launch utility Menu, setup tasks
   taskManager.schedule(onceMicros(10), reloadMenu);
   lastInputTime = micros();
+  timeTracker = lastInputTime;
+  lastRestart = printTime + " " + printDate;
 
   //___________________________ END REPORT _____________________________
   WiFiIP = WiFi.localIP().toString();

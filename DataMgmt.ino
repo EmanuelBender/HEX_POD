@@ -1,15 +1,20 @@
 #include <pgmspace.h>
 
+String path = "/_LOG/deviceLOG.txt";
+const char *logfilePath = path.c_str();
 
 void logging() {  // Assign values to the array at the current index
   TAG = "logging()    ";
-  timeTracker = micros();
+  loggingTracker = micros();
+  timeTracker = loggingTracker;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+  String airLog;
 
   cpu_freq_mhz = getCpuFrequencyMhz();
   cpu_xtal_mhz = getXtalFrequencyMhz();
   cpu_abp_hz = getApbFrequency();
 
+  airLog = printTime + ", ";
   SDarray[SDIndex][0] = printTime;
   SDarray[SDIndex][1] = printDate;
   SDarray[SDIndex][2] = String(CONFIG_IDF_TARGET);
@@ -22,12 +27,12 @@ void logging() {  // Assign values to the array at the current index
   SDarray[SDIndex][9] = String(cpu_freq_mhz) + "MHZ" + " " + String(chip_info.cores) + "Core";
   SDarray[SDIndex][10] = String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "");
   SDarray[SDIndex][11] = String(flash_size / ONEMILLION) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
-  SDarray[SDIndex][12] = "PSRAM Total: " + String(ESP.getPsramSize() / 1000) + "KB  Free: " + String(ESP.getFreePsram() / 1000) + "KB";
-  SDarray[SDIndex][13] = "SPIFFS Free: " + String(file_system_size / ONEMILLION) + "MB  Total: " + String(free_size / ONEMILLION) + "MB";
-  SDarray[SDIndex][14] = String(esp_get_free_heap_size() / 1000.0) + "KB";
-  SDarray[SDIndex][15] = String(esp_get_minimum_free_heap_size() / 1000.0) + "KB";
-  SDarray[SDIndex][16] = String(esp_get_free_internal_heap_size() / 1000.0) + "KB";
-  SDarray[SDIndex][17] = String(program_size / 1000.0) + "KB";
+  SDarray[SDIndex][12] = "PSRAM Total: " + String(ESP.getPsramSize() / 1024) + "KB  Free: " + String(ESP.getFreePsram() / 1024) + "KB";
+  SDarray[SDIndex][13] = "SPIFFS Free: " + String(file_system_size / ONEMILLION) + "MB  Used: " + String(file_system_used / ONEMILLION) + "MB";
+  SDarray[SDIndex][14] = String(esp_get_free_heap_size() / 1024.0) + "KB";
+  SDarray[SDIndex][15] = String(esp_get_minimum_free_heap_size() / 1024.0) + "KB";
+  SDarray[SDIndex][16] = String(esp_get_free_internal_heap_size() / 1024.0) + "KB";
+  SDarray[SDIndex][17] = String(program_size / 1024.0) + "KB";
   SDarray[SDIndex][18] = temperatureRead();
   SDarray[SDIndex][19] = temp1;
   SDarray[SDIndex][20] = BUS2_BusVoltage;
@@ -36,47 +41,60 @@ void logging() {  // Assign values to the array at the current index
   SDarray[SDIndex][23] = data.temperature;
   SDarray[SDIndex][24] = data.humidity;
   SDarray[SDIndex][25] = data.pressure;
+
   for (int i = 0; i < numProfiles; ++i) {
     SDarray[SDIndex][26 + i] = bme_resistance_avg[i];
+    airLog += String(bme_resistance_avg[i]) + ", ";
   }
+  airLog += String(VOC) + ", ";
+  airLog += String(NOX) + ", ";
+  airLog += String(srawVoc) + ", ";
+  airLog += String(srawNox);
+  airLog += "\r\n";
+
   SDarray[SDIndex][numProfiles + 26] = VOC;
   SDarray[SDIndex][numProfiles + 27] = NOX;
   SDarray[SDIndex][numProfiles + 28] = srawVoc;
   SDarray[SDIndex][numProfiles + 29] = srawNox;
 
 
+  if (conditioning_duration == 0) {
+    // if (serialPrintLOG) {
+    String logLine = "";
+    // Serial.print("Raw Data: ");
+
+    for (int j = 0; j < consoleColumns; ++j) {
+      if (!SDarray[SDIndex][j].isEmpty()) {
+        // Serial.print(SDarray[SDIndex][j]);
+        // consoleLine++;
+        // console[consoleLine][i] = String(SDarray[SDIndex][j]);
+        // logLine += SDarray[SDIndex][j] + ", ";
+      }
+    }
+    // logLine += "\r\n";
+    // Serial.println();
+
+    LittleFS.begin();
+    // const char *logLineCStr = logLine.c_str();
+    const char *airLogcstr = airLog.c_str();
+
+    // Serial.print("LogLine: ");
+    // Serial.print(logLine);
+    // Serial.print("airLogcstr: ");
+    // Serial.print(airLogcstr);
+
+    // appendFile(LittleFS, "/_LOG/deviceLOG.txt", logLineCStr);
+    appendFile(LittleFS, logfilePath, airLogcstr);
+
+    LittleFS.end();
+    // }
+  }
+
   SDIndex++;  // Move to the next row for the next measurements
   if (SDIndex >= consoleRows) SDIndex = 0;
 
-  // if (serialPrintLOG) {
-  String logLine;
-  for (int j = 0; j < consoleColumns; ++j) {
-    if (SDarray[SDIndex][j] != "") {
-      // Serial.print(SDarray[SDIndex][j]);
-
-      // consoleLine++;
-      // console[consoleLine][i] = String(SDarray[SDIndex][j]);
-      // Serial.print('\t');
-      logLine += SDarray[SDIndex][j] + ", ";
-    }
-  }
-  Serial.println();
-
-  LittleFS.begin();
-  // const char *logLineCStr = logLine.c_str();
-  const char *logLineCStr = SDarray[SDIndex][0].c_str();
-
-  appendFile(LittleFS, "/_LOG/deviceLOG.txt", logLineCStr);
-  // appendFile(LittleFS, "/_LOG/test.txt", logLineCStr);
-
-  LittleFS.end();
-  Serial.print("Data: ");
-  Serial.println(logLine);
-
-  // }
-
-  debugF(timeTracker);
-  loggingTracker = (micros() - timeTracker) / 1000.0;
+  debugF(loggingTracker);
+  loggingTracker = (micros() - loggingTracker) / 1000.0;
 }
 
 
@@ -146,8 +164,6 @@ void handleSPIFFS() {
     return;
   }
 
-  file_system_size = LittleFS.totalBytes();
-  file_system_used = LittleFS.usedBytes();
 
   // createDir(LITTLEFS, "/_LOG/test.txt");
 
@@ -290,11 +306,28 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
   } else {
     Serial.println("Write failed");
   }
+
+  getSPIFFSsizes();
   file.close();
 }
 
+
+
+void getSPIFFSsizes() {
+  file_system_size = LittleFS.totalBytes();
+  file_system_used = LittleFS.usedBytes();
+  percentUsedLFS = (file_system_used * 100.0) / file_system_size;
+  percentLeftLFS = 100.0 - percentUsedLFS;
+}
+
+
 void appendFile(fs::FS &fs, const char *path, const char *message) {
-  Serial.printf("Appending to file: %s\n", path);
+  // Serial.printf("Appending to file: %s\n", path);
+
+  if (percentLeftLFS <= 0.05) {
+    Serial.println("SPIFFS full.");
+    return;
+  }
 
   File file = fs.open(path, FILE_APPEND);
   if (!file) {
@@ -302,12 +335,15 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
     return;
   }
   if (file.print(message)) {
-    Serial.println("Message appended");
+    // Serial.println("Message appended");
   } else {
     Serial.println("Append failed");
   }
+
+  getSPIFFSsizes();
   file.close();
 }
+
 
 void renameFile(fs::FS &fs, const char *path1, const char *path2) {
   Serial.printf("Renaming file %s to %s\n", path1, path2);

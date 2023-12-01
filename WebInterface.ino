@@ -30,6 +30,38 @@ void handleFS() {
   server.send(200, "text/html", generateFileSystemPage());
 }
 
+
+void handleFileDownload() {
+  String filePath = server.arg("file");
+
+  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+    server.send(500, "text/plain", "Spiffs failed");
+    return;
+  }
+
+  if (LittleFS.exists(filePath)) {
+    File file = LittleFS.open(filePath, "r");
+
+    // Set the content type based on the file extension
+    String contentType = "application/octet-stream";  // Default to binary/octet-stream
+    if (filePath.endsWith(".txt")) {
+      contentType = "text/plain";
+    } else if (filePath.endsWith(".log")) {
+      contentType = "text/plain";
+    } else if (filePath.endsWith(".jpg")) {
+      contentType = "image/jpeg";
+    }
+
+    server.sendHeader("Content-Type", contentType);
+    server.streamFile(file, contentType);
+    file.close();
+  } else {
+    server.send(500, "text/plain", "File not found");
+  }
+  LittleFS.end();
+}
+
 String generateFileContentPage(String content) {
   String page = "<div style='display: flex;'>";
   page += "<table style='min-width: 1000px; padding:20x; margin: 25px; '>";
@@ -40,12 +72,15 @@ String generateFileContentPage(String content) {
 }
 
 
-void setupWebInterface() {
+
+void setupWebInterface() {  // in setup()
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/sensors", HTTP_GET, handleSensors);
   server.on("/utility", HTTP_GET, handleUtility);
   server.on("/filesystem", HTTP_GET, handleFS);
+
+  server.on("/download", HTTP_GET, handleFileDownload);
 
   server.on("/toggleLED", []() {
     LEDon = !LEDon;
@@ -137,6 +172,8 @@ void setupWebInterface() {
 
     server.send(200, "text/plain", "BME pause updated");
   });
+
+
   server.on("/getFileContent", HTTP_GET, []() {  // implement displaying file content in the table here, or put condition in listWebDir funct and call it from here
     String fileId = server.arg("id");
     String filename;
@@ -148,9 +185,9 @@ void setupWebInterface() {
     if (file) {
       String content;
       while (file.available()) {
-        content += char(file.read());
+        content += String(file.read());
       }
-      Serial.println(content);
+      // Serial.println(content);
       file.close();
 
       String page = generateFileContentPage(content);
@@ -351,7 +388,7 @@ String generateCommonPageStructure(String content) {
   pageC += "</head>";
   pageC += "<body>";
   pageC += "<div style='display: flex; padding: 15px; '>";
-  pageC += "<div id='sidebar' style=' text-align:center; display: inline-block; border: solid 1px #505050; border-radius: 15px; ' >";
+  pageC += "<div id='sidebar' style=' text-align:center; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 15px; ' >";
   pageC += generateNavBar();  // Include your existing navbar in the sidebar
   pageC += "</div>";
   pageC += "<div style='display: block; justify-content:center;'>";
@@ -393,25 +430,25 @@ String generateNavBar() {
 
 
 
+
+
 String generateFileSystemPage() {
 
   if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
     // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
   }
-  file_system_size = LittleFS.totalBytes();
-  file_system_used = LittleFS.usedBytes();
-  percentUsedLFS = (file_system_used * 100.0) / file_system_size;
-  percentLeftLFS = 100.0 - percentUsedLFS;
 
 
-  String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
+  String page = "<div style=' margin-left:30px;'>";  // Use flex container to make tables side by side
 
-  page += "<table style='max-width: auto; padding: 20x; margin: 25px; '>";
+  page += "<table style='width: auto;'>";
   page += "<tr><td><h2>FS</h2></td></tr>";
 
   page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "Mb</td></tr>";
   page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "Mb</td></tr>";
-  page += "<tr><td>Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+  page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+  page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+
   page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
   page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
 
@@ -420,20 +457,22 @@ String generateFileSystemPage() {
   page += "</div>";
 
 
-  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
-  File file = LittleFS.open("/_LOG/deviceLOG.txt", "a");
+  page += "<div style='display: flex; margin-left:30px;'>";  // Use flex container to make tables side by side
+  File file = LittleFS.open(logfilePath);
   String content;
   while (file.available()) {
-    content += file.read();
+    content += char(file.read());
   }
   double fileSizeMB = double(file.size()) / ONEMILLIONB;
-  page += "<table style='max-width: auto; padding: 20x; margin: 25px; '>";
+  page += "<table style='width: auto;'>";
   page += "<tr><td>" + String(file.name()) + "</td></tr>";
   page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
-  page += "<tr><td>" + String(content) + "</td></tr>";
+  page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
   page += "</table>";
   page += "</div>";
 
+
+  getSPIFFSsizes();
   // Serial.println(content);
   // deleteFile(LittleFS, "/_LOG/test.txt");
   filesCount = 0;
@@ -728,10 +767,15 @@ String generateUtilityPage() {
   page += "<td>" + String(lastNTPtime) + "</td>";
   // page += "<td>" + String(lastNTPtimeFail) + "</td>";
   page += "</tr>";
-  page += "<tr><td><b> SD Card </td><td><b>  </td><td><b>  </td><td><b>  </td></tr>";
+  page += "<tr><td><b> SD Card </td><td><b>  </td><td><b>  </td><td><b>  </td><td><b> Last Reset </td></tr>";
   page += "<tr><td>";
   page += SDinserted ? "Present" : "Empty";
-  page += "</td></tr>";
+  page += "</td>";
+  page += "<td>&nbsp;</td>";
+  page += "<td>&nbsp;</td>";
+  page += "<td>&nbsp;</td>";
+  page += "<td>" + lastRestart + "</td>";
+  page += "</tr>";
   page += "</table>";
 
   // System Sensors
