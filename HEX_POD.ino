@@ -532,7 +532,6 @@ void setup() {
 
   bmeInterval = loggingInterval;
   bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
-  // bme.setTPH();
   bme.fetchData();
   bme.getData(data);
   bme.setOpMode(BME68X_SLEEP_MODE);

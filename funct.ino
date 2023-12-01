@@ -336,6 +336,7 @@ void pollIMU() {
   TAG = "pollIMU()   ";
   imuTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
   lis.read();
   X = lis.x;
   Y = lis.y;
