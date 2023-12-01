@@ -69,15 +69,20 @@ void logging() {  // Assign values to the array at the current index
 void mountSD() {
   TAG = "mountSD()";
   // timeTracker = micros();
-  SDinserted = digitalRead(GPIO_NUM_47);
+  SDinserted = !digitalRead(GPIO_NUM_47);
 
   if (SDinserted) {
+
+    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
+    sdSPI.setFrequency(40000000);                   // Try different frequencies
+    sdSPI.setDataMode(SPI_MODE0);                   // Try different modes
+
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_WHITE);
     tft.setTextDatum(TL_DATUM);
     tft.setTextPadding(60);
 
-    if (!SD.begin(SD_CS, sdSPI, 1000000)) {
+    if (!SD.begin(SD_CS, sdSPI, 40000000, "/", 50)) {
       tft.drawString("SD: Card mount failed.", 60, 100, 3);
       return;
     }

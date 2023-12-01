@@ -619,8 +619,6 @@ String generateSensorsPage() {
 
 String generateUtilityPage() {
 
-  SDinserted = digitalRead(GPIO_NUM_47);
-
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // System Info Table

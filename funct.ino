@@ -17,6 +17,10 @@ void IRAM_ATTR UDLR_ISR() {
   INT_TRGR = true;
   BTNID = taskManager.schedule(onceMicros(1), pollButtons);
 }
+void IRAM_ATTR SD_ISR() {
+  SDinserted = !digitalRead(GPIO_NUM_47);
+  // ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed");
+}
 
 
 void launchUtility() {
@@ -336,12 +340,14 @@ void pollIMU() {
   X = lis.x;
   Y = lis.y;
   Z = lis.z;
+  
   /*
   sensors_event_t event;
   lis.getEvent(&event);
   X = event.acceleration.x;
   Y = event.acceleration.y;
-  Z = event.acceleration.z; */
+  Z = event.acceleration.z;
+*/
   debugF(imuTracker);
   imuTracker = (micros() - imuTracker) / 1000.0;
 }
@@ -373,7 +379,7 @@ void pollINA2() {
 void pollBME() {
   TAG = "pollBME2()   ";
   bmeTracker = micros();
-  lastBMEpoll = convertSecToTime<String>(bmeTracker / 1000 / 1000);
+  lastBMEpoll = convertSecToTimestamp<String>(bmeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (bme.checkStatus()) {
@@ -421,18 +427,16 @@ void pollBME() {
       for (int i = 0; i < numProfiles; ++i) {  // calc Average Samples
         bme_resistance[i] /= bmeSamples;
       }
-      // offsetDelta =                                                          ((1000 - bme_gas_avg) * -1);
-      // for centering Values
-      samplingDelta = ((bmeInterval / 1000.0) * bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
 
-      for (int i = 0; i < numProfiles; ++i) {  // apply sampl delta
-        bme_resistance[i] *= samplingDelta;
+      // samplingDelta = ((bmeInterval / 1000.0) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
+
+      for (int i = 0; i < numProfiles; ++i) {  // apply sampl delta & average
+        // bme_resistance[i] *= samplingDelta; work in progress
         bme_gas_avg += bme_resistance[i];
       }
       bme_gas_avg /= numProfiles;
       smallestValue = findSmallestValue(bme_resistance);
       offsetDelta = smallestValue;
-
 
       // Serial.printf("Curr Meas: %d", repeater);
       // Serial.println();
@@ -477,7 +481,7 @@ void pollBME() {
 void pollSGP() {
   TAG = "pollSGP()    ";
   timeTracker = micros();
-  lastSGPpoll = convertSecToTime<String>(timeTracker / 1000 / 1000);
+  lastSGPpoll = convertSecToTimestamp<String>(timeTracker / 1000 / 1000);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   auto compensationT = static_cast<uint16_t>((data.temperature + 45) * 65535 / 175);
@@ -534,7 +538,6 @@ void debugF(uint32_t tracker) {
     float elapsedTime = (micros() - tracker) / 1000.0;
     ESP_LOGI(TAG, "%.3lfms", elapsedTime);
 
-    // Store information in the console array
     console[consoleLine][0] = printTime;
     console[consoleLine][1] = String(tracker / 1000) + "ms";
     console[consoleLine][2] = TAG;
@@ -554,14 +557,6 @@ void debugF(uint32_t tracker) {
   }
 }
 
-
-void empty2DStringArray(String array[][consoleColumns], int rows) {
-  for (int i = 0; i < rows; i++) {
-    for (int b = 0; b < consoleColumns; b++) {
-      array[i][b] = String();
-    }
-  }
-}
 
 
 

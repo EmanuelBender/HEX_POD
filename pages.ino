@@ -162,6 +162,7 @@ void utilPage() {
           // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);  // 625us * 50 = 31.25ms, 550 * 55 * 30.35ms
           taskManager.setTaskEnabled(IMUID, true);
           taskManager.schedule(repeatMicros(imuInterval), calcCube);
+          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
           tft.fillScreen(TFT_BLACK);
           break;
         case 2:
@@ -182,6 +183,7 @@ void utilPage() {
         case 4:
           debugF(timeTracker);
           taskManager.reset();
+          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
           taskManager.schedule(onceMicros(10), mountSD);
           break;
         case 5:
@@ -211,6 +213,7 @@ void utilPage() {
         case 8:
           debugF(timeTracker);
           taskManager.reset();
+          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
           taskManager.schedule(onceMillis(50), colorTest);
           // tft.fillScreen(TFT_BLACK);
           break;
@@ -446,8 +449,8 @@ void systemPage() {
               value = String(SPI_READ_FREQUENCY / ONEMILLION) + " MHZ";
               break;
             case 12:
-              label = "SD: ";
-              value = digitalRead(GPIO_NUM_47) ? "TRUE" : "FALSE";
+              label = "SD:        ";
+              value = SDinserted ? "TRUE" : "FALSE";
               break;
             case 13:
               label = "OS Version ";
@@ -474,7 +477,7 @@ void systemPage() {
               value = String(program_size / 1000.0) + "KB";
               break;
             case 19:
-              label = "WiFi IP:      ";
+              label = "WiFi IP:         ";
               value = String(WiFiIP);
               break;
             case 20:
@@ -482,11 +485,11 @@ void systemPage() {
               value = String(WiFi.status());
               break;
             case 21:
-              label = "Last NTP OK:    ";
+              label = "Last NTP OK:     ";
               value = lastNTPtime;
               break;
             case 22:
-              label = "Last NTP fail:  ";
+              label = "Last NTP fail:   ";
               value = lastNTPtimeFail;
               break;
             case 23:

@@ -12,9 +12,6 @@
 #include "FS.h"
 #include "SD.h"
 
-#define sda GPIO_NUM_18
-#define scl GPIO_NUM_17
-
 #include <PCA95x5.h>
 #include <OneWire.h>
 
@@ -50,6 +47,7 @@ uint8_t webServerPollMs = 100;
 #include <esp_system.h>
 #include <esp_cpu.h>
 #include <ESP32Servo.h>
+#include <stdexcept>
 
 #include "TaskManagerIO.h"
 #include <BasicInterruptAbstraction.h>
@@ -139,9 +137,11 @@ SPIClass sdSPI = SPIClass(HSPI);
 #define SD_MOSI 14
 #define SD_SCLK 12
 #define SD_CS 21
-
 // #define SPI_FREQUENCY 60000000       // 80000000 tested ok
 // #define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
+
+#define sda GPIO_NUM_18
+#define scl GPIO_NUM_17
 #define I2C_SPEED 400000  // 800000   tested ok
 
 uint32_t loggingInterval;        // stored in Prefs
@@ -189,6 +189,7 @@ uint32_t powersaveDelay = 240000 * 1000;  // 3 min
 
 const double ONEMILLION = 1000000.0;
 const float pi = 3.14159265358979323846264338327950;
+
 
 //PCA9585_______________________________________________________________
 
@@ -275,20 +276,7 @@ uint16_t heatProf_1[] = {
   320,  // 12
   340,  // 13
 };
-/*
-uint16_t heatProf_1[] = {
-  100,  // 1
-  110,  // 2
-  120,  // 3
-  130,  // 4
-  140,  // 5
-  150,  // 6
-  170,  // 7
-  200,  // 8
-  250,  // 9
-  350,  // 10
-};
-*/
+
 uint16_t durProf_1[] = {
   5,  // 1
   5,  // 2
@@ -357,6 +345,7 @@ void setup() {
     ESP_LOGI(TAG, "Serial bus Initialized.");
   }
 
+
   if (Wire.begin(sda, scl, I2C_SPEED)) {  // sda= , scl= in pins_arduino.h
     delay(20);
     if (DEBUG) {
@@ -404,6 +393,29 @@ void setup() {
   SPIFFS.end();
 
 
+  //___________________________ INITIALIZE SD _________________________
+  TAG = "SD";
+  void IRAM_ATTR SD_ISR();
+  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
+  attachInterrupt(GPIO_NUM_47, SD_ISR, CHANGE);
+  SDinserted = !digitalRead(GPIO_NUM_47);
+
+  if (SDinserted) {
+    ESP_LOGI(TAG, "SD card present.");
+
+    sdSPI.setHwCs(true);
+    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
+    sdSPI.setFrequency(10000000);                   // Try different frequencies
+    sdSPI.setDataMode(SPI_MODE0);                   // Try different modes
+
+    if (SD.begin(SD_CS, sdSPI, 10000000, "/", 10)) {
+      ESP_LOGI(TAG, "SD card mounted.");
+    } else {
+      ESP_LOGI(TAG, "SD card Init Failed.");
+    }
+  }
+
+
   //___________________________ INITIALIZE TFT _________________________
   tft.init();
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -412,24 +424,6 @@ void setup() {
   tft.setTextSize(1);
   tft.setTextDatum(TC_DATUM);
   tft.setTextPadding(100);
-
-
-  TAG = "SD";
-  pinMode(GPIO_NUM_47, INPUT);  // SD present
-  SDinserted = digitalRead(GPIO_NUM_47);
-  if (SDinserted) {
-    ESP_LOGI(TAG, "SD card present.");
-
-    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
-    sdSPI.setFrequency(SPI_FREQUENCY / 2);
-    sdSPI.setDataMode(SPI_MODE0);
-
-    if (SD.begin(SD_CS, sdSPI, SPI_FREQUENCY / 2, "/sd", 50)) {
-      ESP_LOGI(TAG, "SD card mounted.");
-    } else {
-      ESP_LOGI(TAG, "SD card Init Failed.");
-    }
-  }
 
   //_________________________ INITIALIZE GPIO __________________________
   void IRAM_ATTR UDLR_ISR();
@@ -454,7 +448,7 @@ void setup() {
   attachInterrupt(GPIO_NUM_38, UDLR_ISR, FALLING);
   // pinMode(GPIO_NUM_45, INPUT);  // free, bootstrap
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
-  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
+  //  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
   // pinMode(GPIO_NUM_48, INPUT);  // free
 
   //_______________________ INITIALIZE MULTIPLEXER ______________________
@@ -597,21 +591,25 @@ void loop() {
 
 // Templates
 
-String formatTime(int pass_hour, int pass_min, int pass_sec, char seperator) {  //
+String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
 
-  char buffer[9];  // Assuming HH:MM:SS format
-  sprintf(buffer, "%02d%c%02d%c%02d", pass_hour, seperator, pass_min, seperator, pass_sec);
+  char buffer[9];
+  sprintf(buffer, "%02d%c%02d%c%02d", value1, seperator, value2, seperator, value3);
 
   return buffer;
 }
 
+
 template<typename T>
-T convertSecToTimestamp(uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
+T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
+  if (pass_sec == 0) {
+    throw std::invalid_argument("Invalid seconds value");
+  }
+  char buffer[9];
   int hours = pass_sec / 3600;
   int minutes = (pass_sec % 3600) / MINUTES_IN_HOUR;
   int seconds = pass_sec % SECONDS_IN_MINUTE;
 
-  char buffer[9];  // Assuming HH:MM:SS format
   sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
 
   return T(buffer);
@@ -619,11 +617,11 @@ T convertSecToTimestamp(uint32_t pass_sec) {  // Convert a seconds value to HH:M
 
 
 template<typename T, size_t N>
-T findSmallestValue(const T (&array)[N]) {
+T findSmallestValue(const T (&array)[N]) {  // find smalles value in a 1D Array
   if (N <= 0) {
     // Handle empty array case
     // You can return a sentinel value or throw an exception, depending on your needs
-    return T();  // Return default-constructed value
+    throw std::out_of_range("Array index out of bounds");
   }
 
   T smallestValue = array[0];  // Initialize with the first element
@@ -637,11 +635,24 @@ T findSmallestValue(const T (&array)[N]) {
   return smallestValue;
 }
 
-template<typename T, size_t Rows, size_t Columns>
+template<typename T, size_t Rows, size_t Columns>  // empty all values in a 2D Array
 void empty2DArray(T (&array)[Rows][Columns]) {
+
+  if (Rows == 0 || Columns == 0 || &array == nullptr) {  // handle empty array, row, column case
+    throw std::invalid_argument("Invalid array dimensions or null array pointer");
+  }
+
   for (size_t i = 0; i < Rows; ++i) {
     for (size_t b = 0; b < Columns; ++b) {
       array[i][b] = T();
     }
   }
 }
+/*
+void empty2DStringArray(String array[][consoleColumns], int rows) {
+  for (int i = 0; i < rows; i++) {
+    for (int b = 0; b < consoleColumns; b++) {
+      array[i][b] = String();
+    }
+  }
+}*/
