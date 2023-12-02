@@ -445,8 +445,8 @@ String generateFileSystemPage() {
     page += "<table style='width: auto;'>";
     page += "<tr><td><h2>FS</h2></td></tr>";
 
-    page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
     page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
     page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
 
@@ -463,7 +463,7 @@ String generateFileSystemPage() {
     String content;
     while (file.available()) {
       content += char(file.read());
-      if (esp_get_minimum_free_heap_size() < 100000) {  // failsafe for big files
+      if (esp_get_free_internal_heap_size() < 100000) {  // failsafe for big files
         content += " -- Out of RAM. File is too big.";
         break;
       }
@@ -747,31 +747,30 @@ String generateSensorsPage() {
 String generateUtilityPage() {
 
 
-
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // System Info Table
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
   page += "<tr><td><h2>Device Stats</h2></tr>";
-  page += "<tr><td><b>" + String(CONFIG_IDF_TARGET) + "</td>";
+  page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</b></td><td> " + String(powerStateNames[currentPowerState]) + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ" + "</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
+  page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 2) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td><b>Free</td><td>" + String(freeSketchSpace / ONEMILLIONB, 2) + "</td></tr>";
-  page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024.0) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024.0) + "Kb</td></tr>";
-  page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
+  page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td></tr>";
+  page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB) + "Mb</td><td>" + String(program_UsedP / ONEMILLIONB) + "Mb</td></tr>";
+  page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + "Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + "</td></tr>";
+  page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLIONB) + "Mb</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> Sketch Size </td><td><b> Free Sketch </td>";
-  page += "<tr><td>" + String(esp_get_free_heap_size() / 1024.0) + "Kb</td>";
-  page += "<td>" + String(esp_get_minimum_free_heap_size() / 1024.0) + "Kb</td> ";
-  page += "<td>" + String(esp_get_free_internal_heap_size() / 1024.0) + "Kb</td>";
-  page += "<td>" + String(program_size / ONEMILLIONB, 3) + "Mb</td>";
+  page += "<tr><td>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
+  page += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
+  page += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
+  page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   page += "</tr>";
   page += "<tr><td><b> WiFi SSID </td><td><b> Status </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
   page += "<tr>";
-  page += "<td>" + String(WiFi.SSID()) + "</td>";
+  page += "<td>" + String(WiFiIP) + "</td>";
   page += "<td>" + String(wifiStatusChar[WiFi.status()]) + "</td>";
   page += "<td>" + String(WiFi.RSSI()) + "db</td>";
   page += "<td>" + String(WiFi.channel()) + "</td>";

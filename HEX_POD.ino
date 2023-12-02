@@ -93,9 +93,9 @@ String menuOptions[5] = {
 
 
 // ____________________________  TIME  __________________________
-String WiFiIP;
 const char* hostname = "[HEX]POD";
 const int WiFiTimeout = 8000;
+String WiFiIP;
 String webHost, webPw;
 // uint8_t MainMAC[] = { 0x30, 0xA0, 0xA5, 0x07, 0x0D, 0x66 };  // 3600
 const char* ntpServer1 = "pool.ntp.org";   // NTP Time server
@@ -158,11 +158,15 @@ const byte menuRowM = 26;
 uint8_t consoleLine;
 String console[consoleRows][consoleColumns];
 
-uint32_t file_system_size, file_system_used, free_size, program_size, psramSize, freePsram;
-long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz;
-size_t flash_size, freeSketchSpace;
-// size_t freeSketchSpace;
-double percentLeftLFS, percentUsedLFS;
+const double KILOBYTE = 1024.0;
+const double ONEMILLION = 1000000.0;
+const double ONEMILLIONB = KILOBYTE * KILOBYTE;
+
+multi_heap_info_t deviceInfo;
+size_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, out_size;
+long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
+
+double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
@@ -191,8 +195,7 @@ uint32_t idleDelay = 10000 * 1000;        // 30 sec
 uint32_t powersaveDelay = 240000 * 1000;  // 3 min
 // uint32_t lightsleepDelay = 600000 * 1000; // 10 min
 
-const double ONEMILLION = 1000000.0;
-const double ONEMILLIONB = 1024.0 * 1024.0;
+
 const float pi = 3.14159265358979323846264338327950;
 
 
@@ -382,23 +385,7 @@ void setup() {
   preferences.putUInt("counter", restarts);
   preferences.end();
 
-  program_size = ESP.getSketchSize();
-  free_size = ESP.getFlashChipSize() - program_size - file_system_size + file_system_used;
-  esp_flash_get_size(NULL, &flash_size);
-  esp_chip_info(&chip_info);
-  cpu_freq_mhz = getCpuFrequencyMhz();
-  cpu_xtal_mhz = getXtalFrequencyMhz();
-  cpu_abp_hz = getApbFrequency();
-  /*
-  SPIFFS.begin();
-  file_system_size = SPIFFS.totalBytes();
-  file_system_used = SPIFFS.usedBytes();
-  SPIFFS.end();
-*/
-  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
-  }
-  getSPIFFSsizes();
-  LittleFS.end();
+  getDeviceInfo();
 
   getNTP();
   setupWebInterface();

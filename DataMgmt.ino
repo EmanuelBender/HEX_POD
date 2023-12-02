@@ -3,18 +3,69 @@
 String path = "/_LOG/deviceLOG.txt";
 const char *logfilePath = path.c_str();
 
+void getSPIFFSsizes() {
+  SPIFFS_size = LittleFS.totalBytes();
+  SPIFFS_used = LittleFS.usedBytes();
+  SPIFFS_free = SPIFFS_size - SPIFFS_used;
+  percentUsedLFS = (SPIFFS_used * 100.0) / SPIFFS_size;
+  percentLeftLFS = 100.0 - percentUsedLFS;
+}
+
+void getProgramInfo() {
+  program_size = ESP.getFreeSketchSpace();
+  program_used = ESP.getSketchSize();
+  program_free = double(program_size) - program_used;
+  program_UsedP = (program_used * 100.0) / program_size;
+  program_LeftP = 100.0 - program_UsedP;
+}
+
+void getDeviceInfo() {
+
+  LittleFS.begin();
+  getSPIFFSsizes();
+  LittleFS.end();
+
+  esp_flash_get_size(NULL, &out_size);
+  esp_flash_get_physical_size(NULL, &flash_size);
+  esp_chip_info(&chip_info);
+
+  WiFiIP = WiFi.SSID();
+
+  getProgramInfo();
+
+  flash_speed = ESP.getFlashChipSpeed();
+  flash_size = double(ESP.getFlashChipSize());
+  free_flash_size = flash_size - program_used - SPIFFS_used;
+
+  cpu_freq_mhz = getCpuFrequencyMhz();
+  cpu_xtal_mhz = getXtalFrequencyMhz();
+  cpu_abp_hz = getApbFrequency();
+
+
+  if (psramFound()) {                                   // PSRAM
+    heap_caps_get_info(&deviceInfo, MALLOC_CAP_SPIRAM); /*
+    size_t total_free_bytes;      ///<  Total free bytes in the heap. Equivalent to multi_free_heap_size().
+    size_t total_allocated_bytes; ///<  Total bytes allocated to data in the heap.
+    size_t largest_free_block;    ///<  Size of largest free block in the heap. This is the largest malloc-able size.
+    size_t minimum_free_bytes;    ///<  Lifetime minimum free heap size. Equivalent to multi_minimum_free_heap_size().
+    size_t allocated_blocks;      ///<  Number of (variable size) blocks allocated in the heap.
+    size_t free_blocks;           ///<  Number of (variable size) free blocks in the heap.
+    size_t total_blocks;          ///<  Total number of (variable size) blocks in the heap. */
+  }
+  // RAM
+  // esp_get_free_heap_size();
+  // esp_get_minimum_free_heap_size();
+  // esp_get_free_internal_heap_size();
+}
+
+
 void logging() {  // Assign values to the array at the current index
   TAG = "logging()    ";
   loggingTracker = micros();
   timeTracker = loggingTracker;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  cpu_freq_mhz = getCpuFrequencyMhz();
-  cpu_xtal_mhz = getXtalFrequencyMhz();
-  cpu_abp_hz = getApbFrequency();
-  program_size = ESP.getSketchSize();
-  free_size = ESP.getFlashChipSize() - program_size - file_system_size + file_system_used;
-  freeSketchSpace = ESP.getFreeSketchSpace();
+  getDeviceInfo();
 
   if (conditioning_duration == 0) {
     String airLog;
@@ -85,10 +136,8 @@ void logging() {  // Assign values to the array at the current index
     // const char *logLineCStr = logLine.c_str();
     const char *airLogcstr = airLog.c_str();
     appendFile(LittleFS, logfilePath, airLogcstr);
-
-    airLog.clear();
-
     LittleFS.end();
+    airLog.clear();
     // }
   }
 
@@ -183,7 +232,7 @@ void handleSPIFFS() {
 String listWebDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   String fsString = "";
   File root = fs.open(dirname);
-  filesCount = 0; 
+  filesCount = 0;
 
   if (!root) {
     return "<tr><td>Failed to open directory</td></tr>";
@@ -315,13 +364,6 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
 }
 
 
-
-void getSPIFFSsizes() {
-  file_system_size = LittleFS.totalBytes();
-  file_system_used = LittleFS.usedBytes();
-  percentUsedLFS = (file_system_used * 100.0) / file_system_size;
-  percentLeftLFS = 100.0 - percentUsedLFS;
-}
 
 
 void appendFile(fs::FS &fs, const char *path, const char *message) {

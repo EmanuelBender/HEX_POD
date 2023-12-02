@@ -372,6 +372,8 @@ void systemPage() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   tft.setTextDatum(TL_DATUM);
 
+  getDeviceInfo();
+
   if (DOWN) {
     sysIndex -= 1;
     DOWN = false;
@@ -385,9 +387,7 @@ void systemPage() {
     menuTrigger = false;
     if (sysIndex <= 0) {
       tft.setTextPadding(220);
-      cpu_freq_mhz = getCpuFrequencyMhz();
-      cpu_xtal_mhz = getXtalFrequencyMhz();
-      cpu_abp_hz = getApbFrequency();
+
       // unsigned major_rev = chip_info.revision;
       // unsigned minor_rev = chip_info.revision % 100;
 
@@ -415,11 +415,11 @@ void systemPage() {
             case 5:
               label = "PSRAM:    ";
               // value = String((chip_info.features & CHIP_FEATURE_EMB_PSRAM ? "YES " : "-- "));
-              value = "T: " + String(ESP.getPsramSize() / 1000) + "KB,  F:" + String(ESP.getFreePsram() / 1000) + "KB";
+              value = "T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE, 2) + "Kb,  F:" + String(deviceInfo.total_free_bytes / KILOBYTE, 2) + "Kb";
               break;
             case 6:
               label = "SPIFFS:    ";
-              value = "F: " + String(file_system_size / ONEMILLION) + "MB,  T: " + String(free_size / ONEMILLION) + "MB";
+              value = "F: " + String(SPIFFS_size / ONEMILLION, 3) + "Mb,  U: " + String(SPIFFS_used / ONEMILLION, 3) + "Mb";
               break;
             case 7:
               label = "XTAL:      ";
