@@ -2,9 +2,10 @@
 <!-- HTML comment -->
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
-<p align=center><b></p>
+<p align=center></p>
 <p align=center font-size=10px > by eBender <br>
-⚠️ This project is in development.</p>
+⚠️ This project is in development.<br>
+  Watch this space.</p>
   
   <p align=center><b><a href="https://hackaday.io/project/177083-h6x-pod">Hackaday</a> <br>
 <a href="https://www.instagram.com/zen.diy/">Instagram</a><br>
