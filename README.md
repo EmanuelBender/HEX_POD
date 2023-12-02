@@ -2,7 +2,7 @@
 <!-- HTML comment -->
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
-<p align=center><b></b></b></p>
+<p align=center><b></p>
 <p align=center font-size=10px > by eBender <br>
 ⚠️ This project is in development.</p>
   
@@ -12,7 +12,8 @@
 <a href="https://www.reddit.com/r/hex_pod/">Reddit</a> <br>
 <a href="https://www.patreon.com/eBender">Patreon</a> <br><br>
 <!-- <b>PCB production generously sponsored by <a href="https://www.pcbway.com">PCBway</a> -->
-<p>
+  </b></p>
+<p align=center></b>
   The [HEX]POD dev Kit is a dense little cube. It houses 4 Air quality sensors, 2 screens, a battery, <br>
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
   platform to play with ML, NN and any other externally connected modules.
