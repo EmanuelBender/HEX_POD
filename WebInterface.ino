@@ -463,7 +463,7 @@ String generateFileSystemPage() {
     String content;
     while (file.available()) {
       content += char(file.read());
-      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
+      if (esp_get_minimum_free_heap_size() < 100000) {  // failsafe for big files
         content += " -- Out of RAM. File is too big.";
         break;
       }
