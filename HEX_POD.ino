@@ -147,10 +147,10 @@ SPIClass sdSPI = SPIClass(HSPI);
 uint32_t loggingInterval;        // stored in Prefs
 uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Prefs
 
-const byte consoleColumns = 55;
-const byte consoleRows = 55;
-String SDarray[consoleRows][consoleColumns];
-uint32_t SDIndex = 0;
+const byte consoleColumns = 20;
+const byte consoleRows = 54;
+// String SDarray[consoleRows][consoleColumns];
+// uint32_t SDIndex = 0;
 
 uint8_t serialColumn;
 const byte menuRowM = 26;
@@ -160,7 +160,8 @@ String console[consoleRows][consoleColumns];
 
 uint32_t file_system_size, file_system_used, free_size, program_size, psramSize, freePsram;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz;
-uint32_t flash_size;
+size_t flash_size, freeSketchSpace;
+// size_t freeSketchSpace;
 double percentLeftLFS, percentUsedLFS;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
@@ -366,6 +367,7 @@ void setup() {
   preferences.begin("my - app", false);
   // Sensor Prefs
   loggingInterval = preferences.getUInt("logItvl", 30000);
+  conditioning_duration = (loggingInterval / ONEMILLION) * 3;
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
 
@@ -397,6 +399,9 @@ void setup() {
   }
   getSPIFFSsizes();
   LittleFS.end();
+
+  getNTP();
+  setupWebInterface();
 
   //___________________________ INITIALIZE SD _________________________
   TAG = "SD";
@@ -559,9 +564,6 @@ void setup() {
       u8g2.sendBuffer();
     }
   }
-
-  getNTP();
-  setupWebInterface();
 
   //___________________________ TASK MANAGER ________________________
   launchUtility();  // launch utility Menu, setup tasks

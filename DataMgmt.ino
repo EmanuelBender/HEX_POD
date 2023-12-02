@@ -8,13 +8,18 @@ void logging() {  // Assign values to the array at the current index
   loggingTracker = micros();
   timeTracker = loggingTracker;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  String airLog;
 
   cpu_freq_mhz = getCpuFrequencyMhz();
   cpu_xtal_mhz = getXtalFrequencyMhz();
   cpu_abp_hz = getApbFrequency();
+  program_size = ESP.getSketchSize();
+  free_size = ESP.getFlashChipSize() - program_size - file_system_size + file_system_used;
+  freeSketchSpace = ESP.getFreeSketchSpace();
 
-  airLog = printTime + ", ";
+  if (conditioning_duration == 0) {
+    String airLog;
+    airLog = printTime + ", ";
+    /* 
   SDarray[SDIndex][0] = printTime;
   SDarray[SDIndex][1] = printDate;
   SDarray[SDIndex][2] = String(CONFIG_IDF_TARGET);
@@ -41,28 +46,30 @@ void logging() {  // Assign values to the array at the current index
   SDarray[SDIndex][23] = data.temperature;
   SDarray[SDIndex][24] = data.humidity;
   SDarray[SDIndex][25] = data.pressure;
+*/
+    for (int i = 0; i < numProfiles; ++i) {
+      // SDarray[SDIndex][26 + i] = bme_resistance_avg[i];
+      airLog += String(bme_resistance_avg[i]) + ", ";
+    }
+    airLog += String(data.temperature, 3) + ", ";
+    airLog += String(data.humidity, 2) + ", ";
+    airLog += String(data.pressure, 3) + ", ";
+    airLog += String(VOC) + ", ";
+    airLog += String(NOX) + ", ";
+    airLog += String(srawVoc) + ", ";
+    airLog += String(srawNox);
+    airLog += "\r\n";
 
-  for (int i = 0; i < numProfiles; ++i) {
-    SDarray[SDIndex][26 + i] = bme_resistance_avg[i];
-    airLog += String(bme_resistance_avg[i]) + ", ";
-  }
-  airLog += String(VOC) + ", ";
-  airLog += String(NOX) + ", ";
-  airLog += String(srawVoc) + ", ";
-  airLog += String(srawNox);
-  airLog += "\r\n";
-
-  SDarray[SDIndex][numProfiles + 26] = VOC;
+    /* SDarray[SDIndex][numProfiles + 26] = VOC;
   SDarray[SDIndex][numProfiles + 27] = NOX;
   SDarray[SDIndex][numProfiles + 28] = srawVoc;
-  SDarray[SDIndex][numProfiles + 29] = srawNox;
+  SDarray[SDIndex][numProfiles + 29] = srawNox; */
 
 
-  if (conditioning_duration == 0) {
     // if (serialPrintLOG) {
-    String logLine = "";
+    // String logLine = "";
     // Serial.print("Raw Data: ");
-
+    /*
     for (int j = 0; j < consoleColumns; ++j) {
       if (!SDarray[SDIndex][j].isEmpty()) {
         // Serial.print(SDarray[SDIndex][j]);
@@ -70,28 +77,23 @@ void logging() {  // Assign values to the array at the current index
         // console[consoleLine][i] = String(SDarray[SDIndex][j]);
         // logLine += SDarray[SDIndex][j] + ", ";
       }
-    }
+    } */
     // logLine += "\r\n";
     // Serial.println();
 
     LittleFS.begin();
     // const char *logLineCStr = logLine.c_str();
     const char *airLogcstr = airLog.c_str();
-
-    // Serial.print("LogLine: ");
-    // Serial.print(logLine);
-    // Serial.print("airLogcstr: ");
-    // Serial.print(airLogcstr);
-
-    // appendFile(LittleFS, "/_LOG/deviceLOG.txt", logLineCStr);
     appendFile(LittleFS, logfilePath, airLogcstr);
+
+    airLog.clear();
 
     LittleFS.end();
     // }
   }
 
-  SDIndex++;  // Move to the next row for the next measurements
-  if (SDIndex >= consoleRows) SDIndex = 0;
+  // SDIndex++;  // Move to the next row for the next measurements
+  // if (SDIndex >= consoleRows) SDIndex = 0;
 
   debugF(loggingTracker);
   loggingTracker = (micros() - loggingTracker) / 1000.0;
@@ -181,6 +183,7 @@ void handleSPIFFS() {
 String listWebDir(fs::FS &fs, const char *dirname, uint8_t levels) {
   String fsString = "";
   File root = fs.open(dirname);
+  filesCount = 0; 
 
   if (!root) {
     return "<tr><td>Failed to open directory</td></tr>";

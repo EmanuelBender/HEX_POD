@@ -370,7 +370,7 @@ void pollINA2() {
 void pollBME() {
   TAG = "pollBME2()   ";
   bmeTracker = micros();
-  lastBMEpoll = convertSecToTimestamp<String>(bmeTracker / 1000 / 1000);
+  lastBMEpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   int i;
@@ -474,7 +474,7 @@ void pollBME() {
 void pollSGP() {
   TAG = "pollSGP()    ";
   timeTracker = micros();
-  lastSGPpoll = convertSecToTimestamp<String>(timeTracker / 1000 / 1000);
+  lastSGPpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   auto compensationT = static_cast<uint16_t>((data.temperature + 45) * 65535 / 175);

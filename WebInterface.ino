@@ -31,7 +31,7 @@ void handleFS() {
 }
 
 
-void handleFileDownload() {
+void streamToServer() {
   String filePath = server.arg("file");
 
   if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
@@ -80,7 +80,7 @@ void setupWebInterface() {  // in setup()
   server.on("/utility", HTTP_GET, handleUtility);
   server.on("/filesystem", HTTP_GET, handleFS);
 
-  server.on("/download", HTTP_GET, handleFileDownload);
+  server.on("/download", HTTP_GET, streamToServer);
 
   server.on("/toggleLED", []() {
     LEDon = !LEDon;
@@ -433,52 +433,56 @@ String generateNavBar() {
 
 
 String generateFileSystemPage() {
+  String page;
 
-  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+  if (LittleFS.begin()) {
     // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+
+    getSPIFFSsizes();
+
+    page = "<div style=' margin-left:30px;'>";  // Use flex container to make tables side by side
+
+    page += "<table style='width: auto;'>";
+    page += "<tr><td><h2>FS</h2></td></tr>";
+
+    page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+
+    page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
+    page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
+
+    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
+    page += "</table>";
+    page += "</div>";
+
+
+    page += "<div style='display: flex; margin-left:30px;'>";  // Use flex container to make tables side by side
+    File file = LittleFS.open(logfilePath);
+    String content;
+    while (file.available()) {
+      content += char(file.read());
+    }
+    double fileSizeMB = double(file.size()) / ONEMILLIONB;
+    page += "<table style='width: auto;'>";
+    page += "<tr><td>" + String(file.name()) + "</td></tr>";
+    page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
+    page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
+    page += "</table>";
+    page += "</div>";
+
+    content = "";
+    // Serial.println(content);
+    // deleteFile(LittleFS, "/_LOG/test.txt");
+
+    file.close();
+    LittleFS.end();
+  } else {
+    page = "<table style='width: auto;'>";
+    page += "<tr><td><h3>LittleFS / SPIFFS couldn't be mounted</h3></td></tr>";
+    page += "</table>";
   }
-
-
-  String page = "<div style=' margin-left:30px;'>";  // Use flex container to make tables side by side
-
-  page += "<table style='width: auto;'>";
-  page += "<tr><td><h2>FS</h2></td></tr>";
-
-  page += "<tr><td>Size</td><td>" + String(file_system_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-  page += "<tr><td>Used</td><td>" + String(file_system_used / ONEMILLIONB, 3) + "Mb</td></tr>";
-  page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-  page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
-
-  page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
-  page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
-
-  page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
-  page += "</table>";
-  page += "</div>";
-
-
-  page += "<div style='display: flex; margin-left:30px;'>";  // Use flex container to make tables side by side
-  File file = LittleFS.open(logfilePath);
-  String content;
-  while (file.available()) {
-    content += char(file.read());
-  }
-  double fileSizeMB = double(file.size()) / ONEMILLIONB;
-  page += "<table style='width: auto;'>";
-  page += "<tr><td>" + String(file.name()) + "</td></tr>";
-  page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
-  page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
-  page += "</table>";
-  page += "</div>";
-
-
-  getSPIFFSsizes();
-  // Serial.println(content);
-  // deleteFile(LittleFS, "/_LOG/test.txt");
-  filesCount = 0;
-  file.close();
-  LittleFS.end();
-
   return generateCommonPageStructure(page);
 }
 
@@ -514,16 +518,17 @@ String generateConsole() {
   // Update circular buffer with the current sensor data
 
   // Display the last 55 entries in reverse order
-  for (int line = 0; line < 55; line++) {
+  for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
-    for (int i = 0; i < 14; i++) {
+    for (int i = 0; i < consoleColumns; i++) {
       if (serialPrintLOG) {
-        console[line][i] = SDarray[SDIndex][i];
+        // console[line][i] = SDarray[SDIndex][i];
       } else {
         consoleOutput += console[line][i];
       }
-      if (i < 13) {
+      if (i < consoleColumns - 1) {
+        if (line == consoleRows) line = 0;
         consoleOutput += "\t";  // Add a tab between values, except for the last one
       } else {
         consoleOutput += "\n";
@@ -737,6 +742,8 @@ String generateSensorsPage() {
 
 String generateUtilityPage() {
 
+
+
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // System Info Table
@@ -747,17 +754,17 @@ String generateUtilityPage() {
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ" + "</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 1) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td></tr>";
+  page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 2) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td><b>Free</td><td>" + String(freeSketchSpace / ONEMILLIONB, 2) + "</td></tr>";
   page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024) + "Kb</td></tr>";
   page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> Sketch Size </td>";
+  page += "<tr><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> Sketch Size </td><td><b> Free Sketch </td>";
   page += "<tr><td>" + String(esp_get_free_heap_size() / 1024.0) + "Kb</td>";
   page += "<td>" + String(esp_get_minimum_free_heap_size() / 1024.0) + "Kb</td> ";
   page += "<td>" + String(esp_get_free_internal_heap_size() / 1024.0) + "Kb</td>";
-  page += "<td>" + String(program_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  page += "<td>" + String(program_size / ONEMILLIONB, 3) + "Mb</td>";
+  page += "</tr>";
   page += "<tr><td><b> WiFi SSID </td><td><b> Status </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
   page += "<tr>";
   page += "<td>" + String(WiFi.SSID()) + "</td>";
