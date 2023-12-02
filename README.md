@@ -2,9 +2,10 @@
 <!-- HTML comment -->
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
-<p align=center><b></b></b></p>
+<p align=center></p>
 <p align=center font-size=10px > by eBender <br>
-⚠️ This project is in development.</p>
+⚠️ This project is in development.<br>
+  Watch this space.</p>
   
   <p align=center><b><a href="https://hackaday.io/project/177083-h6x-pod">Hackaday</a> <br>
 <a href="https://www.instagram.com/zen.diy/">Instagram</a><br>
@@ -12,21 +13,63 @@
 <a href="https://www.reddit.com/r/hex_pod/">Reddit</a> <br>
 <a href="https://www.patreon.com/eBender">Patreon</a> <br><br>
 <!-- <b>PCB production generously sponsored by <a href="https://www.pcbway.com">PCBway</a> -->
+  </b></p>
+<p align=center></b>
+  The [HEX]POD dev Kit is a dense little cube. It houses 4 Air quality sensors, 2 screens, a battery, <br>
+  a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
+  platform to play with ML, NN and any other externally connected modules.
+</p>
     
 ![Cam7 (1)](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1d4d233f-8ee9-443c-b128-af7aaa4aaad3)
 ![Cam6_noShell](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1aac6172-bb19-46d3-8815-2ff2f8ee651f)
 
-<p>
+
 <table>
-<tr><td><b> Sensors </b></td><td>I/O</td><td>tbc...</td></tr>
-<tr><td>BME688 (x2)</td><td>16 GPIO PINS</td></tr>
-<tr><td>SGP41</td><td></td<td></zd>MTDI/JTAG</td></tr>
-<tr><td>SCD41</td><td>SD Reader</td></tr>
-<tr><td>LIS3DH</td><td>Joystick</td></tr>
-<tr><td>LTR-308</td><td>2 Buttons</td></tr>
-<tr><td>DS18B20 (x6)</td><td></td></tr>
+    <thead>
+    <tr>
+        <th>DETAILS</th>
+        <th>Function</th>
+        <th>Module</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td><b>SENSORS</b></td>
+        <td>Air Quality<br>Smells & Gases<br>Light Meter<br>Motion Sensor<br>Temp Sensors</td>
+        <td>SCD41, SGP41 (<a href="https://www.sensirion.com/en/environmental-sensors/carbon-dioxide-sensors/carbon-dioxide-sensor-scd4x/" target="_blank">CO2</a>,&nbsp;&nbsp;<a href="https://www.sensirion.com/en/environmental-sensors/gas-sensors/sgp41/" target="_blank">VOC, NOx</a>)<br>BME688 (x2) (Gas, T, H, P + AI Gases)<br>LTR-308 (Ambient Light)<br>LIS3DH (x2) (MPU, 6-axis)<br>DS18B20 (x5)</td>
+    </tr>
+    <tr>
+        <td><b>POWER</b></td>
+        <td>15W Charging<br>Battery Life: tba</td>
+        <td>2000mAh, 7.4Wh (<a href="https://www.aliexpress.com/item/1005002919536938.html" target="_blank">103450 Battery</a>)<br>tba</td>
+    </tr>
+    <tr>
+        <td><b>SCREENS</b></td>
+        <td>
+            <a href="https://www.aliexpress.us/item/3256803567938962.html?spm=a2g0o.productlist.0.0.21743a4elfVKsE&algo_pvid=50a69a68-34bc-4972-be26-90207f61f1dd&algo_exp_id=50a69a68-34bc-4972-be26-90207f61f1dd-0&pdp_ext_f=%7B%22sku_id%22%3A%2212000027049416962%22%7D&pdp_npi=2%40dis%21USD%214.85%213.64%21%21%21%21%21%402100bddf16706926834816111ea09b%2112000027049416962%21sea&curPageLogUid=NP6PQAaPjqLN" target="_blank">TFT IPS 1.69"</a><br>
+            <a href="https://www.aliexpress.com/item/32788923016.html" target="_blank">OLED 0.91"</a>
+        </td>
+        <td>Main 240x280px<br>low power status</td>
+    </tr>
+       <tr><td><b>IO
+       </b></td>
+       <td>
+            4-way Joystick and 2 Buttons
+      <br>SD Card Reader<br>16 I/O Pins<br>WiFi / BLE<br>Web Interface</td>
+       <td><br><br>8 from Multiplexer, 8 from ESP32-S3<br><br>working on custom, versatile local server
+       </td></tr>
+       <tr><td><b>Misc
+       </b></td>
+       <td>
+            <a href="https://de.aliexpress.com/item/1005003167479036.html?spm=a2g0o.detail.0.0.7cd27d94yKM3Xt&gps-id=pcDetailTopMoreOtherSeller&scm=1007.40050.362094.0&scm_id=1007.40050.362094.0&scm-url=1007.40050.362094.0&pvid=2f8b99e9-636b-44b3-80c3-0bcebe309f86&_t=gps-id%3ApcDetailTopMoreOtherSeller%2Cscm-url%3A1007.40050.362094.0%2Cpvid%3A2f8b99e9-636b-44b3-80c3-0bcebe309f86%2Ctpp_buckets%3A668%232846%238116%232002&pdp_npi=4%40dis%21EUR%2110.60%216.57%21%21%2111.33%21%21%40211b801917005985738637751e312d%2112000024821022749%21rec%21DE%213219523542%21&gatewayAdapt=glo2deu" target="_blank">5V Blower Fan</a><br>Quiet Air Duct 
+       </td>
+       <td> 1,5CFM, -25dbA, 8500RMP
+       <br>Eval. work in progress</td>
+    </tr>
+    </tbody>
 </table>
-</p>
+
+
 <p>
 <b>How the idea found me:</b><br/>
 
