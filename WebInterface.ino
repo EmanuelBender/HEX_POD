@@ -463,6 +463,10 @@ String generateFileSystemPage() {
     String content;
     while (file.available()) {
       content += char(file.read());
+      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
+        content += " -- Out of RAM. File is too big.";
+        break;
+      }
     }
     double fileSizeMB = double(file.size()) / ONEMILLIONB;
     page += "<table style='width: auto;'>";
@@ -755,7 +759,7 @@ String generateUtilityPage() {
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ" + "</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
   page += "<tr><td><b>Flash</td><td>" + String(flash_size / ONEMILLIONB, 2) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td><b>Free</td><td>" + String(freeSketchSpace / ONEMILLIONB, 2) + "</td></tr>";
-  page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024) + "Kb</td></tr>";
+  page += "<tr><td><b>PSRAM</td><td> Total: " + String(ESP.getPsramSize() / 1024.0) + "Kb</td><td>  Free: " + String(ESP.getFreePsram() / 1024.0) + "Kb</td></tr>";
   page += "<tr><td><b>SPIFFS</td><td> Free: " + String(file_system_size / ONEMILLIONB, 2) + "mb</td><td>  Used: " + String(file_system_used / ONEMILLIONB, 2) + "MB</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
