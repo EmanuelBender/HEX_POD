@@ -49,7 +49,7 @@
             <a href="https://www.aliexpress.us/item/3256803567938962.html?spm=a2g0o.productlist.0.0.21743a4elfVKsE&algo_pvid=50a69a68-34bc-4972-be26-90207f61f1dd&algo_exp_id=50a69a68-34bc-4972-be26-90207f61f1dd-0&pdp_ext_f=%7B%22sku_id%22%3A%2212000027049416962%22%7D&pdp_npi=2%40dis%21USD%214.85%213.64%21%21%21%21%21%402100bddf16706926834816111ea09b%2112000027049416962%21sea&curPageLogUid=NP6PQAaPjqLN" target="_blank">TFT IPS 1.69"</a><br>
             <a href="https://www.aliexpress.com/item/32788923016.html" target="_blank">OLED 0.91"</a>
         </td>
-        <td>Main 240x280px<br>low power status</td>
+        <td>Main 240x280px<br>Low power always-on</td>
     </tr>
        <tr><td><b>IO
        </b></td>
@@ -71,6 +71,8 @@
 
 
 <p>
+<br>
+  
 <b>How the idea found me:</b><br/>
 
 In 2019 i went to India where i travelled on Foot, Train and ultimately Motorbike from Kolkata to Kerala back up to Dharamshala and everywhere in between. So across the whole country twice.
