@@ -89,8 +89,8 @@ void logging() {  // Assign values to the array at the current index
   SDarray[SDIndex][15] = String(esp_get_minimum_free_heap_size() / 1024.0) + "KB";
   SDarray[SDIndex][16] = String(esp_get_free_internal_heap_size() / 1024.0) + "KB";
   SDarray[SDIndex][17] = String(program_size / 1024.0) + "KB";
-  SDarray[SDIndex][18] = temperatureRead();
-  SDarray[SDIndex][19] = temp1;
+  SDarray[SDIndex][18] = CPUTEMP;
+  SDarray[SDIndex][19] = tempValues[0];
   SDarray[SDIndex][20] = BUS2_BusVoltage;
   SDarray[SDIndex][21] = BUS2_Current;
   SDarray[SDIndex][22] = "X" + String(X) + " Y" + String(Y) + " Z" + String(Z);
@@ -145,51 +145,41 @@ void logging() {  // Assign values to the array at the current index
   // if (SDIndex >= consoleRows) SDIndex = 0;
 
   debugF(loggingTracker);
-  loggingTracker = (micros() - loggingTracker) / 1000.0;
+  loggingTracker = (micros() - loggingTracker) / double(ONETHOUSAND);
 }
 
 
 
 void mountSD() {
-  TAG = "mountSD()";
+  TAG = "initSD()   ";
   // timeTracker = micros();
   SDinserted = !digitalRead(GPIO_NUM_47);
 
   if (SDinserted) {
 
-    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
-    sdSPI.setFrequency(40000000);                   // Try different frequencies
-    sdSPI.setDataMode(SPI_MODE0);                   // Try different modes
-
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextColor(TFT_WHITE);
-    tft.setTextDatum(TL_DATUM);
-    tft.setTextPadding(60);
-
     if (!SD.begin(SD_CS, sdSPI, 40000000, "/", 50)) {
-      tft.drawString("SD: Card mount failed.", 60, 100, 3);
+      // tft.drawString("SD: Card mount failed.", 60, 100, 3);
       return;
     }
-
 
     uint8_t cardType = SD.cardType();
     if (cardType == CARD_NONE) {
-      tft.drawString("SD: No SD Card found.", 60, 100, 3);
+      // tft.drawString("SD: No SD Card found.", 60, 100, 3);
       return;
     }
 
-    tft.drawString("Card Size:   " + String(SD.cardSize() / (1024 * 1024)) + "MB", 20, 10, 2);
-    tft.drawString("Total Space: " + String(SD.totalBytes() / (1024 * 1024)) + "MB", 20, 20, 2);
-    tft.drawString("Used Space:  " + String(SD.usedBytes() / (1024 * 1024)) + "MB", 20, 30, 2);
+    // tft.drawString("Card Size:   " + String(SD.cardSize() / (1024 * 1024)) + "MB", 20, 10, 2);
+    // tft.drawString("Total Space: " + String(SD.totalBytes() / (1024 * 1024)) + "MB", 20, 20, 2);
+    // tft.drawString("Used Space:  " + String(SD.usedBytes() / (1024 * 1024)) + "MB", 20, 30, 2);
 
     if (cardType == CARD_MMC) {
-      tft.drawString("Type: MMC", 20, 40, 2);
+      // tft.drawString("Type: MMC", 20, 40, 2);
     } else if (cardType == CARD_SD) {
-      tft.drawString("Type: SDSC", 20, 40, 2);
+      // tft.drawString("Type: SDSC", 20, 40, 2);
     } else if (cardType == CARD_SDHC) {
-      tft.drawString("Type: SDHC", 20, 40, 2);
+      // tft.drawString("Type: SDHC", 20, 40, 2);
     } else {
-      tft.drawString("Type: UNKNOWN", 20, 40, 2);
+      // tft.drawString("Type: UNKNOWN", 20, 40, 2);
     }
 
 
@@ -197,9 +187,7 @@ void mountSD() {
     // createDir(SD, "/testFolder");
     // listDir(SD, "/", 0);
     // removeDir(SD, "/testFolder");
-    delay(10000);
-  } else {
-    tft.drawString("No SD card inserted.", 60, 100, 3);
+    // delay(10000);
   }
 }
 

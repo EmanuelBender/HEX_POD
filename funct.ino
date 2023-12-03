@@ -6,7 +6,7 @@ void pollServer() {
   timeTracker = micros();
   server.handleClient();
   debugF(timeTracker);
-  clientTracker = (micros() - timeTracker) / 1000.0;
+  clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 void IRAM_ATTR CTR_ISR() {
@@ -18,8 +18,11 @@ void IRAM_ATTR UDLR_ISR() {
   BTNID = taskManager.schedule(onceMicros(1), pollButtons);
 }
 void IRAM_ATTR SD_ISR() {
-  SDinserted = !digitalRead(GPIO_NUM_47);
-  // ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed");
+  if (millis() - lastSDInterrupt > 100) {
+    lastSDInterrupt = millis();
+    SDinserted = !digitalRead(GPIO_NUM_47);
+    if (DEBUG) ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed");
+  }
 }
 
 
@@ -55,6 +58,9 @@ void PowerStates() {
   powerStTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
+  /* if (powerStTracker - lastInputTime > deepsleepDelay) {
+    currentPowerState = DEEP_SLEEP;
+  } else */
   /* if (powerStTracker - lastInputTime > lightsleepDelay) {
     currentPowerState = LIGHT_SLEEP;
   } else */
@@ -90,14 +96,12 @@ void PowerStates() {
       while (TFTbrightness > 0.0) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
-        taskManager.yieldForMicros(500);
+        // taskManager.yieldForMicros(500);
       }
 
     } else if (currentPowerState == IDLE) {
-      // WEB = taskManager.schedule(repeatMillis(webServerPollMs * 2), handleWebClient);
       setCpuFrequencyMhz(160);
     } else if (currentPowerState == NORMAL) {
-      // taskManager.setTaskEnabled(STATID, true);
       setCpuFrequencyMhz(240);
     }
   }
@@ -105,7 +109,7 @@ void PowerStates() {
   previousPowerState = currentPowerState;
 
   debugF(powerStTracker);
-  powerStTracker = (micros() - powerStTracker) / 1000.0;
+  powerStTracker = (micros() - powerStTracker) / double(ONETHOUSAND);
 }
 
 
@@ -253,7 +257,7 @@ void updateTime() {
   printToOLED(uptimeString);
 
   debugF(uTimeTracker);
-  uTimeTracker = (micros() - uTimeTracker) / 1000.0;
+  uTimeTracker = (micros() - uTimeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -295,7 +299,7 @@ void getNTP() {
   }
 
   debugF(ntpTracker);
-  ntpTracker = (micros() - ntpTracker) / 1000.0;
+  ntpTracker = (micros() - ntpTracker) / double(ONETHOUSAND);
 }
 
 
@@ -306,17 +310,18 @@ void pollTemp() {
   tempTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  temp1 = tempSens.getTempC(tempProbe1);
-  tempSens.setWaitForConversion(false);
-  tempSens.requestTemperatures();
+  if (tempSens.isConversionComplete()) {
+    for (i = 0; i < DSdevices; i++) {
+      tempValues[i] = tempSens.getTempCByIndex(i);
+    }
+    // tempSens.processAlarms();
+    tempSens.requestTemperatures();
 
-  if (temp1 == DEVICE_DISCONNECTED_C) {
-    ESP_LOGE(TAG, "temp1 disconnected");
-    temp1 = NAN;
+    CPUTEMP = temperatureRead();
   }
 
   debugF(tempTracker);
-  tempTracker = (micros() - tempTracker) / 1000.0;
+  tempTracker = (micros() - tempTracker) / double(ONETHOUSAND);
 }
 
 
@@ -340,29 +345,30 @@ void pollIMU() {
   Z = event.acceleration.z;
 */
   debugF(imuTracker);
-  imuTracker = (micros() - imuTracker) / 1000.0;
+  imuTracker = (micros() - imuTracker) / double(ONETHOUSAND);
 }
 
 
 
 void pollINA2() {
 
-  BUS2_CNVR = INA2.getConversionFlag();
+
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (BUS2_CNVR) {
-    TAG = "pollINA2()   ";
-    ina2Tracker = micros();
+  // if (INA2.getConversionFlag()) {
+  // BUS2_CNVR = true;
+  TAG = "pollINA2()   ";
+  ina2Tracker = micros();
 
-    BUS2_BusVoltage = INA2.getBusVoltage();
-    BUS2_ShuntVoltage = INA2.getShuntVoltage_mV();
-    BUS2_Current = INA2.getCurrent_mA();
-    BUS2_Power = INA2.getPower_mW();
-    BUS2_OVF = INA2.getMathOverflowFlag();
+  BUS2_BusVoltage = INA2.getBusVoltage_mV();
+  BUS2_ShuntVoltage = INA2.getShuntVoltage_mV();
+  BUS2_Current = INA2.getCurrent_mA();
+  BUS2_Power = INA2.getPower_mW();
+  // BUS2_OVF = INA2.getMathOverflowFlag();
 
-    debugF(ina2Tracker);
-    ina2Tracker = (micros() - ina2Tracker) / 1000.0;
-  }
+  debugF(ina2Tracker);
+  ina2Tracker = (micros() - ina2Tracker) / double(ONETHOUSAND);
+  //  }
 }
 
 
@@ -384,7 +390,7 @@ void pollBME() {
     }
   }
 
-  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / 1000) * 0.30);
+  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);
 
 
   bme.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
@@ -421,15 +427,15 @@ void pollBME() {
         bme_resistance[i] /= bmeSamples;
       }
 
-      // samplingDelta = ((bmeInterval / 1000.0) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
+      // samplingDelta = ((bmeInterval / double(ONETHOUSAND)) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
 
       for (i = 0; i < numProfiles; ++i) {  // apply sampl delta & average
         // bme_resistance[i] *= samplingDelta; work in progress
         bme_gas_avg += bme_resistance[i];
       }
       bme_gas_avg /= numProfiles;
-      smallestValue = findSmallestValue(bme_resistance);
-      offsetDelta = smallestValue;
+      offsetDelta = findSmallestValue(bme_resistance);
+      ;
 
       // Serial.printf("Curr Meas: %d", repeater);
       // Serial.println();
@@ -464,7 +470,7 @@ void pollBME() {
 
 
   debugF(bmeTracker);
-  bmeTracker = (micros() - bmeTracker) / 1000.0;
+  bmeTracker = (micros() - bmeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -495,7 +501,7 @@ void pollSGP() {
   }
 
   debugF(timeTracker);
-  sgpTracker = (micros() - timeTracker) / 1000.0;
+  sgpTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -528,7 +534,7 @@ void configSGP() {
 
 void debugF(uint32_t tracker) {
   if (DEBUG) {
-    elapsedTime = (micros() - tracker) / 1000.0;
+    elapsedTime = (micros() - tracker) / double(ONETHOUSAND);
     ESP_LOGI(TAG, "%.3fms", elapsedTime);
 
     console[consoleLine][0] = printTime;

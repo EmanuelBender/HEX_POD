@@ -177,7 +177,7 @@ void calcCube() {
     colAcX = 0;
     colAcY = 0;
     colAcZ = 0;
-    taskManager.schedule(onceMicros(2), SetVars);
-    taskManager.schedule(onceMicros(150), RenderImage);
+    taskManager.schedule(onceMicros(1), SetVars);
+    taskManager.schedule(onceMicros(1), RenderImage);
   }
 }

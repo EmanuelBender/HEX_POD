@@ -667,7 +667,7 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(bmeTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastBMEpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String((bmeInterval / 1000.0) / bmeSamples) + "s</div></td>";
+  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</div></td>";
   page += "<td></td><td></td><td></td><td></td><td></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'><td></td><td><b> GAS_AVG </td><td><b> Temp </td><td><b >Humid </td><td><b> Press </td><td><b> Alt </td></tr>";
@@ -698,7 +698,7 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(sgpTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastSGPpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / 1000.0) + "s</div></td>";
+  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / double(ONETHOUSAND)) + "s</div></td>";
   page += "<td></td><td></td><td></td><td></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";
@@ -755,19 +755,20 @@ String generateUtilityPage() {
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</b></td><td> " + String(powerStateNames[currentPowerState]) + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
+  page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
   page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td></tr>";
-  page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB) + "Mb</td><td>" + String(program_UsedP / ONEMILLIONB) + "Mb</td></tr>";
-  page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + "Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + "</td></tr>";
-  page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLIONB) + "Mb</td><td>  Left: " + String(percentLeftLFS) + "%</td></tr>";
+  if (program_size > 0) page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
+  if (deviceInfo.total_allocated_bytes > 0) page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
+  if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLIONB) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
+  page += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
   page += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
   page += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   page += "</tr>";
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> WiFi SSID </td><td><b> Status </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
   page += "<tr>";
   page += "<td>" + String(WiFiIP) + "</td>";
@@ -777,6 +778,7 @@ String generateUtilityPage() {
   page += "<td>" + String(lastNTPtime) + "</td>";
   // page += "<td>" + String(lastNTPtimeFail) + "</td>";
   page += "</tr>";
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b> SD Card </td><td><b>  </td><td><b>  </td><td><b>  </td><td><b> Last Reset </td></tr>";
   page += "<tr><td>";
   page += SDinserted ? "Present" : "Empty";
@@ -790,12 +792,29 @@ String generateUtilityPage() {
 
   // System Sensors
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><td><h2>System Sensors</h2></td></tr>";
-  page += "<tr><td><b>Volt</b></td><td><b>Amp</b></td><td><b>Shunt</b></td><td><b>Power</b></td></tr>";
-  page += "<tr><td>" + String(BUS2_BusVoltage) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
+  page += "<tr><td><h2>System<br> Sensors</h2></td></tr>";
+  page += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b>Temp CPU</b></td><td><b>ESP Temp</b></td><td><b>Temp 3</b></td><td><b>Temp 4</b></td><td><b>Temp 5</b></td><td><b>Temp 6</b></td></tr>";
-  page += "<tr><td>" + String(temperatureRead()) + "&deg;C</td><td>" + String(temp1) + "&deg;C</td><td> - </td><td> - </td><td> - </td><td> - </td></tr>";
+  page += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
+  page += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
+  page += "<tr><td><b>" + String(DSdevices) + " DS18B20</td></tr>";
+  page += "<tr>";
+
+  for (int i = 0; i < DSdevices; i++) {
+    page += "<td><b>" + String(tempID[i]) + "</td>";
+  }
+  page += "</tr><tr>";
+
+  for (int i = 0; i < DSdevices; i++) {
+    if (tempValues[i] > 0.0) page += "<td>" + String(tempValues[i]) + "&deg;C</td>";
+  }
+  page += "</tr>";
+
+  page += "<tr><td><b>CPU</td></tr>";
+  page += "<tr><td>" + String(CPUTEMP) + "&deg;C</td></tr>";
+
+
   page += "</table>";
 
   page += "</div>";  // Close the flex container

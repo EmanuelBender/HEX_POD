@@ -34,21 +34,23 @@ void reloadMenu() {  // one-shot
 void statusBar() {
   statBaTracker = micros();
 
-  tft.drawFastHLine(5, 10, 240, TFT_WHITE);
-  tft.setTextPadding(20);
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  // tft.drawRoundRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 41, TFT_WHITE); // Screen Border 41px rounded radius
+  if (currentPowerState <= IDLE) {
+    tft.drawFastHLine(5, 10, 240, TFT_WHITE);
+    tft.setTextPadding(20);
+    taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+    // tft.drawRoundRect(0, 0, TFT_WIDTH, TFT_HEIGHT, 41, TFT_WHITE); // Screen Border 41px rounded radius
 
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString(uptimeString, 33, 0, 1);
+    tft.setTextDatum(TL_DATUM);
+    tft.drawString(uptimeString, 33, 0, 1);
 
-  tft.drawString(printTime, 95, 0, 1);
+    tft.drawString(printTime, 95, 0, 1);
 
-  tft.setTextDatum(TR_DATUM);
-  tft.drawString(String(restarts) + " rst", TFT_WIDTH - 37, 0, 1);
+    tft.setTextDatum(TR_DATUM);
+    tft.drawString(String(restarts) + " rst", TFT_WIDTH - 37, 0, 1);
+  }
 
   debugF(statBaTracker);
-  statBaTracker = (micros() - statBaTracker) / 1000.0;
+  statBaTracker = (micros() - statBaTracker) / ONETHOUSAND;
 }
 
 
@@ -80,11 +82,11 @@ void sensorPage() {
   tft.drawString("Y " + String(Y), 85, (26 * 2), 2);
   tft.drawString("Z " + String(Z), 150, (26 * 2), 2);
   tft.drawString("CPU " + String(temperatureRead()), 20, (26 * 3), 2);
-  tft.drawString("ESP " + String(temp1), 110, (26 * 3), 2);
+  tft.drawString("ESP " + String(tempValues[0]), 110, (26 * 3), 2);
   tft.setTextPadding(90);
-  tft.drawString("BUS " + String(BUS2_BusVoltage) + "V", 20, (26 * 4), 2);
-  tft.drawString("AMP " + String(BUS2_Current), 115, (26 * 4), 2);
-  tft.drawString("SHU " + String(BUS2_ShuntVoltage) + "mA", 20, (26 * 5), 2);
+  tft.drawString("BUS " + String(BUS2_BusVoltage / double(ONETHOUSAND)) + "V", 20, (26 * 4), 2);
+  tft.drawString("AMP " + String(BUS2_Current) + "mA", 115, (26 * 4), 2);
+  tft.drawString("SHU " + String(BUS2_ShuntVoltage) + "mV", 20, (26 * 5), 2);
   tft.drawString("PWR " + String(BUS2_Power) + "mW", 115, (26 * 5), 2);
 
   tft.setTextPadding(45);
@@ -101,8 +103,8 @@ void sensorPage() {
   tft.drawString("E" + String(bme_resistance_avg[4]), 90, (26 * 8), 2);
   tft.drawString("D" + String(bme_resistance_avg[5]), 160, (26 * 8), 2);
   tft.setTextPadding(90);
-  tft.drawString("VOC " + String(srawVoc), 20, (26 * 9), 2);  // sgpHumidity, sgpTemperature
-  tft.drawString("NOX " + String(srawNox), 115, (26 * 9), 2);
+  tft.drawString("VOC " + String(VOC), 20, (26 * 9), 2);  // sgpHumidity, sgpTemperature
+  tft.drawString("NOX " + String(NOX), 115, (26 * 9), 2);
 }
 
 
@@ -262,6 +264,10 @@ void utilPage() {
 void colorTest() {
   tft.fillScreen(TFT_BLACK);
 
+  uint16_t colors[12];
+  uint16_t Delta = (TFT_WIDTH - 1) / 12;
+  bool smooth;
+
   for (int i = 0; i < 2; i++) {  // locate color wheel colors
     /*colors[i + 22] = tft.alphaBlend(128 + i * 127, TFT_RED, TFT_MAGENTA);
     colors[i + 20] = tft.alphaBlend(128 + i * 127, TFT_MAGENTA, TFT_CYAN);
@@ -276,7 +282,7 @@ void colorTest() {
     colors[i + 2] = tft.alphaBlend(128 + i * 127, TFT_YELLOW, TFT_ORANGE);
     colors[i + 0] = tft.alphaBlend(128 + i * 127, TFT_ORANGE, TFT_RED);
   }
-  Delta = (TFT_WIDTH - 1) / 12;
+
   for (int i = 0; i < 7; i++) {
     for (uint16_t angle = 0; angle <= 345; angle += 15) {
       if (angle < 180) {
@@ -359,7 +365,7 @@ void taskM() {
 
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   if (DEBUG) {
-    timeTracker = (micros() - timeTracker) / 1000;
+    timeTracker = (micros() - timeTracker) / ONETHOUSAND;
     ESP_LOGI("taskM()", "%.3lfms", timeTracker);
   }
 }
@@ -401,7 +407,7 @@ void systemPage() {
                 value = "failed";
                 ESP_LOGE(TAG, "Get flash size failed");
               } else {
-                value = String(flash_size / ONEMILLION) + "MB " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
+                value = String(flash_size / ONEMILLIONB) + "MB " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
               }
               break;
             case 3:
@@ -415,11 +421,11 @@ void systemPage() {
             case 5:
               label = "PSRAM:    ";
               // value = String((chip_info.features & CHIP_FEATURE_EMB_PSRAM ? "YES " : "-- "));
-              value = "T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE, 2) + "Kb,  F:" + String(deviceInfo.total_free_bytes / KILOBYTE, 2) + "Kb";
+              value = "T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb,  F:" + String(deviceInfo.total_free_bytes / KILOBYTE) + "Kb";
               break;
             case 6:
               label = "SPIFFS:    ";
-              value = "F: " + String(SPIFFS_size / ONEMILLION, 3) + "Mb,  U: " + String(SPIFFS_used / ONEMILLION, 3) + "Mb";
+              value = "F: " + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb,  U: " + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb";
               break;
             case 7:
               label = "XTAL:      ";
@@ -455,19 +461,19 @@ void systemPage() {
               break;
             case 15:
               label = "Free_heap:      ";
-              value = String(esp_get_free_heap_size() / 1000.0) + "KB";
+              value = String(esp_get_free_heap_size() / KILOBYTE) + "KB";
               break;
             case 16:
               label = "Minimum_heap:   ";
-              value = String(esp_get_minimum_free_heap_size() / 1000.0) + "KB";
+              value = String(esp_get_minimum_free_heap_size() / KILOBYTE) + "KB";
               break;
             case 17:
               label = "Internal_heap:   ";
-              value = String(esp_get_free_internal_heap_size() / 1000.0) + "KB";
+              value = String(esp_get_free_internal_heap_size() / KILOBYTE) + "KB";
               break;
             case 18:
-              label = "Sketch Size:     ";
-              value = String(program_size / 1000.0) + "KB";
+              label = "Sketch Used:     ";
+              value = String(program_UsedP) + "%";
               break;
             case 19:
               label = "WiFi IP:         ";
@@ -487,11 +493,11 @@ void systemPage() {
               break;
             case 23:
               label = "CPU Temp:       ";
-              value = String(temperatureRead());
+              value = String(CPUTEMP);
               break;
             case 24:
               label = "INA219:         ";
-              value = INA2.isConnected() ? "Connected" : "NaN";
+              value = INA2.isConnected() ? "OK" : "NaN" + String(INA2_iscalibrated ? "Cal" : "NoCal");
               break;
             case 25:
               label = "BME688:         ";

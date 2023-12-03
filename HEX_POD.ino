@@ -82,7 +82,7 @@ const char* wifiStatusChar[] = {
   "Disconnected",
 };
 
-String menuOptions[5] = {
+const char* menuOptions[] = {
   "Home",
   "Sensors",
   "Utility",
@@ -100,23 +100,23 @@ String webHost, webPw;
 // uint8_t MainMAC[] = { 0x30, 0xA0, 0xA5, 0x07, 0x0D, 0x66 };  // 3600
 const char* ntpServer1 = "pool.ntp.org";   // NTP Time server
 const char* ntpServer2 = "time.nist.gov";  // fallback
-const long gmtOffset_sec = 3600;
+const int gmtOffset_sec = 3600;
 const int daylightOffset_sec = 3600;
-const int SECONDS_IN_MINUTE = 60;
-const int MINUTES_IN_HOUR = 60;
-const int HOURS_IN_DAY = 24;
+const byte SECONDS_IN_MINUTE = 60;
+const byte MINUTES_IN_HOUR = 60;
+const byte HOURS_IN_DAY = 24;
 const char* time_zone = "CET-1CEST,M3.5.0,M10.5.0/3";  // CET-1CEST,M3.5.0,M10.5.0/3  ,  CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00  ,  WEST-1DWEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00
                                                        // ESP32Time espTime(0);
 struct tm timeinfo;
 String lastNTPtime, lastNTPtimeFail;
 String printTime, printDate;
 long int restarts, uptime;
-int DS;
 
 String uptimeString, lastRestart;
 uint32_t lastInputTime;
 uint32_t timeTracker;
 double elapsedTime, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
+uint16_t lastSDInterrupt;
 
 const byte slotsSize = 24;
 char taskFreeSlots[slotsSize];  // Free TaskManagerIO slots
@@ -150,23 +150,21 @@ uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins, stored in Pre
 const byte consoleColumns = 20;
 const byte consoleRows = 54;
 // String SDarray[consoleRows][consoleColumns];
-// uint32_t SDIndex = 0;
-
-uint8_t serialColumn;
 const byte menuRowM = 26;
 
 uint8_t consoleLine;
 String console[consoleRows][consoleColumns];
 
-const double KILOBYTE = 1024.0;
-const double ONEMILLION = 1000000.0;
+const double KILOBYTE = 1024.00;
+const double ONEMILLION = 1000000.00;
+uint16_t ONETHOUSAND = 1000;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
 multi_heap_info_t deviceInfo;
 size_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, out_size;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 
-double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP;
+double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, CPUTEMP;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
@@ -191,10 +189,9 @@ const char* powerStateNames[] = {
 PowerState currentPowerState = NORMAL;
 PowerState previousPowerState = NORMAL;
 
-uint32_t idleDelay = 10000 * 1000;        // 30 sec
-uint32_t powersaveDelay = 240000 * 1000;  // 3 min
-// uint32_t lightsleepDelay = 600000 * 1000; // 10 min
-
+uint32_t idleDelay = 15000 * ONETHOUSAND;        // 15 sec
+uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // 3 min
+// uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
 
 const float pi = 3.14159265358979323846264338327950;
 
@@ -202,33 +199,24 @@ const float pi = 3.14159265358979323846264338327950;
 //PCA9585_______________________________________________________________
 PCA9555 io;
 bool INT_TRGR;
-int UP, DOWN, LEFT, RIGHT;
-bool CLICK_DOWN, CLICK_LEFT, CLICK;
-bool BUTTON;
+bool UP, DOWN, LEFT, RIGHT;
+bool CLICK_DOWN, CLICK_LEFT, CLICK, BUTTON;
 bool P0[18];
-uint8_t click;
-int PCABITS = 0b0000000000000000;
+uint16_t PCABITS = 0b0000000000000000;
 
 //TFT_eSPI_______________________________________________________________
 TFT_eSPI tft = TFT_eSPI();  // before TFT_eSPI library updates, save 'Setup203_ST7789.h', 'User_Setup_Select.h', 'User_Setup.h'. Replace after updating.
 ESP32PWM pwm;
 float TFTbrightness;
 
-const byte radius = 5;  // menu UI stuff
-int cIndex;             // menu
-
-bool menuTrigger, blockMenu = false;
+bool menuTrigger, blockMenu;
 const int menuItems = 5;
-int carousel = 1, lastCarousel = 0, highlightIndex = 0, lastHighlightIndex = 1;
+byte carousel = 1, lastCarousel = 0, highlightIndex = 0, lastHighlightIndex = 1;
 int sysIndex = 0;
 int utilIndex = 1;
-int tmIndexY = 60;
-String label, value, extraSP, taskSymbol;
-
-uint16_t Delta = (TFT_WIDTH - 1) / 12;
-bool smooth = true;
-uint16_t colors[12];
-
+const byte tmIndexY = 60;
+const byte radius = 5;  // menu UI stuff
+String label, value;
 
 //OLED______________________________________________________________________
 U8G2_SH1106_128X32_VISIONOX_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
@@ -237,18 +225,26 @@ const byte oledDatum_Y = 32;
 
 //LIS3______________________________________________________________________
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
-int X, Y, Z;
+int X, Y, Z;  // 16bit
 // #define CLICKTHRESHHOLD 80
-const uint8_t imuAvg = 55;  // averaging samples
-uint16_t imuInterval = 500;
-uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 256
+uint16_t imuInterval;
 uint8_t imuSampleCount;
+const uint8_t imuAvg = 55;        // averaging samples for cube demo
+const uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 16 = 256
+
 
 //DS18B20___________________________________________________________________
-OneWire oneWire(8);
+OneWire oneWire(GPIO_NUM_8);
 DallasTemperature tempSens(&oneWire);
 DeviceAddress tempProbe1 = { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 };
-double temp1;
+int DSdevices;
+
+float tempValues[2];
+const char* tempID[] = {
+  "ESP",
+  ""
+};
+
 
 //BME688___________________________________________________________________
 #define NEW_GAS_MEAS (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK | BME68X_NEW_DATA_MSK)
@@ -258,13 +254,12 @@ Bme68x bme;
 String BME_ERROR, lastBMEpoll;
 uint32_t bmeInterval;  //  interval polling Sensor
 const byte numProfiles = 14;
-uint32_t bme_resistance[numProfiles];  // = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint32_t bme_resistance[numProfiles];
 uint32_t bme_resistance_avg[numProfiles];
-uint32_t bme_gas_avg, smallestValue;
+uint32_t bme_gas_avg, offsetDelta;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 double Altitude, samplingDelta;
-int32_t offsetDelta;
 
 uint16_t heatProf_1[] = {
   90,   // 0
@@ -315,7 +310,7 @@ int32_t std_initial;
 int32_t gain_factor;
 
 uint8_t conditioning_duration = 20;
-uint16_t sgpInterval = 1000;  // needs to be at 1 for the algo ?
+uint16_t sgpInterval = 1000;  // handled in preferences
 
 uint16_t sgpError, error;
 char sgpErrorMsg[256];
@@ -334,6 +329,7 @@ float BUS2_Current;
 float BUS2_Power;
 bool BUS2_OVF;
 bool BUS2_CNVR;
+bool INA2_iscalibrated;
 
 
 void setup() {
@@ -342,8 +338,8 @@ void setup() {
 
   //___________________________ INITIALIZE COMMS __________________________
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
-  delay(40);  //relax...
+  if (DEBUG) Serial.setDebugOutput(true);
+  delay(50);  //relax...
 
   if (DEBUG) {
     ESP_LOGI(TAG, "Serial bus Initialized.");
@@ -361,21 +357,20 @@ void setup() {
   // Credential Prefs
   preferences.begin("credentials", true);      // true : read only
   webHost = preferences.getString("webHost");  // hexpod
-  webPw = preferences.getString("webPw");
-  delay(200);
-  WiFi.setHostname(hostname);  //define hostname
+  webPw = preferences.getString("webPw");      //
+  WiFi.setHostname(hostname);                  //define hostname
   WiFi.begin(preferences.getString("ssid", "NaN"), preferences.getString("pw", "NaN"));
   preferences.end();
 
-  preferences.begin("my - app", false);
   // Sensor Prefs
-  loggingInterval = preferences.getUInt("logItvl", 30000);
-  conditioning_duration = (loggingInterval / ONEMILLION) * 3;
+  preferences.begin("my - app", false);
+  loggingInterval = preferences.getUInt("logItvl", 30000);     // in microsec
+  conditioning_duration = (loggingInterval / ONEMILLION) * 3;  // in sec
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
-
   bmeFilter = preferences.getUInt("bmeFilter", 0);
   bmeProfilePause = preferences.getUInt("bmePause", 0);
+
   // System Prefs
   SLEEPENABLE = preferences.getBool("sleep", 0);
   OLEDon = preferences.getBool("oled", 1);
@@ -388,30 +383,8 @@ void setup() {
   getDeviceInfo();
 
   getNTP();
+
   setupWebInterface();
-
-  //___________________________ INITIALIZE SD _________________________
-  TAG = "SD";
-  void IRAM_ATTR SD_ISR();
-  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
-  attachInterrupt(GPIO_NUM_47, SD_ISR, CHANGE);
-  SDinserted = !digitalRead(GPIO_NUM_47);
-
-  if (SDinserted) {
-    ESP_LOGI(TAG, "SD card present.");
-
-    sdSPI.setHwCs(true);
-    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
-    sdSPI.setFrequency(10000000);                   // Try different frequencies
-    sdSPI.setDataMode(SPI_MODE1);
-
-    if (SD.begin(SD_CS, sdSPI, 10000000, "/", 10)) {
-      ESP_LOGI(TAG, "SD card mounted.");
-    } else {
-      ESP_LOGI(TAG, "SD card Init Failed.");
-    }
-  }
-
 
 
   //___________________________ INITIALIZE TFT _________________________
@@ -426,15 +399,16 @@ void setup() {
   //_________________________ INITIALIZE GPIO __________________________
   void IRAM_ATTR UDLR_ISR();
   void IRAM_ATTR CTR_ISR();
+  void IRAM_ATTR SD_ISR();
   ESP32PWM::allocateTimer(0);
+
 
   pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
   attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
 
-  TFTbrightness = 1;
-  pinMode(GPIO_NUM_1, OUTPUT);          // FAN_CTL
-  pwm.attachPin(GPIO_NUM_2, 1000, 12);  // BLK, 1KHz, 10 bit
-  pwm.writeScaled(TFTbrightness);
+  pinMode(GPIO_NUM_1, OUTPUT);                 // FAN_CTL
+  pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 12);  // BLK, 1KHz, 12 bit
+  pwm.writeScaled(TFTbrightness = 1.0);
 
   // pinMode(GPIO_NUM_3, INPUT);
   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
@@ -446,8 +420,19 @@ void setup() {
   attachInterrupt(GPIO_NUM_38, UDLR_ISR, FALLING);
   // pinMode(GPIO_NUM_45, INPUT);  // free, bootstrap
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
-  //  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
+  pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
+  attachInterrupt(GPIO_NUM_47, SD_ISR, CHANGE);
   // pinMode(GPIO_NUM_48, INPUT);  // free
+
+
+  //___________________________ INITIALIZE SD _________________________
+
+  sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
+  // sdSPI.setHwCs(true);
+  // sdSPI.setFrequency(40000000);
+  sdSPI.setDataMode(SPI_MODE0);
+
+  mountSD();  // --> DataMgmt
 
   //_______________________ INITIALIZE MULTIPLEXER ______________________
   io.attach(Wire, 0x20);
@@ -476,40 +461,33 @@ void setup() {
   // io.write(PCA95x5::Port::P17, PCA95x5::Level::L);  // SNS_PWR On
 
   //___________________________ INITIALIZE LIS3DH ______________________
-  /* lis.settings.adcEnabled = 0;
-  lis.settings.tempEnabled = 1;
-  lis.settings.accelSampleRate = imuSR;  //Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
-  lis.settings.accelRange = accelRange;  //   Can be: 2, 4, 8, 16
-  lis.settings.xAccelEnabled = 1;
-  lis.settings.yAccelEnabled = 1;
-  lis.settings.zAccelEnabled = 1;
-  // lis.configureFreeFallInterrupt(true); */
-
   lis.begin(0x18);
   // 0 = turn off click detection & interrupt
   // 1 = single click only interrupt output
   // 2 = double click only interrupt output, detect single click
-  // lis.setClick(2, 70);  // THRESHOLD 80
+  // lis.setClick(2, 80);  // THRESHOLD 80
   lis.setRange(LIS3DH_RANGE_2_G);
   // lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   //___________________________ INITIALIZE DS18B20 _____________________
   tempSens.begin();
-  DS = tempSens.getDeviceCount();
   tempSens.setWaitForConversion(false);
   tempSens.setResolution(10);                 // set global resolution to 9, 10 (default), 11, or 12 bits
   tempSens.setHighAlarmTemp(tempProbe1, 65);  // Dallas tempProbe Alarm Thresholds
-  tempSens.setLowAlarmTemp(tempProbe1, -2);
+  tempSens.setLowAlarmTemp(tempProbe1, -1);
 
+  DSdevices = tempSens.getDeviceCount();
 
   //___________________________ INITIALIZE INA219 _____________________
-  if (!INA2.begin()) {
-    // Serial.println("could not connect INA219. Fix and Reboot");
-  } else {
+  if (INA2.begin()) {
     INA2.setMaxCurrentShunt(1, 0.001);  //  maxCurrent, shunt
     INA2.setBusVoltageRange(16);        // 16,32
-    INA2.setGain(8);                    // 1,2,4,8
+    INA2.setGain(2);                    // 1,2,4,8
+    INA2.setMode(7);                    // 3 setModeShuntBusTrigger()
+    INA2_iscalibrated = INA2.isCalibrated();
+
+    // INA2.setModeADCOff();
     // INA2.setBusADC(3);
     // INA2.setShuntADC(3);
     // INA2.setMode(7);
@@ -536,7 +514,7 @@ void setup() {
 
   //___________________________ INITIALIZE SGP41 _____________________
   sgp41.begin(Wire);
-  configSGP();
+  configSGP();  //  /funct.ino -> bottom
 
   //___________________________ INITIALIZE OLED ________________________
   if (OLEDon) {
@@ -554,7 +532,7 @@ void setup() {
 
   //___________________________ TASK MANAGER ________________________
   launchUtility();  // launch utility Menu, setup tasks
-  taskManager.schedule(onceMicros(10), reloadMenu);
+  // taskManager.schedule(onceMicros(10), reloadMenu);
   lastInputTime = micros();
   timeTracker = lastInputTime;
   lastRestart = printTime + " " + printDate;
@@ -563,14 +541,11 @@ void setup() {
   WiFiIP = WiFi.localIP().toString();
 
   if (DEBUG) {
-    Serial.println();
-    Serial.println(WiFiIP);
-    Serial.println();
-
     TAG = "ESP";
     ESP_LOGI(TAG, "Reset Reason: %s", getResetReason());
     ESP_LOGI(TAG, "%d Restarts:", restarts);
-    ESP_LOGI(TAG, "Setup took: %.2lfs\n\n", (millis() - timeTracker) / 1000);
+    ESP_LOGI(TAG, "Setup took: %.2lfs\n\n", (millis() - timeTracker) / ONETHOUSAND);
+    ESP_LOGI(TAG, "WiFi IP: %s", WiFiIP);
   }
 }
 
@@ -581,6 +556,8 @@ void loop() {
 
   taskManager.runLoop();
 }
+
+
 
 
 
