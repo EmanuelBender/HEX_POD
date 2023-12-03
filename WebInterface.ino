@@ -174,7 +174,7 @@ void setupWebInterface() {  // in setup()
   });
 
 
-  server.on("/getFileContent", HTTP_GET, []() {  // implement displaying file content in the table here, or put condition in listWebDir funct and call it from here
+  server.on("/getFileContent", HTTP_GET, []() {  // implement displaying file content in the table here, or put condition in listDirWeb funct and call it from here
     String fileId = server.arg("id");
     String filename;
 
@@ -451,7 +451,7 @@ String generateFileSystemPage() {
     page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
 
     page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
-    page += "<tr><td><pre>" + listWebDir(LittleFS, "/", 3) + "</pre></td></tr>";
+    page += "<tr><td><pre>" + listDirWeb(LittleFS, "/", 3) + "</pre></td></tr>";
 
     page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
     page += "</table>";
@@ -853,7 +853,7 @@ String generateUtilityPage() {
     page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
 
     page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
-    page += "<tr><td>" + listWebDir(LittleFS, "/", 3) + "</td></tr>";
+    page += "<tr><td>" + listDirWeb(LittleFS, "/", 3) + "</td></tr>";
 
     page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
     page += "</table>";

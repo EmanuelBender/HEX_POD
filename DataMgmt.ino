@@ -192,32 +192,8 @@ void mountSD() {
 }
 
 
-void handleSPIFFS() {
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_WHITE);
-  tft.setTextDatum(TL_DATUM);
-  tft.setTextPadding(60);
 
-  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
-    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
-    return;
-  }
-
-
-  // createDir(LITTLEFS, "/_LOG/test.txt");
-
-  // listDir(LittleFS, "/", 3);
-  createDir(LittleFS, "/_LOG");
-  writeFile(LittleFS, "/_LOG/test.txt", "test");
-  // listDir(LittleFS, "/", 3);
-
-  LittleFS.end();
-}
-
-
-
-
-String listWebDir(fs::FS &fs, const char *dirname, uint8_t levels) {
+String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
   String fsString = "";
   File root = fs.open(dirname);
   filesCount = 0;
@@ -239,7 +215,7 @@ String listWebDir(fs::FS &fs, const char *dirname, uint8_t levels) {
       fsString += "<div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr; " + String(file.name()) + "</td></div>";
       fsString += "</tr>";
       if (levels) {
-        fsString += listWebDir(fs, file.path(), levels - 1);
+        fsString += listDirWeb(fs, file.path(), levels - 1);
       }
     } else {
       filesCount++;
