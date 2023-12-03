@@ -55,7 +55,7 @@
        </b></td>
        <td>
             4-way Joystick and 2 Buttons
-      <br>SD Card Reader<br>16 I/O Pins<br>WiFi / BLE<br>Web Interface</td>
+      <br>SD Card Reader<br>16 I/O Pins<br>Web Interface</td>
        <td><br><br>8 from Multiplexer, 8 from ESP32-S3<br><br>working on custom, versatile local server
        </td></tr>
        <tr><td><b>Misc
