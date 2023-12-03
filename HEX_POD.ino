@@ -155,8 +155,8 @@ const byte menuRowM = 26;
 uint8_t consoleLine;
 String console[consoleRows][consoleColumns];
 
-const double KILOBYTE = 1024.00;
-const double ONEMILLION = 1000000.00;
+const uint16_t KILOBYTE = 1024;
+const int ONEMILLION = 1000000;
 uint16_t ONETHOUSAND = 1000;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
@@ -427,13 +427,14 @@ void setup() {
 
   //___________________________ INITIALIZE SD _________________________
 
-  sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
-  // sdSPI.setHwCs(true);
-  // sdSPI.setFrequency(40000000);
-  sdSPI.setDataMode(SPI_MODE0);
+  if (SDinserted) {
+    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);  // MOSI 11, SCK 12, MISO 13, CS 10
+    // sdSPI.setHwCs(true);
+    // sdSPI.setFrequency(40000000);
+    sdSPI.setDataMode(SPI_MODE0);
 
-  mountSD();  // --> DataMgmt
-
+    mountSD();  // --> DataMgmt
+  }
   //_______________________ INITIALIZE MULTIPLEXER ______________________
   io.attach(Wire, 0x20);
   io.polarity(PCA95x5::Polarity::ORIGINAL_ALL);

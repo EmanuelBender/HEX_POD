@@ -463,7 +463,7 @@ String generateFileSystemPage() {
     String content;
     while (file.available()) {
       content += char(file.read());
-      if (esp_get_free_internal_heap_size() < 100000) {  // failsafe for big files
+      if (esp_get_minimum_free_heap_size() < 100000) {  // failsafe for big files
         content += " -- Out of RAM. File is too big.";
         break;
       }
@@ -758,9 +758,9 @@ String generateUtilityPage() {
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
   page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td></tr>";
-  if (program_size > 0) page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
+  if (program_size > 0) page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
   if (deviceInfo.total_allocated_bytes > 0) page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
-  if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLIONB) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
+  if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
@@ -816,7 +816,6 @@ String generateUtilityPage() {
 
 
   page += "</table>";
-
   page += "</div>";  // Close the flex container
 
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
@@ -836,8 +835,31 @@ String generateUtilityPage() {
   if (taskFreeSlots[IMUID] == 'r' || taskFreeSlots[IMUID] == 'R' && imuTracker > 0.0) page += "<tr><td>[" + String(IMUID) + "] pollIMU()</td><td>" + String(taskFreeSlots[IMUID]) + " " + String(imuTracker) + "ms<td></tr>";
 
   page += "</table>";
+  // page += "</div>";  // Close the flex container
 
-  page += "</div>";  // Close the flex container
+  if (LittleFS.begin()) {
+    // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
+
+    getSPIFFSsizes();
+
+    // page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+    // Task Manager
+    page += "<table style=' margin: 20px; padding: 20px 15px;'>";
+    page += "<tr><td><h2>SPIFFS</h2></td></tr>";
+
+    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+
+    page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
+    page += "<tr><td>" + listWebDir(LittleFS, "/", 3) + "</td></tr>";
+
+    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
+    page += "</table>";
+  }
+
+  page += "</div>";
 
   return generateCommonPageStructure(page);
 }

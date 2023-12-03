@@ -14,7 +14,7 @@ void getSPIFFSsizes() {
 void getProgramInfo() {
   program_size = ESP.getFreeSketchSpace();
   program_used = ESP.getSketchSize();
-  program_free = double(program_size) - program_used;
+  program_free = program_size - program_used;
   program_UsedP = (program_used * 100.0) / program_size;
   program_LeftP = 100.0 - program_UsedP;
 }
