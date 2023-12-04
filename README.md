@@ -23,7 +23,7 @@
 ![Cam7 (1)](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1d4d233f-8ee9-443c-b128-af7aaa4aaad3)
 ![Cam6_noShell](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1aac6172-bb19-46d3-8815-2ff2f8ee651f)
 
-
+<p>Dev Kit version (MVP)</p>
 <table>
     <thead>
     <tr>
