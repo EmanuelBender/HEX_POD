@@ -20,10 +20,12 @@
   platform to play with ML, NN and any other externally connected modules.
 </p>
     
-![Cam7 (1)](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1d4d233f-8ee9-443c-b128-af7aaa4aaad3)
-![Cam6_noShell](https://github.com/EmanuelBender/HEX_POD/assets/46021872/1aac6172-bb19-46d3-8815-2ff2f8ee651f)
+![Cam11 logo](https://github.com/EmanuelBender/HEX_POD/assets/46021872/310d5f9c-fdd4-4721-8e1b-323015d13cb5)
+
+![Cam5](https://github.com/EmanuelBender/HEX_POD/assets/46021872/64019561-32b2-45c3-9704-376f508abd8e)
 
 
+<p>Dev Kit version (MVP)</p>
 <table>
     <thead>
     <tr>
