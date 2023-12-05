@@ -148,9 +148,9 @@ void utilPage() {
           taskManager.reset();
           lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
           initializeCube();
-          // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);  // 625us * 50 = 31.25ms, 550 * 55 * 30.35ms
-          taskManager.setTaskEnabled(IMUID, true);
-          taskManager.schedule(repeatMicros(imuInterval), calcCube);
+          IMUID = taskManager.schedule(repeatMicros(630), pollIMU);  // 625us * 50 = 31.25ms, 550 * 55 * 30.35ms
+          // taskManager.setTaskEnabled(IMUID, true);
+          taskManager.schedule(repeatMicros(630), calcCube);
           WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
           tft.fillScreen(TFT_BLACK);
           break;

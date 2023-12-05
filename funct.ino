@@ -32,6 +32,8 @@ void launchUtility() {
   taskManager.reset();
   tft.fillScreen(TFT_BLACK);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+  
+  lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   debugF(timeTracker);
 
@@ -46,8 +48,8 @@ void launchUtility() {
   LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-  IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
-  taskManager.setTaskEnabled(IMUID, false);
+  // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
+  // taskManager.setTaskEnabled(IMUID, false);
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
 }
@@ -187,8 +189,9 @@ void pollButtons() {
               tft.drawRoundRect(5, 22 + (i * menuRowM), TFT_WIDTH - 14, 24, radius, TFT_DARKGREY);
             }
             tft.drawString("Sensors", 15, 15, 4);
-            lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
-            taskManager.setTaskEnabled(IMUID, true);
+            lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_1K6HZ);
+            // taskManager.setTaskEnabled(IMUID, true);
+            IMUID = taskManager.schedule(repeatMillis(5), pollIMU);
             SNSID = taskManager.schedule(repeatMillis(50), sensorPage);
             break;
           case 3:
