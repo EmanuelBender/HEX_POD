@@ -20,7 +20,7 @@
   platform to play with ML, NN and any other externally connected modules.
 </p>
     
-![Cam11](https://github.com/EmanuelBender/HEX_POD/assets/46021872/bdb2c5ad-127c-48e3-aefb-058844447564)
+![Cam11 logo](https://github.com/EmanuelBender/HEX_POD/assets/46021872/310d5f9c-fdd4-4721-8e1b-323015d13cb5)
 
 ![Cam5](https://github.com/EmanuelBender/HEX_POD/assets/46021872/64019561-32b2-45c3-9704-376f508abd8e)
 
