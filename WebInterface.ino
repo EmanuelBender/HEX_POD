@@ -36,7 +36,7 @@ void streamToServer() {
 
   if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
     tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
-    server.send(500, "text/plain", "Spiffs failed");
+    server.send(500, "text/plain", "<h2>Spiffs failed</h2>");
     return;
   }
 
@@ -186,6 +186,10 @@ void setupWebInterface() {  // in setup()
       String content;
       while (file.available()) {
         content += String(file.read());
+        if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
+          content += " -- Out of Ram. File too big. " + String(esp_get_minimum_free_heap_size());
+          break;
+        }
       }
       // Serial.println(content);
       file.close();
@@ -403,9 +407,9 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>FS</a></div><br>";
-  pageN += "<div style='text-align:center; font-size:11px; '>" + server.uri() + "<br>" + printTime + "<br>" + printDate + "</div>";
-  pageN += "<div style='text-align:center; font-size:11px; '>" + String(restarts) + " Restarts<br>";
+  String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
+  pageN += "<div style='text-align:center; font-size:11px; '>" + printTime + "<br>";
+  pageN += String(restarts) + " Restarts<br>";
   pageN += "Uptime " + uptimeString + "<br>";
   pageN += WiFiIP;
   pageN += "</div><br>";
@@ -463,8 +467,8 @@ String generateFileSystemPage() {
     String content;
     while (file.available()) {
       content += char(file.read());
-      if (esp_get_minimum_free_heap_size() < 100000) {  // failsafe for big files
-        content += " -- Out of RAM. File is too big.";
+      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
+        content += " -- Out of RAM. File is too big. " + String(esp_get_minimum_free_heap_size());
         break;
       }
     }
@@ -769,10 +773,10 @@ String generateUtilityPage() {
   page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   page += "</tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> WiFi SSID </td><td><b> Status </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
+  page += "<tr><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
   page += "<tr>";
-  page += "<td>" + String(WiFiIP) + "</td>";
-  page += "<td>" + String(wifiStatusChar[WiFi.status()]) + "</td>";
+  page += "<td>" + String(WiFi.SSID()) + "</td>";
+  page += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
   page += "<td>" + String(WiFi.RSSI()) + "db</td>";
   page += "<td>" + String(WiFi.channel()) + "</td>";
   page += "<td>" + String(lastNTPtime) + "</td>";
