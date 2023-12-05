@@ -15,7 +15,7 @@
 <!-- <b>PCB production generously sponsored by <a href="https://www.pcbway.com">PCBway</a> -->
   </b></p>
 <p align=center></b>
-  The [HEX]POD dev Kit is a dense little cube. It houses 4 Air quality sensors, 2 screens, a battery, <br>
+  The [HEX]POD dev Kit is a dense little cube. For now, it houses 4 Air quality sensors, 2 screens, a battery, <br>
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
