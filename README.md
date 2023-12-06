@@ -14,6 +14,19 @@
 <a href="https://www.patreon.com/eBender">Patreon</a> <br><br>
 <!-- <b>PCB production generously sponsored by <a href="https://www.pcbway.com">PCBway</a> -->
   </b></p>
+
+<p>
+  THE GOAL
+
+Technology has advanced significantly, with sensors being ubiquitous  in our devices and gathering a wealth of data. One thing we had to learn from Covid, there is a critical aspect of our quality of life that remains relatively neglected in the public sector:  <br>
+
+The air we breathe. <br>
+
+My mission is to empower people by raising awareness about airborne hazards, from aiding those with chronic respiratory conditions to detecting spoiled milk. While the concept of a 'Digital Nose' has been explored before, [HEX]POD is positioned as a user-friendly solution that seamlessly integrates cutting-edge technology into a compact and portable platform.
+
+The [HEX]POD is a private development platform with focus on being a 'Digital Nose' with relatively cheap components, using Sensor fusion and Neural Networks to discern different chemicals and smells in the air.
+</p>
+ <br><br> 
 <p align=center></b>
   The [HEX]POD dev Kit is a dense little cube. For now, it houses 4 Air quality sensors, 2 screens, a battery, <br>
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
