@@ -768,7 +768,8 @@ String generateSensorsPage() {
 
 
 String generateUtilityPage() {
-
+  
+  getDeviceInfo();
 
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
