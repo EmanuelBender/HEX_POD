@@ -128,6 +128,7 @@ Preferences preferences;
 
 bool DEBUG = false;
 // #define ENABLE_I2C_DEBUG_BUFFER
+bool LOGGING = true;
 bool SLEEPENABLE;
 bool serialPrintLOG;
 bool serialPrintBME1;
@@ -363,7 +364,7 @@ void setup() {
   preferences.end();
 
   // Sensor Prefs
-  preferences.begin("my - app", false);
+  preferences.begin("my - app", false);                        // read-only bool
   loggingInterval = preferences.getUInt("logItvl", 30000);     // in microsec
   conditioning_duration = (loggingInterval / ONEMILLION) * 3;  // in sec
   serialPrintBME1 = preferences.getBool("bmelog", 0);
@@ -372,12 +373,13 @@ void setup() {
   bmeProfilePause = preferences.getUInt("bmePause", 0);
 
   // System Prefs
+  LOGGING = preferences.getBool("logging", false);
+  DEBUG = preferences.getBool("debug", 1);
   SLEEPENABLE = preferences.getBool("sleep", 0);
   OLEDon = preferences.getBool("oled", 1);
-  DEBUG = preferences.getBool("debug", 1);
-  restarts = preferences.getUInt("counter", 0);
+  restarts = preferences.getUInt("restarts", 0);
   restarts++;
-  preferences.putUInt("counter", restarts);
+  preferences.putUInt("restarts", restarts);
   preferences.end();
 
   getDeviceInfo();
@@ -539,7 +541,6 @@ void setup() {
   lastRestart = printTime + " " + printDate;
 
   //___________________________ END REPORT _____________________________
-  WiFiIP = WiFi.localIP().toString();
 
   if (DEBUG) {
     TAG = "ESP";

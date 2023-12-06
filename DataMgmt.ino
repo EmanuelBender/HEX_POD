@@ -29,7 +29,10 @@ void getDeviceInfo() {
   esp_flash_get_physical_size(NULL, &flash_size);
   esp_chip_info(&chip_info);
 
-  WiFiIP = WiFi.SSID();
+  WiFiIP = WiFi.localIP().toString();
+
+  SDinserted = !digitalRead(GPIO_NUM_47);
+  resetReasonString = print_wakeup_reason();
 
   getProgramInfo();
 

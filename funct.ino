@@ -32,7 +32,7 @@ void launchUtility() {
   taskManager.reset();
   tft.fillScreen(TFT_BLACK);
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  
+
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   debugF(timeTracker);
@@ -43,9 +43,16 @@ void launchUtility() {
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(980), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
-  BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-  SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-  LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+  if (LOGGING) {
+    conditioning_duration = 30;
+    BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
+    SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+  } else {
+    if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
+    if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
+    if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
+  }
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
   // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
@@ -615,7 +622,7 @@ String print_wakeup_reason() {
     case ESP_SLEEP_WAKEUP_EXT1: wakeupReasonString = "Wake-up from external signal with RTC_CNTL"; break;
     case ESP_SLEEP_WAKEUP_TIMER: wakeupReasonString = "Wake up caused by a timer"; break;
     case ESP_SLEEP_WAKEUP_TOUCHPAD: wakeupReasonString = "Wake up caused by a touchpad"; break;
-    default: wakeupReasonString = String(wake_up_source) + " " + getResetReason(); break;
+    default: wakeupReasonString = /*String(wake_up_source) + " " + */ getResetReason(); break;
   }
   return wakeupReasonString;
 }

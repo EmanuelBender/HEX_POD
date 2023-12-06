@@ -203,8 +203,6 @@ void setupWebInterface() {  // in setup()
   });
 
 
-
-
   server.on("/updateTFTbrightness", []() {
     String value = server.arg("value");
     TFTbrightness = value.toFloat();
@@ -223,6 +221,25 @@ void setupWebInterface() {  // in setup()
     preferences.putBool("sleep", SLEEPENABLE);
     preferences.end();
     server.send(200, "text/plain", "Sleep Enabled");
+  });
+  server.on("/toggleLOGGING", []() {
+    LOGGING = !LOGGING;
+    preferences.begin("my - app", false);
+    preferences.putBool("logging", LOGGING);
+    preferences.end();
+
+    if (LOGGING) {
+      conditioning_duration = 30;
+      BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
+      SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
+      LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+      server.send(200, "text/plain", "LOGGING enabled");
+    } else {
+      if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
+      if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
+      if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
+      server.send(200, "text/plain", "LOGGING disabled");
+    }
   });
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
@@ -314,6 +331,7 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "}"
          "function toggleLED() { fetch('/toggleLED'); }"
          "function toggleLightSleep() { fetch('/toggleLS'); }"
+         "function toggleLOGGING() { fetch('/toggleLOGGING'); }"
          "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
          "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
          "function toggleOLED() { fetch('/toggleOLED'); }"
@@ -369,7 +387,7 @@ String generateJavaScriptFunctions() {  // JavaScript functions
 String generateCSSstyles() {  // flex-grow: 1;
   return "<style>"
          "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; margin: 0; text-align: center; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 700px; margin-left: auto; margin-right: auto; margin-top: 5px; margin-bottom: 5px; background-color: #D8D8D8; border-radius: 10px; padding: 5px; display: block; }"
+         "table { width: 750px; margin-left: auto; margin-right: auto; margin-top: 5px; margin-bottom: 5px; background-color: #D8D8D8; border-radius: 10px; padding: 5px; display: block; }"
          "th, td { border-spacing: 3px 5px; padding: 0px 5px; color: #050505;  margin: 10px; text-align: left; }"
          "h2 { color: #303030; text-align: left; margin-bottom: 5px; }"
          "h3 { color: #303030; text-align: left; margin-bottom: 5px; }"
@@ -420,6 +438,7 @@ String generateNavBar() {
   pageN += "</table>";
   // Buttons
   pageN += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; border: solid 1px #505050; border-radius: 15px; background-color: transparent;'>";
+  pageN += "<tr><td><button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button></td></tr>";
   pageN += "<tr><td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LED</button></td></tr>";
   pageN += "<tr><td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>FAN</button></td></tr>";
   pageN += "<tr><td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>OLED</button></td></tr>";
@@ -757,7 +776,8 @@ String generateUtilityPage() {
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
   page += "<tr><td><h2>Device Stats</h2></tr>";
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
-  page += "<td><b>Power State</b></td><td> " + String(powerStateNames[currentPowerState]) + "</td></tr>";
+  page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
+  page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
@@ -865,6 +885,7 @@ String generateUtilityPage() {
 
   page += "</div>";
 
+  LittleFS.end();
   return generateCommonPageStructure(page);
 }
 
