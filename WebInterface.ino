@@ -386,14 +386,13 @@ String generateJavaScriptFunctions() {  // JavaScript functions
 String generateCSSstyles() {
   return "<style>"
          "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 720px; margin: 20px; padding: 15px; background-color: #D8D8D8; border-radius: 15px; display: block; }"
-         "th, td { white-space: nowrap; border-spacing: 2px 4px; padding-top: 2px; padding-bottom: 2px; color: #050505; text-align: left; }"
-         "h2 { color: #303030; text-align: left; margin-bottom: 5px; }"
-         "h3 { color: #303030; text-align: left; margin-bottom: 5px; }"
-         "#navbar { background-color: #303030; text-align: center; }"
+         "table { width: 720px; margin: 20px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed;}"
+         "th, td { white-space: nowrap; border-spacing: 2px 4px; border-radius: 15px; padding: 5px; padding-top: 2px;  padding-bottom: 2px; color: #050505; text-align: left;}"
+         "h2, h3 { color: #303030; text-align: left; margin-bottom: 5px; }"
          "a.button { display: inline-block; margin: 5px; padding: 10px 10px; text-decoration: none; border: none; color: white; background-color: #008080; border-radius: 8px; font-size: 16px; cursor: pointer; }"
          "button { display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; }"
          "div { color: white; }"
+         "#navbar { background-color: #303030; text-align: center; justify-content: center; }"
          "#sidebar { width: 190px; background-color: #353535; padding: 10px; margin: 20px; padding-top: 20px; height: 100%; }"
          "</style>";
 }
@@ -756,8 +755,9 @@ String generateUtilityPage() {
   page += "</tr>";
   page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  page += "<tr><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td><td> </td>";
+  page += "<tr><td><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
   page += "<tr>";
+  page += "<td>&nbsp;</td>";
   page += "<td>" + String(WiFi.SSID()) + "</td>";
   page += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
   page += "<td>" + String(WiFi.RSSI()) + "db</td>";
@@ -766,11 +766,11 @@ String generateUtilityPage() {
   page += "</tr>";
   page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  page += "<tr><td><b> SD Card </td><td><b> </td><td><b>  </td><td><b> Last NTP </td><td><b> Last Reset </td></tr>";
-  page += "<tr><td>";
+  page += "<tr><td>&nbsp;</td><td><b> SD Card </td><td><b> </td><td><b> Last NTP </td><td><b> Last Reset </td><td></td></tr>";
+  page += "<tr>";
+  page += "<td>&nbsp;</td><td>";
   page += SDinserted ? "Present" : "None";
   page += "</td>";
-  page += "<td>&nbsp;</td>";
   page += "<td>&nbsp;</td>";
   page += "<td>" + String(lastNTPtime) + "</td>";
   page += "<td>" + lastRestart + "</td>";
