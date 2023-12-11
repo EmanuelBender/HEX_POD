@@ -105,13 +105,14 @@ void setupWebInterface() {  // in setup()
     }
     server.send(200, "text/plain", "OLED toggled");
   });
+
   server.on("/updateLoggingInterval", HTTP_GET, []() {
     loggingInterval = server.arg("value").toInt();
 
-    taskManager.cancelTask(BMEID);
+    /*taskManager.cancelTask(BMEID);
     taskManager.cancelTask(SGPID);
     taskManager.cancelTask(LOG);
-    taskManager.cancelTask(TEMPID);
+    taskManager.cancelTask(TEMPID);*/
 
     preferences.begin("my - app", false);
     preferences.putUInt("logItvl", loggingInterval);
@@ -124,19 +125,20 @@ void setupWebInterface() {  // in setup()
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-
+    /*
     TEMPID = taskManager.schedule(repeatMillis(loggingInterval), pollTemp);
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);*/
+    launchUtility();
     server.send(200, "text/plain", "Logging interval updated");
   });
 
   server.on("/updateBMEsamples", HTTP_GET, []() {
     bmeSamples = server.arg("value").toInt();
-    taskManager.cancelTask(BMEID);
+    /* taskManager.cancelTask(BMEID);
     taskManager.cancelTask(SGPID);
-    taskManager.cancelTask(LOG);
+    taskManager.cancelTask(LOG);*/
 
     preferences.begin("my - app", false);
     preferences.putUInt("bmeSpls", bmeSamples);
@@ -149,9 +151,10 @@ void setupWebInterface() {  // in setup()
       bme_resistance[i] = 0;
     }
 
-    BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
+    /* BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging); */
+    launchUtility();
     server.send(200, "text/plain", "BME samples updated");
   });
 
@@ -230,14 +233,10 @@ void setupWebInterface() {  // in setup()
 
     if (LOGGING) {
       conditioning_duration = 30;
-      BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-      SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-      LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+      launchUtility();
       server.send(200, "text/plain", "LOGGING enabled");
     } else {
-      if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
-      if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
-      if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
+      launchUtility();
       server.send(200, "text/plain", "LOGGING disabled");
     }
   });
@@ -384,18 +383,18 @@ String generateJavaScriptFunctions() {  // JavaScript functions
 }
 
 
-String generateCSSstyles() {  // flex-grow: 1;
+String generateCSSstyles() {
   return "<style>"
-         "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; margin: 0; text-align: center; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 750px; margin-left: auto; margin-right: auto; margin-top: 5px; margin-bottom: 5px; background-color: #D8D8D8; border-radius: 10px; padding: 5px; display: block; }"
-         "th, td { border-spacing: 3px 5px; padding: 0px 5px; color: #050505;  margin: 10px; text-align: left; }"
+         "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
+         "table { width: 720px; margin: 20px; padding: 15px; background-color: #D8D8D8; border-radius: 15px; display: block; }"
+         "th, td { white-space: nowrap; border-spacing: 2px 4px; padding-top: 2px; padding-bottom: 2px; color: #050505; text-align: left; }"
          "h2 { color: #303030; text-align: left; margin-bottom: 5px; }"
          "h3 { color: #303030; text-align: left; margin-bottom: 5px; }"
          "#navbar { background-color: #303030; text-align: center; }"
          "a.button { display: inline-block; margin: 5px; padding: 10px 10px; text-decoration: none; border: none; color: white; background-color: #008080; border-radius: 8px; font-size: 16px; cursor: pointer; }"
-         "button {  display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; }"
-         "div { color: white; text-align: center; border-radius: 8px; }"
-         "#sidebar { width: 200px; background-color: #303030; padding: 10px;}"
+         "button { display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; }"
+         "div { color: white; }"
+         "#sidebar { width: 190px; background-color: #353535; padding: 10px; margin: 20px; padding-top: 20px; height: 100%; }"
          "</style>";
 }
 
@@ -404,7 +403,7 @@ String generateCommonPageStructure(String content) {
 
   String pageC = "<html lang='en'>";
   pageC += "<head>";
-  pageC += "<meta http-equiv='refresh' content='" + String(loggingInterval / 1000) + "' >";
+  pageC += "<meta http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
   pageC += "<title>[HEX]POD Center</title>";
   pageC += generateCSSstyles();
   pageC += "</head>";
@@ -425,119 +424,61 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String pageN = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
-  pageN += "<div style='text-align:center; font-size:11px; '>" + printTime + "<br>";
-  pageN += String(restarts) + " Restarts<br>";
-  pageN += "Uptime " + uptimeString + "<br>";
-  pageN += WiFiIP;
-  pageN += "</div><br>";
-  pageN += "<table style='border: solid 1px #505050; border-radius: 15px; max-width: 150px; max-height:150px; text-align:center; display: inline-block; background-color: transparent;'>";
-  pageN += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td>";
-  pageN += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td><button onclick='triggerCTR()'>&#9678;</button></td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";
-  pageN += "<tr><td><button onclick='restartESP()'>&#8634;</button></td><td><button onclick='triggerDOWN()'>&#8595;</button></td><td></td></tr>";
-  pageN += "</table>";
-  // Buttons
-  pageN += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; border: solid 1px #505050; border-radius: 15px; background-color: transparent;'>";
-  pageN += "<tr><td><button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LED</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>FAN</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>OLED</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>SLEEP</button></td></tr>";
-  pageN += "<tr><td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:transparent; border: solid 1px #505050;'>NTPTime</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button></td></tr>";
-  pageN += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>BME LOG</button></td></tr>";
-  // pageN += "</table>";
-  pageN += "</div>";
-  return pageN;
+  String page = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
+  page += "<div style='text-align:center; font-size:11px; '>" + printTime + "<br>";
+  page += String(restarts) + " Restarts<br>";
+  page += "Uptime " + uptimeString + "<br>";
+  page += WiFiIP;
+  page += "</div>";
+
+  // Controls
+  page += "<hr style='border: 2px solid #303030;'>";
+  page += "<table style='max-width: 150px; max-height:150px; text-align:center; display: inline-block; background-color: transparent;'>";
+  page += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td>";
+  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td><button onclick='triggerCTR()'>&#9678;</button></td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";
+  page += "<tr><td><button onclick='restartESP()'>&#8634;</button></td><td><button onclick='triggerDOWN()'>&#8595;</button></td><td></td></tr>";
+  page += "</table>";
+  page += "<hr style='border: 2px solid #303030;'>";
+
+  // Toggles
+  page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
+  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";
+  page += "<button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button>";
+
+  page += "</div>";
+  return page;
 }
 
 
 
-
-
-String generateFileSystemPage() {
-  String page;
-
-  if (LittleFS.begin()) {
-    // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
-
-    getSPIFFSsizes();
-
-    page = "<div style=' margin-left:30px;'>";  // Use flex container to make tables side by side
-
-    page += "<table style='width: auto;'>";
-    page += "<tr><td><h2>FS</h2></td></tr>";
-
-    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
-
-    page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
-    page += "<tr><td><pre>" + listDirWeb(LittleFS, "/", 3) + "</pre></td></tr>";
-
-    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
-    page += "</table>";
-    page += "</div>";
-
-
-    page += "<div style='display: flex; margin-left:30px;'>";  // Use flex container to make tables side by side
-    File file = LittleFS.open(logfilePath);
-    String content;
-    while (file.available()) {
-      content += char(file.read());
-      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
-        content += " -- Out of RAM. File is too big. " + String(esp_get_minimum_free_heap_size());
-        break;
-      }
-    }
-    double fileSizeMB = double(file.size()) / ONEMILLIONB;
-    page += "<table style='width: auto;'>";
-    page += "<tr><td>" + String(file.name()) + "</td></tr>";
-    page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
-    page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
-    page += "</table>";
-    page += "</div>";
-
-    content = "";
-    // Serial.println(content);
-    // deleteFile(LittleFS, "/_LOG/test.txt");
-
-    file.close();
-    LittleFS.end();
-  } else {
-    page = "<table style='width: auto;'>";
-    page += "<tr><td><h3>LittleFS / SPIFFS couldn't be mounted</h3></td></tr>";
-    page += "</table>";
-  }
-  return generateCommonPageStructure(page);
-}
 
 
 
 String generateHomePage() {
-  String page = "<table min-width: 1000px;>";
+
+  String page = "<table style=' margin: 20px; padding: 20px; min-width: 1000px; '>";
+
   page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
   page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
   page += "<tr><td><b>Log Period</td>";
-  page += "<td><label for='loggingInterval'>Interval " + String(loggingInterval / 1000) + "</label></td>";
+  page += "<td><label for='loggingInterval'>Interval</label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   page += generateTimeOptions(loggingInterval);
   page += "</select></td></tr>";
+  page += "<tr><td>&nbsp;</td></tr>";
+  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME webLOG</button></td></tr>";
+
   page += "</table>";
 
 
-  // page += "<div style='text-align:left; margin-top: 15px;'>";
-  // page += "<h2>Sensor Data Console</h2>";
-  page += "<table style='min-height: 300px; min-width: 1000px; padding: 50px; '>";
+  page += "<table style='min-height: 300px; min-width: 1000px; padding: 40px; margin:20px;'>";
+  page += "<tr><td><h2>Web Console</h2></td></tr>";
   page += "<tr><td><pre>" + generateConsole() + "</pre>";
   page += "<td></tr></table>";
 
+
   return generateCommonPageStructure(page);
 }
-
-
-
 
 String generateConsole() {
   String consoleOutput;
@@ -768,62 +709,86 @@ String generateSensorsPage() {
 
 
 String generateUtilityPage() {
-  
+
   getDeviceInfo();
 
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
+  // Buttons Interface
+  page += "<table style=' width: 100%; margin: 20px; padding: 15px;'>";
+  page += "<tr><td colspan='5'><h2>Controls</h2></td></tr>";
+
+  page += "<tr>";
+  page += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>LED</button></td>";
+  page += "<td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>FAN</button></td>";
+  page += "<td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>OLED</button></td>";
+  page += "<td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>SLEEP</button></td>";
+  page += "<td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:505050; border: solid 1px #505050;'>Update Time</button></td>";
+  page += "</tr>";
+  page += "</table>";
+
+  page += "</div>";  // Close the flex container
+
+  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
   // System Info Table
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><td><h2>Device Stats</h2></tr>";
+  page += "<tr><td colspan='5'><h2>Device Stats</h2></tr>";
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
   page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  // page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td></tr>";
+  page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td><td>" + String(flash_UsedP) + "%</td></tr>";
   if (program_size > 0) page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
   if (deviceInfo.total_allocated_bytes > 0) page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
   if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
 
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
   page += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
   page += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
   page += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   page += "</tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td><td><b> Last NTP </td>";
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  page += "<tr><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td><td> </td>";
   page += "<tr>";
   page += "<td>" + String(WiFi.SSID()) + "</td>";
   page += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
   page += "<td>" + String(WiFi.RSSI()) + "db</td>";
   page += "<td>" + String(WiFi.channel()) + "</td>";
-  page += "<td>" + String(lastNTPtime) + "</td>";
   // page += "<td>" + String(lastNTPtimeFail) + "</td>";
   page += "</tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> SD Card </td><td><b>  </td><td><b>  </td><td><b>  </td><td><b> Last Reset </td></tr>";
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  page += "<tr><td><b> SD Card </td><td><b> </td><td><b>  </td><td><b> Last NTP </td><td><b> Last Reset </td></tr>";
   page += "<tr><td>";
-  page += SDinserted ? "Present" : "Empty";
+  page += SDinserted ? "Present" : "None";
   page += "</td>";
   page += "<td>&nbsp;</td>";
   page += "<td>&nbsp;</td>";
-  page += "<td>&nbsp;</td>";
+  page += "<td>" + String(lastNTPtime) + "</td>";
   page += "<td>" + lastRestart + "</td>";
   page += "</tr>";
   page += "</table>";
 
   // System Sensors
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><td><h2>System<br> Sensors</h2></td></tr>";
+  page += "<tr><td colspan='5'><h2>System Sensors</h2></td></tr>";
   page += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
   page += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
   page += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
-  page += "<tr><td><b>" + String(DSdevices) + " DS18B20</td></tr>";
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  page += "<tr><td colspan='2'><b>" + String(DSdevices) + " DS18B20</td></tr>";
   page += "<tr>";
 
   for (int i = 0; i < DSdevices; i++) {
@@ -839,28 +804,16 @@ String generateUtilityPage() {
   page += "<tr><td><b>CPU</td></tr>";
   page += "<tr><td>" + String(CPUTEMP) + "&deg;C</td></tr>";
 
+  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  page += "<tr><td><b>Light Sensors</td></tr>";
 
   page += "</table>";
   page += "</div>";  // Close the flex container
 
-  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
-    // Task Manager
-  page += "<table style=' margin: 20px; padding: 20px 15px;'>";
-  page += "<tr><td><h2>Task Manager</h2></td></tr>";
-  if (statBaTracker > 0.0) page += "<tr><td>[" + String(STATID) + "] updateStat()</td><td>" + String(taskFreeSlots[STATID]) + " " + String(statBaTracker) + "ms<td></tr>";
-  if (uTimeTracker > 0.0) page += "<tr><td>[" + String(SECID) + "] updateTime()</td><td>" + String(taskFreeSlots[SECID]) + " " + String(uTimeTracker) + "ms<td></tr>";
-  if (ntpTracker > 0.0) page += "<tr><td>[" + String(NTPID) + "] getNTP()</td><td>" + String(taskFreeSlots[NTPID]) + " " + String(ntpTracker) + "ms<td></tr>";
-  if (tempTracker > 0.0) page += "<tr><td>[" + String(TEMPID) + "] pollTemp()</td><td>" + String(taskFreeSlots[TEMPID]) + " " + String(tempTracker) + "ms<td></tr>";
-  if (ina2Tracker > 0.0) page += "<tr><td>[" + String(INA2ID) + "] pollINA()</td><td>" + String(taskFreeSlots[INA2ID]) + " " + String(ina2Tracker) + "ms<td></tr>";
-  if (bmeTracker > 0.0) page += "<tr><td>[" + String(BMEID) + "] pollBME()</td><td>" + String(taskFreeSlots[BMEID]) + " " + String(bmeTracker) + "ms<td></tr>";
-  if (sgpTracker > 0.0) page += "<tr><td>[" + String(SGPID) + "] pollSGP()</td><td>" + String(taskFreeSlots[SGPID]) + " " + String(sgpTracker) + "ms<td></tr>";
-  if (loggingTracker > 0.0) page += "<tr><td>[" + String(LOG) + "] logging()</td><td>" + String(taskFreeSlots[LOG]) + " " + String(loggingTracker) + "ms<td></tr>";
-  if (powerStTracker > 0.0) page += "<tr><td>[" + String(ST1) + "] powerStates()</td><td>" + String(taskFreeSlots[ST1]) + " " + String(powerStTracker) + "ms<td></tr>";
-  if (clientTracker > 0.0) page += "<tr><td>[" + String(WEB) + "] pollServer()</td><td>" + String(taskFreeSlots[WEB]) + " " + String(clientTracker) + "ms<td></tr>";
-  if (taskFreeSlots[IMUID] == 'r' || taskFreeSlots[IMUID] == 'R' && imuTracker > 0.0) page += "<tr><td>[" + String(IMUID) + "] pollIMU()</td><td>" + String(taskFreeSlots[IMUID]) + " " + String(imuTracker) + "ms<td></tr>";
+  page += "<div style='display: flex;'>";
+  page += generateTaskManagerTable();
 
-  page += "</table>";
-  // page += "</div>";  // Close the flex container
 
   if (LittleFS.begin()) {
     // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
@@ -870,14 +823,16 @@ String generateUtilityPage() {
     // page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
     // Task Manager
     page += "<table style=' margin: 20px; padding: 20px 15px;'>";
-    page += "<tr><td><h2>SPIFFS</h2></td></tr>";
+    page += "<tr><td colspan='5'><h2>SPIFFS</h2></td></tr>";
 
     page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Used</td><td>" + String(double(SPIFFS_used / ONEMILLIONB), 3) + "Mb</td></tr>";
     page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+    page += "<tr><td>Log Path </td><td colspan='5'>" + String(logfilePath) + "</td></tr>";
 
-    page += "<tr><td>&nbsp;</td><td>" + String() + "</td></tr>";
+    page += "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
+    page += "<tr><td><b>CPU</td></tr>";
+
     page += "<tr><td>" + listDirWeb(LittleFS, "/", 3) + "</td></tr>";
 
     page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
@@ -889,6 +844,86 @@ String generateUtilityPage() {
   LittleFS.end();
   return generateCommonPageStructure(page);
 }
+
+
+
+String generateTaskManagerTable() {
+  String table = "<table style='margin: 20px; padding: 20px 15px;'>";
+  table += "<tr><td colspan='5'><h2>Task Manager</h2></td></tr>";
+  table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Interval</td></tr>";
+
+  for (const auto& task : tasks) {
+    if (taskArray[*task.taskId] != "" /*&& *task.tracker > 0.0 */ && *task.taskId != 0) {  // don't add free, unscheduled task slots
+      table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskArray[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
+    }
+  }
+
+  table += "</table>";
+  return table;
+}
+
+
+
+
+String generateFileSystemPage() {
+  String page;
+
+  if (LittleFS.begin()) {
+
+    getSPIFFSsizes();
+
+    page = "<div>";
+
+    page += "<table>";
+    page += "<tr><td><h2>FS</h2></td></tr>";
+
+    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+
+    page += "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
+    page += "<tr><td><pre>" + listDirWeb(LittleFS, "/", 3) + "</pre></td></tr>";
+
+    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
+    page += "</table>";
+    page += "</div>";
+
+
+    page += "<div style='display: flex;'>";
+    File file = LittleFS.open(logfilePath);
+    String content;
+    while (file.available()) {
+      content += char(file.read());
+      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
+        content += " -- Out of RAM. File is too big. " + String(esp_get_minimum_free_heap_size());
+        break;
+      }
+    }
+    double fileSizeMB = double(file.size()) / ONEMILLIONB;
+    page += "<table>";
+    page += "<tr><td>" + String(file.name()) + "</td></tr>";
+    page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
+    page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
+    page += "</table>";
+    page += "</div>";
+
+    content = "";
+    // Serial.println(content);
+    // deleteFile(LittleFS, "/_LOG/test.txt");
+
+    file.close();
+    LittleFS.end();
+  } else {
+    page = "<table>";
+    page += "<tr><td><h3>LittleFS / SPIFFS couldn't be mounted</h3></td></tr>";
+    page += "</table>";
+  }
+  return generateCommonPageStructure(page);
+}
+
+
+
 
 void handleNotFound() {
   String message = "Page Not Found\n\n";

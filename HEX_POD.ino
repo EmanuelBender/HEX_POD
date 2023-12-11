@@ -49,15 +49,9 @@ uint8_t webServerPollMs = 120;
 #include <esp_cpu.h>
 #include <ESP32Servo.h>
 #include <stdexcept>
+#include <sstream>
 
 #include "TaskManagerIO.h"
-// #include <BasicInterruptAbstraction.h>
-// #include <SimpleSpinLock.h>
-// SimpleSpinLock taskManagerLock;
-// BasicArduinoInterruptAbstraction interruptAbstraction1;                                                                                               // INT for buttons
-taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB;  // task IDs
-uint32_t tmTracker;
-int i;
 
 esp_chip_info_t chip_info;
 esp_reset_reason_t resetReason;
@@ -115,19 +109,14 @@ long int restarts, uptime;
 String uptimeString, lastRestart;
 uint32_t lastInputTime;
 uint32_t timeTracker;
-double elapsedTime, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
+double elapsedTime;
 uint16_t lastSDInterrupt;
-
-const byte slotsSize = 24;
-char taskFreeSlots[slotsSize];  // Free TaskManagerIO slots
-String taskArray[slotsSize];
-String TaskNames[slotsSize];
 
 //________________________________________________________________  GENERAL  _______________________
 Preferences preferences;
 
-bool DEBUG = false;
 // #define ENABLE_I2C_DEBUG_BUFFER
+bool DEBUG = false;
 bool LOGGING = true;
 bool SLEEPENABLE;
 bool serialPrintLOG;
@@ -156,16 +145,15 @@ const byte menuRowM = 26;
 uint8_t consoleLine;
 String console[consoleRows][consoleColumns];
 
-const uint16_t KILOBYTE = 1024;
-const int ONEMILLION = 1000000;
-uint16_t ONETHOUSAND = 1000;
+const uint32_t ONEMILLION = 1000000;
+const uint16_t ONETHOUSAND = 1000;
+const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
 multi_heap_info_t deviceInfo;
-size_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, out_size;
+uint32_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, out_size;
+double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
-
-double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, CPUTEMP;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
@@ -195,7 +183,7 @@ uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // 3 min
 // uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
 
 const float pi = 3.14159265358979323846264338327950;
-
+uint16_t i;
 
 //PCA9585_______________________________________________________________
 PCA9555 io;
@@ -226,7 +214,7 @@ const byte oledDatum_Y = 32;
 
 //LIS3______________________________________________________________________
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
-int X, Y, Z;  // 16bit
+int16_t X, Y, Z;  // 16bit
 // #define CLICKTHRESHHOLD 80
 uint16_t imuInterval;
 uint8_t imuSampleCount;
@@ -331,6 +319,36 @@ float BUS2_Power;
 bool BUS2_OVF;
 bool BUS2_CNVR;
 bool INA2_iscalibrated;
+
+// Task Manager
+taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB;  // task IDs
+double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
+uint32_t tmTracker;
+
+const byte slotsSize = 24;
+char taskFreeSlots[slotsSize];  // TaskManagerIO slots & status
+String taskArray[slotsSize];    // converted status of tasks
+
+struct TaskData {
+  const char* taskName;
+  double* tracker;
+  taskid_t* taskId;
+  // String* lastPoll;
+};
+
+TaskData tasks[] = {
+  { "updateTime", &uTimeTracker, &SECID },
+  { "updateStat", &statBaTracker, &STATID },
+  { "getNTP", &ntpTracker, &NTPID },
+  { "pollTemp", &tempTracker, &TEMPID },
+  { "pollINA", &ina2Tracker, &INA2ID },
+  { "pollBME", &bmeTracker, &BMEID },
+  { "pollSGP", &sgpTracker, &SGPID },
+  { "logging", &loggingTracker, &LOG },
+  { "powerStates", &powerStTracker, &ST1 },
+  { "pollServer", &clientTracker, &WEB },
+  { "pollIMU", &imuTracker, &IMUID }
+};
 
 
 void setup() {
@@ -534,8 +552,10 @@ void setup() {
   }
 
   //___________________________ TASK MANAGER ________________________
+
   launchUtility();  // launch utility Menu, setup tasks
   // taskManager.schedule(onceMicros(10), reloadMenu);
+
   lastInputTime = micros();
   timeTracker = lastInputTime;
   lastRestart = printTime + " " + printDate;
@@ -562,8 +582,8 @@ void loop() {
 
 
 
-
 // Templates
+
 String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
 
   char buffer[9];
@@ -606,16 +626,31 @@ T findSmallestValue(const T (&array)[N]) {  // find smalles value in a 1D Array
   return smallestValue;
 }
 
-template<typename T, size_t Rows, size_t Columns>  // empty all values in a 2D Array
-void empty2DArray(T (&array)[Rows][Columns]) {
 
-  if (Rows == 0 || Columns == 0 || &array == nullptr) {  // handle empty array, row, column case
-    throw std::invalid_argument("Invalid array dimensions or null array pointer");
+
+template<typename T, size_t Rows, size_t Columns>
+void empty2DArray(T (&array)[Rows][Columns]) {
+  if (Rows == 0 || Columns == 0) {
+    throw std::invalid_argument("Invalid array dimensions");
   }
 
-  for (size_t i = 0; i < Rows; ++i) {
-    for (size_t b = 0; b < Columns; ++b) {
-      array[i][b] = T();
+  for (size_t row = 0; row < Rows; ++row) {
+    for (size_t column = 0; column < Columns; ++column) {
+      array[row][column] = T();  // Use default constructor if available
+    }
+  }
+}
+
+
+template<size_t Rows, size_t Columns>
+void empty2DArray(String (&array)[Rows][Columns]) {
+  if (Rows == 0 || Columns == 0) {
+    throw std::invalid_argument("Invalid array dimensions");
+  }
+
+  for (size_t row = 0; row < Rows; ++row) {
+    for (size_t column = 0; column < Columns; ++column) {
+      array[row][column] = String();  // Use String's default constructor
     }
   }
 }

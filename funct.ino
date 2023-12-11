@@ -1,10 +1,14 @@
 
 #include <pgmspace.h>
 
+
 void pollServer() {
   TAG = "pollWeb()      ";
   timeTracker = micros();
+  // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
   server.handleClient();
+
   debugF(timeTracker);
   clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
@@ -26,20 +30,28 @@ void IRAM_ATTR SD_ISR() {
 }
 
 
+
 void launchUtility() {
   TAG = "launchUtility()";
   timeTracker = micros();
   taskManager.reset();
-  tft.fillScreen(TFT_BLACK);
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+  // tft.fillScreen(TFT_BLACK);
+
+
+  for (byte i = 0; i < slotsSize; ++i) {
+    memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
+    taskArray[i].clear();                        // Clear the String array
+  }
+  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = 0;
+  // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   debugF(timeTracker);
 
   // CLKID = taskManager.schedule(repeatMillis(30), accClick);
-  STATID = taskManager.schedule(repeatMillis(995), statusBar);
   SECID = taskManager.schedule(repeatMillis(997), updateTime);
+  STATID = taskManager.schedule(repeatMillis(996), statusBar);
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(980), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
@@ -48,11 +60,11 @@ void launchUtility() {
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
     LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
-  } else {
-    if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
-    if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
-    if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
-  }
+  }  // else {
+  //  if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
+  //   if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
+  //  if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
+  // }
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
   // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
@@ -132,7 +144,7 @@ void pollButtons() {
   timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (micros() - lastInputTime <= 250000) {
+  if (micros() - lastInputTime <= 250000) {  // 250ms in microseconds
     return;
   }
 
@@ -244,14 +256,21 @@ inline bool isBitSet(uint16_t value, uint8_t mask) {
   return !(value & (1 << mask));
 }
 
+
+
+
+void printToOLED(String oledString) {
+  if (OLEDon) {
+    u8g2.clearBuffer();
+    u8g2.drawStr(0, 32, oledString.c_str());
+    u8g2.sendBuffer();
+  }
+}
+
 void statusLED(bool LEDon) {
   io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
   io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
 }
-
-
-
-
 
 void updateTime() {
   TAG = "updateTime() ";
@@ -261,22 +280,13 @@ void updateTime() {
   if (getLocalTime(&timeinfo)) {
     printTime = formatTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':');
     printDate = formatTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.');
-    uptimeString = convertSecToTimestamp<String>(millis() / 1000);
+    uptimeString = convertSecToTimestamp<String>(millis() / ONETHOUSAND);
   }
 
-  printToOLED(uptimeString);
+  printToOLED(printTime);
 
   debugF(uTimeTracker);
   uTimeTracker = (micros() - uTimeTracker) / double(ONETHOUSAND);
-}
-
-
-void printToOLED(String oledString) {
-  if (OLEDon) {
-    u8g2.clearBuffer();
-    u8g2.drawStr(0, 32, oledString.c_str());
-    u8g2.sendBuffer();
-  }
 }
 
 
@@ -289,7 +299,7 @@ void getNTP() {
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    if (micros() - ntpTracker > (WiFiTimeout * 8000)) {
+    if (micros() - ntpTracker > (WiFiTimeout * ONETHOUSAND)) {
       ESP_LOGE("NTP", "WiFi Connect Timeout. Check settings.");
       break;
     }
@@ -400,7 +410,7 @@ void pollBME() {
     }
   }
 
-  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);
+  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
 
 
   bme.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
@@ -543,6 +553,9 @@ void configSGP() {
 
 
 void debugF(uint32_t tracker) {
+
+  updateTaskArray();
+
   if (DEBUG) {
     elapsedTime = (micros() - tracker) / double(ONETHOUSAND);
     ESP_LOGI(TAG, "%.3fms", elapsedTime);

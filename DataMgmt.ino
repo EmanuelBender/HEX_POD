@@ -39,6 +39,8 @@ void getDeviceInfo() {
   flash_speed = ESP.getFlashChipSpeed();
   flash_size = double(ESP.getFlashChipSize());
   free_flash_size = flash_size - program_used - SPIFFS_used;
+  flash_UsedP = (program_used * 100.0) / flash_size;
+  flash_LeftP = 100.0 - flash_UsedP;
 
   cpu_freq_mhz = getCpuFrequencyMhz();
   cpu_xtal_mhz = getXtalFrequencyMhz();
@@ -201,12 +203,8 @@ String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
   File root = fs.open(dirname);
   filesCount = 0;
 
-  if (!root) {
-    return "<tr><td>Failed to open directory</td></tr>";
-  }
-
-  if (!root.isDirectory()) {
-    return "<tr><td>Not a Directory</td></tr>";
+  if (!root || !root.isDirectory()) {
+    return "<tr><td>[Error] Failed to open directory or Not a Directory !</td></tr>";
   }
 
   File file = root.openNextFile();
@@ -214,28 +212,24 @@ String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
   while (file) {
     String fileIdStr = String(fileId);
     if (file.isDirectory()) {
-      fsString += "<tr>";
-      fsString += "<div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr; " + String(file.name()) + "</td></div>";
-      fsString += "</tr>";
+      fsString += "<tr><div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr; " + String(file.name()) + "</td></div></tr>";
       if (levels) {
         fsString += listDirWeb(fs, file.path(), levels - 1);
       }
     } else {
       filesCount++;
-      fsString += "<tr>";
-      fsString += "<td><div style='color:black;' class='file' id='fil_" + fileIdStr + "'><td>&nbsp;</td><td>" + "&rarr;</td>";
+      fsString += "<tr><td><div style='color:black;' class='file' id='fil_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr;</td>";
       double fileSizeMB = double(file.size()) / 1024.0 / 1024.0;
       fsString += "<td>" + String(file.name()) + "</td>";
-      fsString += "<td>" + String(fileSizeMB, 3) + "MB</td>";
-      fsString += "</div></tr>";
+      fsString += "<td>" + String(fileSizeMB, 3) + "MB</td></div></tr>";
     }
     file = root.openNextFile();
     fileId++;
   }
 
-
   return fsString;
 }
+
 
 
 

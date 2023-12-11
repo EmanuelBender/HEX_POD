@@ -34,7 +34,7 @@ void reloadMenu() {  // one-shot
 void statusBar() {
   statBaTracker = micros();
 
-  if (currentPowerState <= IDLE) {
+  if (currentPowerState == IDLE || currentPowerState == NORMAL) {
     tft.drawFastHLine(5, 10, 240, TFT_WHITE);
     tft.setTextPadding(20);
     taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
@@ -314,61 +314,83 @@ void colorTest() {
 
 
 
+void updateTaskArray() {
+
+  for (i = 0; i < slotsSize; i++) {
+    switch (taskFreeSlots[i]) {
+      case 'R':
+        taskArray[i] = "[ ]";
+        break;  // Repeating
+      case 'r':
+        taskArray[i] = "[>]";
+        break;  // Repeating running
+      case 'U':
+        taskArray[i] = "[o]";
+        break;  // OneShot
+      case 'u':
+        taskArray[i] = "[O]";
+        break;  // OneShot running
+      case 'F':
+        taskArray[i] = "";
+        break;  // free
+      case 'f':
+        taskArray[i] = "[Err]";
+        break;  // error
+    }
+  }
+}
+
+
+String assembleTaskData() {
+  String result;
+
+  for (const auto& task : tasks) {
+    if (taskArray[*task.taskId] != "" /* && *task.tracker > 0.0 */ && *task.taskId != 0) {
+      result += "[" + String(*task.taskId) + "]" + String(taskArray[*task.taskId]) + " " + task.taskName + " " + String(*task.tracker) + "ms\n";
+    }
+  }
+
+  return result;
+}
+
+
+
 void taskM() {
   timeTracker = micros();
 
   if (carousel == 4 && blockMenu) {
     tft.setTextDatum(TL_DATUM);
-    tft.setTextPadding(60);
+    tft.setTextPadding(180);
+
+    updateTaskArray();
+
+    String taskData = assembleTaskData();
+    std::istringstream taskStream(taskData.c_str());  // Use std::istringstream
 
     for (i = 0; i < slotsSize; i++) {
-      switch (taskFreeSlots[i]) {
-        case 'R':
-          taskArray[i] = "[ ]";
-          break;  // Repeating
-        case 'r':
-          taskArray[i] = "[>]";
-          break;  // Repeating running
-        case 'U':
-          taskArray[i] = "[o]";
-          break;  // OneShot
-        case 'u':
-          taskArray[i] = "[O]";
-          break;  // OneShot running
-        case 'F':
-          taskArray[i] = "";
-          break;  // free
-        case 'f':
-          taskArray[i] = "[Err]";
-          break;  // error
-      }
-    }
+      std::string line;  // Change the type to std::string
+      getline(taskStream, line);
 
-    for (int i = 0; i < 24; i++) {
-      if (i < slotsSize) {
-        if (taskArray[i] != "") {
-          if (i > 12) {
-            tft.drawString(String(i) + "  " + taskArray[i], 140, (16 * (i - 13)) + 50, 2);
-          } else {
-            tft.drawString(String(i) + "  " + taskArray[i], 35, (16 * i) + 50, 2);
-          }
-        }
+      int yPos = (16 * i) + 50;
+
+      if (!line.empty()) {
+        tft.drawString(line.c_str(), 30, yPos, 2);
       } else {
-        if (i > 12) {
-          tft.drawString(String("     "), 140, (16 * (i - 13)) + 50, 2);
-        } else {
-          tft.drawString(String("     "), 35, (16 * i) + 50, 2);
-        }
+        tft.drawString("                ", 30, yPos, 2);
       }
     }
-  }
 
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  if (DEBUG) {
-    timeTracker = (micros() - timeTracker) / ONETHOUSAND;
-    ESP_LOGI("taskM()", "%.3lfms", timeTracker);
+    taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+    if (DEBUG) {
+      timeTracker = (micros() - timeTracker) / ONETHOUSAND;
+      ESP_LOGI("taskM()", "%.3lfms", timeTracker);
+    }
   }
 }
+
+
+
 
 
 
