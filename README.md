@@ -90,6 +90,19 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 
 ![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/assets/46021872/74b01bd2-ef0c-40ef-958d-b35394120a31)
 
+<h2>Local Web Interface [wip]</h2>
+
+<h3>MAIN</h3>
+![MAIN](https://github.com/EmanuelBender/HEX_POD/assets/46021872/6b6a0f67-70ed-4a33-9e85-2cdbaad11bbb)
+
+<h3>AIR</h3>
+![AIR](https://github.com/EmanuelBender/HEX_POD/assets/46021872/6cea31d8-bff0-4383-8fd6-c9e0f1b8859f)
+
+<h3>SYS</h3>
+![SYS](https://github.com/EmanuelBender/HEX_POD/assets/46021872/d536bb2b-2462-4a80-bd85-51afc1bcffb5)
+
+<h3>LOG</h3>
+![LOG](https://github.com/EmanuelBender/HEX_POD/assets/46021872/9d9a676d-b6ee-4414-9872-87d922f685d4)
 
 <br>
 <br>
