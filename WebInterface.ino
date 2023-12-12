@@ -460,7 +460,7 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String page = "<a href='/download?file=" + String(logfilePath) + "'><div style='text-align:center; margin-bottom: 5px;'><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
+  String page = "<a href='/download?file=" + String(logfilePath) + "'><div style='text-align:center; margin-bottom: 5px; margin-top: 10px; '><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
   page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'><br>";
 
