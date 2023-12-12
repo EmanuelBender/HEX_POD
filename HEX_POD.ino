@@ -118,6 +118,7 @@ Preferences preferences;
 // #define ENABLE_I2C_DEBUG_BUFFER
 bool DEBUG = false;
 bool LOGGING = true;
+bool pastLOGGINGstate = !LOGGING;
 bool SLEEPENABLE;
 bool serialPrintLOG;
 bool serialPrintBME1;
@@ -268,6 +269,7 @@ uint16_t heatProf_1[] = {
 };
 
 uint16_t durProf_1[] = {
+  5,  // 0
   5,  // 1
   5,  // 2
   5,  // 3
@@ -342,12 +344,12 @@ TaskData tasks[] = {
   { "getNTP", &ntpTracker, &NTPID },
   { "pollTemp", &tempTracker, &TEMPID },
   { "pollINA", &ina2Tracker, &INA2ID },
-  { "pollBME", &bmeTracker, &BMEID },
-  { "pollSGP", &sgpTracker, &SGPID },
-  { "logging", &loggingTracker, &LOG },
   { "powerStates", &powerStTracker, &ST1 },
   { "pollServer", &clientTracker, &WEB },
-  { "pollIMU", &imuTracker, &IMUID }
+  { "pollIMU", &imuTracker, &IMUID },
+  { "pollBME", &bmeTracker, &BMEID },
+  { "pollSGP", &sgpTracker, &SGPID },
+  { "logging", &loggingTracker, &LOG }
 };
 
 

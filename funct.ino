@@ -41,6 +41,9 @@ void launchUtility() {
   for (byte i = 0; i < slotsSize; ++i) {
     memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
     taskArray[i].clear();                        // Clear the String array
+    // if (!LOGGING && LOGGING != pastLOGGINGstate) {
+    //  if (i = BMEID || i != SGPID || i != LOG) taskManager.cancelTask(i);
+    //  }
   }
   LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = 0;
   // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
@@ -55,18 +58,15 @@ void launchUtility() {
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(980), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
-  if (LOGGING) {
+  ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
+  WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
+  if (LOGGING && LOGGING != pastLOGGINGstate) {
+    pastLOGGINGstate = LOGGING;
     conditioning_duration = 30;
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
     LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
-  }  // else {
-  //  if (taskManager.getTask(BMEID) != nullptr) taskManager.cancelTask(BMEID);
-  //   if (taskManager.getTask(SGPID) != nullptr) taskManager.cancelTask(SGPID);
-  //  if (taskManager.getTask(LOG) != nullptr) taskManager.cancelTask(LOG);
-  // }
-  ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
-  WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
+  }
   // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
   // taskManager.setTaskEnabled(IMUID, false);
 

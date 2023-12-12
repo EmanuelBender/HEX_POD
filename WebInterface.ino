@@ -232,7 +232,6 @@ void setupWebInterface() {  // in setup()
     preferences.end();
 
     if (LOGGING) {
-      conditioning_duration = 30;
       launchUtility();
       server.send(200, "text/plain", "LOGGING enabled");
     } else {
@@ -385,15 +384,21 @@ String generateJavaScriptFunctions() {  // JavaScript functions
 
 String generateCSSstyles() {
   return "<style>"
+         "@import url('https://fonts.cdnfonts.com/css/din-alternate');"
          "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 720px; margin: 20px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed;}"
-         "th, td { white-space: nowrap; border-spacing: 2px 4px; border-radius: 15px; padding: 5px; padding-top: 2px;  padding-bottom: 2px; color: #050505; text-align: left;}"
-         "h2, h3 { color: #303030; text-align: left; margin-bottom: 5px; }"
-         "a.button { display: inline-block; margin: 5px; padding: 10px 10px; text-decoration: none; border: none; color: white; background-color: #008080; border-radius: 8px; font-size: 16px; cursor: pointer; }"
-         "button { display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; }"
+         "table { width: 720px; margin: 18px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "th, td { white-space: nowrap; border-radius: 10px; padding-top: 1px;  padding-bottom: 1px; color: #050505; text-align: left;}"
+         "h2, h3 { font-family: 'DIN Alternate', sans-serif; color: #303030; text-align: left; margin-bottom: 5px; }"
+         "p { font-family: 'DIN Alternate', sans-serif; } "
+         "a.button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 5px; padding: 10px 10px; text-decoration: none; border: none; color: white; background-color: #008080; border-radius: 8px; font-size: 16px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
          "div { color: white; }"
          "#navbar { background-color: #303030; text-align: center; justify-content: center; }"
-         "#sidebar { width: 190px; background-color: #353535; padding: 10px; margin: 20px; padding-top: 20px; height: 100%; }"
+         "#sidebar { width: 180px; height: 100%; background-color: #353535; padding: 8px; margin: 15px; padding-top: 20px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "#table_TL { border-top-left-radius: 15px; }"
+         "#table_TR { border-top-right-radius: 15px; }"
+         "#table_BL { border-bottom-left-radius: 15px; }"
+         "#table_BR { border-bottom-right-radius: 15px; }"
          "</style>";
 }
 
@@ -421,23 +426,31 @@ String generateCommonPageStructure(String content) {
 }
 
 
+
+
 String generateNavBar() {
   // HTML for the navigation bar
-  String page = "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
-  page += "<div style='text-align:center; font-size:11px; '>" + printTime + "<br>";
+  String page = "<a href='/download?file=" + String(logfilePath) + "'><div style='text-align:center; margin-bottom: 5px;'><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
+  page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
+  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'><br>";
+
+  page += "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
+  page += "<div style='text-align:center; color: #808080; font-size:11px; '>" + printTime + "<br>";
   page += String(restarts) + " Restarts<br>";
   page += "Uptime " + uptimeString + "<br>";
   page += WiFiIP;
   page += "</div>";
 
   // Controls
-  page += "<hr style='border: 2px solid #303030;'>";
-  page += "<table style='max-width: 150px; max-height:150px; text-align:center; display: inline-block; background-color: transparent;'>";
+  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
+  page += "<div style='text-align:center; '>";
+  page += "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; margin: auto; padding auto; background-color: transparent; box-shadow: none;'>";
   page += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td>";
-  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td><button onclick='triggerCTR()'>&#9678;</button></td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";
+  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";  // <td><button onclick='triggerCTR()'>&#9678;</button></td>
   page += "<tr><td><button onclick='restartESP()'>&#8634;</button></td><td><button onclick='triggerDOWN()'>&#8595;</button></td><td></td></tr>";
   page += "</table>";
-  page += "<hr style='border: 2px solid #303030;'>";
+  page += "</div>";
+  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
 
   // Toggles
   page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
@@ -568,7 +581,7 @@ String generateSensorsPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
   page += "<table style=' margin: 20px; padding: 20px; '>";
   // Settings table
-  page += "<tr><td><h2> Sensor Settings </h2></td></tr>";
+  page += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
   page += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
@@ -625,13 +638,13 @@ String generateSensorsPage() {
 
   // BME1 Table
   page += "<table style=' margin: 20px; padding: 15px; '>";
-  page += "<tr><td><h2> BME_1 </h2></td></tr>";
+  page += "<tr><td colspan='5'><h2> BME_1 </h2></td></tr>";
   page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(bmeTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastBMEpoll) + "</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</div></td>";
-  page += "<td></td><td></td><td></td><td></td><td></td></tr>";
+  page += "</tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'><td></td><td><b> GAS_AVG </td><td><b> Temp </td><td><b >Humid </td><td><b> Press </td><td><b> Alt </td></tr>";
   page += "<tr style='font-size: 14px;'><td></td><td>" + String(bme_gas_avg) + "</td><td>" + String(data.temperature) + "&deg;C</td><td>" + String(data.humidity) + "%</td><td>" + String(data.pressure / 1000) + "mBar</td><td>" + String(Altitude) + "m</td></tr>";
@@ -648,7 +661,7 @@ String generateSensorsPage() {
 
   //BME2 table
   page += "<table style='margin: 20px; padding: 15px; '>";
-  page += "<tr><td><h2>BME_2</h2></td></tr>";
+  page += "<tr><td colspan='5'><h2>BME_2</h2></td></tr>";
   page += "</table>";
 
   page += "</div>";                        // Close the flex container
@@ -656,13 +669,13 @@ String generateSensorsPage() {
 
   // SGP41 Table
   page += "<table style=' margin: 20px; padding: 15px; '>";
-  page += "<tr><td><h2> SGP41 </h2></td></tr>";
+  page += "<tr><td colspan='5'><h2> SGP41 </h2></td></tr>";
   page += "<tr><td>" + String(sgpErrorMsg) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(sgpTracker) + "ms</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastSGPpoll) + "</div></td>";
   page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / double(ONETHOUSAND)) + "s</div></td>";
-  page += "<td></td><td></td><td></td><td></td></tr>";
+  page += "</tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";
   page += "<tr style='font-size: 14px;'></td><td><td>" + String(VOC) + "</td><td>" + String(NOX) + "</td><td>" + String(srawVoc) + "</td><td>" + String(srawNox) + "</td></tr>";
@@ -715,7 +728,7 @@ String generateUtilityPage() {
 
   // Buttons Interface
   page += "<table style=' width: 100%; margin: 20px; padding: 15px;'>";
-  page += "<tr><td colspan='5'><h2>Controls</h2></td></tr>";
+  page += "<tr><th colspan='5'><h2>Controls</h2></th></tr>";
 
   page += "<tr>";
   page += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>LED</button></td>";
@@ -731,8 +744,8 @@ String generateUtilityPage() {
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // System Info Table
-  page += "<table style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><td colspan='5'><h2>Device Stats</h2></tr>";
+  page += "<table id='table_TL' style=' margin: 20px; padding: 15px 15px;'>";
+  page += "<tr><th colspan='3'><h2>Device Stats</h2></th></tr>";
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
   page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
@@ -746,14 +759,14 @@ String generateUtilityPage() {
   if (deviceInfo.total_allocated_bytes > 0) page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
   if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
 
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
   page += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
   page += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   page += "</tr>";
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
   page += "<tr>";
@@ -764,7 +777,7 @@ String generateUtilityPage() {
   page += "<td>" + String(WiFi.channel()) + "</td>";
   // page += "<td>" + String(lastNTPtimeFail) + "</td>";
   page += "</tr>";
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td>&nbsp;</td><td><b> SD Card </td><td><b> </td><td><b> Last NTP </td><td><b> Last Reset </td><td></td></tr>";
   page += "<tr>";
@@ -779,16 +792,16 @@ String generateUtilityPage() {
 
   // System Sensors
   page += "<table style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><td colspan='5'><h2>System Sensors</h2></td></tr>";
+  page += "<tr><th colspan='4'><h2>System Sensors</h2></th></tr>";
   page += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
   page += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  page += "<tr><td colspan='2'><b>" + String(DSdevices) + " DS18B20</td></tr>";
+  page += "<tr><td colspan='4'><b>" + String(DSdevices) + " DS18B20</td></tr>";
   page += "<tr>";
 
   for (int i = 0; i < DSdevices; i++) {
@@ -804,7 +817,7 @@ String generateUtilityPage() {
   page += "<tr><td><b>CPU</td></tr>";
   page += "<tr><td>" + String(CPUTEMP) + "&deg;C</td></tr>";
 
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>Light Sensors</td></tr>";
 
@@ -823,7 +836,7 @@ String generateUtilityPage() {
     // page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
     // Task Manager
     page += "<table style=' margin: 20px; padding: 20px 15px;'>";
-    page += "<tr><td colspan='5'><h2>SPIFFS</h2></td></tr>";
+    page += "<tr><th colspan='5'><h2>SPIFFS</h2></th></tr>";
 
     page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
     page += "<tr><td>Used</td><td>" + String(double(SPIFFS_used / ONEMILLIONB), 3) + "Mb</td></tr>";
@@ -849,7 +862,7 @@ String generateUtilityPage() {
 
 String generateTaskManagerTable() {
   String table = "<table style='margin: 20px; padding: 20px 15px;'>";
-  table += "<tr><td colspan='5'><h2>Task Manager</h2></td></tr>";
+  table += "<tr><th colspan='5'><h2>Task Manager</h2></th></tr>";
   table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Interval</td></tr>";
 
   for (const auto& task : tasks) {
@@ -874,8 +887,8 @@ String generateFileSystemPage() {
 
     page = "<div>";
 
-    page += "<table>";
-    page += "<tr><td><h2>FS</h2></td></tr>";
+    page += "<table style='width:100%;'>";
+    page += "<tr><th><h2>FS</h2></th></tr>";
 
     page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
     page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
@@ -901,7 +914,7 @@ String generateFileSystemPage() {
       }
     }
     double fileSizeMB = double(file.size()) / ONEMILLIONB;
-    page += "<table>";
+    page += "<table style='width:100%;'>";
     page += "<tr><td>" + String(file.name()) + "</td></tr>";
     page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
     page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
