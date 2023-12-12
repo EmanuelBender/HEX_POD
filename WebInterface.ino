@@ -995,7 +995,7 @@ String generateFSPage() {
       page += "<tr><td>[" + String(fileSizeMB, 4) + "mb]</td></tr><tr><td><pre>";
 
       while (file.available()) {
-        uint8_t buffer[1024];  // Adjust the buffer size as needed
+        uint8_t buffer[1024];  // buffering mechanism still work in progress
         size_t bytesRead = file.read(buffer, sizeof(buffer));
         if (bytesRead > 0) {
           page += String(reinterpret_cast<const char*>(buffer), bytesRead);
@@ -1005,7 +1005,7 @@ String generateFSPage() {
 
       page += "</pre></td></tr></table>";
       file.close();
-      server.client().stop();  // Ensure the client connection is closed after streaming
+      server.client().stop(); 
     } else {
       page += "<table>";
       page += "<tr><td><h3>Error reading file</h3></td></tr>";
