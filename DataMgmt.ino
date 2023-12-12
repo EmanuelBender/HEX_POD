@@ -1,6 +1,6 @@
 #include <pgmspace.h>
 
-String path = "/_LOG/deviceLOG.txt";
+String path = "/hex_pod/LOG.txt";
 const char *logfilePath = path.c_str();
 
 void getSPIFFSsizes() {
@@ -336,9 +336,9 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
   }
 
   File file = fs.open(path, FILE_APPEND);
-  if (!file) {
-    Serial.println("Failed to open file for appending");
-    return;
+  if (!fs.exists(path)) {
+    fs.mkdir(path);
+    file = fs.open(path, FILE_APPEND);
   }
   if (file.print(message)) {
     // Serial.println("Message appended");

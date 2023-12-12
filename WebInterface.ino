@@ -205,7 +205,6 @@ void setupWebInterface() {  // in setup()
     }
   });
 
-
   server.on("/updateTFTbrightness", []() {
     String value = server.arg("value");
     TFTbrightness = value.toFloat();
@@ -256,6 +255,22 @@ void setupWebInterface() {  // in setup()
     preferences.end();
     empty2DArray(console);
     server.send(200, "text/plain", "BME LOG enabled");
+  });
+
+  server.on("/deletePath", HTTP_GET, []() {
+    String pathToDelete = server.arg("path");
+    if (pathToDelete.length() > 0) {
+      pathToDelete = "/" + pathToDelete;
+      LittleFS.begin();
+      deleteFile(LittleFS, pathToDelete.c_str());
+      removeDir(LittleFS, pathToDelete.c_str());
+      // createDir(LittleFS, logfilePath);
+      LittleFS.end();
+
+      server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
   });
   server.on("/triggerUP", []() {
     UP = true;
@@ -330,6 +345,12 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "function toggleLED() { fetch('/toggleLED'); }"
          "function toggleLightSleep() { fetch('/toggleLS'); }"
          "function toggleLOGGING() { fetch('/toggleLOGGING'); }"
+         "function deletePath() { "
+         "  var pathToDelete = prompt('Please enter the path to delete:');"
+         "  if (pathToDelete !== null) {"
+         "    fetch('/deletePath?path=' + encodeURIComponent(pathToDelete));"
+         "  }"
+         "}"
          "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
          "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
          "function toggleOLED() { fetch('/toggleOLED'); }"
@@ -454,7 +475,7 @@ String generateNavBar() {
 
   // Toggles
   page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
-  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";
+  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";  // deletePath
   page += "<button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button>";
 
   page += "</div>";
@@ -894,8 +915,9 @@ String generateFileSystemPage() {
     page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
     page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
     page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
+    page += "<tr><td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: 303030; border: solid 1px #505050;')>Delete Path</button></td></tr>";
 
-    page += "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
+    page += "<tr><td>&nbsp;</td></tr>";
     page += "<tr><td><pre>" + listDirWeb(LittleFS, "/", 3) + "</pre></td></tr>";
 
     page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
