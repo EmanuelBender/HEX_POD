@@ -957,7 +957,7 @@ String generateFSTable() {
   table_fs += "<td><a href='/download?file=" + String(logfilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logfilePath) + "</button></a></td>";
   table_fs += "<tr><td>&nbsp;</td></tr>";
 
-  table_fs += "</tr><tr><th><b>Files</th></tr>";
+  table_fs += "</tr><tr><th><b>/</th></tr>";
   table_fs += "<pre>" + listDirWeb(LittleFS, "/", 4) + "</pre>";
 
   table_fs += "<tr><td>&nbsp;</td></tr>";
