@@ -185,34 +185,6 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "BME pause updated");
   });
 
-  /*
-  server.on("/getFileContent", HTTP_GET, []() {
-    String fileId = server.arg("id");
-    String filename = "/" + fileId.substring(4);  // Remove the "fil_" prefix
-
-    File file = LittleFS.open(filename);
-    if (file) {
-      server.sendHeader("Content-Type", "text/plain");
-      server.sendHeader("Connection", "close");
-      server.sendHeader("Access-Control-Allow-Origin", "*");
-      server.sendHeader("Content-Disposition", "inline; filename=" + String(file.name()));
-
-      while (file.available()) {
-        uint8_t buffer[1024];  // Adjust the buffer size as needed
-        size_t bytesRead = file.read(buffer, sizeof(buffer));
-        if (bytesRead > 0) {
-          server.sendContent(reinterpret_cast<const char*>(buffer), bytesRead);
-          yield();  // Allow the server to handle other tasks
-        }
-      }
-
-      file.close();
-      server.client().stop();  // Ensure the client connection is closed after streaming
-    } else {
-      server.send(500, "text/plain", "Error reading file");
-    }
-  });
-*/
   server.on("/deletePath", HTTP_GET, []() {
     String pathToDelete = "/" + server.arg("path");
     if (pathToDelete.length() > 0) {
@@ -293,6 +265,7 @@ void setupWebInterface() {  // in setup()
   });
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
+    DEBUG ? Serial.begin(115200) : Serial.end();
     consoleLine = 0;
     preferences.begin("my - app", false);
     preferences.putBool("debug", DEBUG);
@@ -386,13 +359,13 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "  }"
          "}"
          "function createFile() { "
-         "  var pathToCreate = prompt('Please enter path + filename to create:');"
+         "  var pathToCreate = prompt('Please enter filename (path):');"
          "  if (pathToCreate !== null) {"
          "    fetch('/createFile?path=' + encodeURIComponent(pathToCreate));"
          "  }"
          "}"
          "function createDir() { "
-         "  var pathToCreate = prompt('Please enter path + filename to create:');"
+         "  var pathToCreate = prompt('Please enter folder name (path):');"
          "  if (pathToCreate !== null) {"
          "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
          "  }"
@@ -416,17 +389,6 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);"
          "  xhr.send();"
          "}"
-         /*
-         "document.addEventListener('click', function(e) {"
-         "  var target = e.target;"
-         "  if (target.classList.contains('dir') || target.classList.contains('file')) {"
-         "    var fileId = target.id;"
-         "    fetch('/getFileContent?id=' + encodeURIComponent(fileId))"
-         "      .then(response => response.text())"
-         "      .then(content => { document.body.innerHTML = content; });"
-         "  }"
-         "});" */
-
          "document.addEventListener('keydown', function(event) {"
          "  switch(event.key) {"
          "    case 'ArrowUp':"
@@ -1005,10 +967,10 @@ String generateFSPage() {
 
       page += "</pre></td></tr></table>";
       file.close();
-      server.client().stop(); 
+      server.client().stop();
     } else {
       page += "<table>";
-      page += "<tr><td><h3>Error reading file</h3></td></tr>";
+      page += "<tr><td><h3>[Error] File does not exist. </h3></td></tr>";
       page += "</table>";
     }
 

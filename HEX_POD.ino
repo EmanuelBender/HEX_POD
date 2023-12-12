@@ -357,11 +357,12 @@ void setup() {
   timeTracker = millis();
 
   //___________________________ INITIALIZE COMMS __________________________
-  Serial.begin(115200);
-  if (DEBUG) Serial.setDebugOutput(true);
-  delay(50);  //relax...
-
+  // Serial.begin(115200);
   if (DEBUG) {
+    Serial.begin(115200);
+    Serial.setDebugOutput(true);
+    delay(50);  //relax...
+
     ESP_LOGI(TAG, "Serial bus Initialized.");
   }
 
