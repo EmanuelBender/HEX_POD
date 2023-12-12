@@ -28,11 +28,9 @@
 #include <DallasTemperature.h>
 #include <Adafruit_LIS3DH.h>
 
-//AsyncWebServer server(80);
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include "esp_sntp.h"
-// #include <WebSocketsServer.h>
 WebServer server(80);
 uint8_t webServerPollMs = 120;
 
@@ -158,7 +156,8 @@ long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon;
 bool SDinserted;
-uint8_t filesCount;
+uint8_t filesCount, directoryCount;
+int fileId = 0;
 
 String TAG = "ESP";
 
@@ -347,8 +346,8 @@ TaskData tasks[] = {
   { "powerStates", &powerStTracker, &ST1 },
   { "pollServer", &clientTracker, &WEB },
   { "pollIMU", &imuTracker, &IMUID },
-  { "pollBME", &bmeTracker, &BMEID },
-  { "pollSGP", &sgpTracker, &SGPID },
+  { "pollBME", &bmeTracker, &BMEID },  // &lastBMEpoll
+  { "pollSGP", &sgpTracker, &SGPID },  // &lastSGPpoll
   { "logging", &loggingTracker, &LOG }
 };
 

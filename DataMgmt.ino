@@ -1,6 +1,6 @@
 #include <pgmspace.h>
 
-String path = "/hex_pod/LOG.txt";
+String path = "/LOG.csv";
 const char *logfilePath = path.c_str();
 
 void getSPIFFSsizes() {
@@ -201,27 +201,43 @@ void mountSD() {
 String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
   String fsString = "";
   File root = fs.open(dirname);
-  filesCount = 0;
+
+  fileId = 0;
 
   if (!root || !root.isDirectory()) {
-    return "<tr><td>[Error] Failed to open directory or Not a Directory !</td></tr>";
+    Serial.println("Root: " + String(root));
+    return fsString = "<tr><td>[Error] root is not a directory, or root doesn't exist. !</td></tr>";
   }
 
   File file = root.openNextFile();
-  int fileId = 0;
+
   while (file) {
     String fileIdStr = String(fileId);
     if (file.isDirectory()) {
-      fsString += "<tr><div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr; " + String(file.name()) + "</td></div></tr>";
+      directoryCount++;
+
+      fsString += "<tr style='border-bottom: 1px solid #808080;'>";
+
+      if (levels == 3) fsString += "<br><td>&nbsp;</td>";
+      if (levels == 2) fsString += "<td>&nbsp;</td><td>&nbsp;</td>";
+      if (levels == 1) fsString += "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>";
+
+      fsString += "<div style='color:black;' class='dir' id='dir_" + fileIdStr + "'><td><b>/" + String(file.name()) + "</td></div></tr>";
       if (levels) {
         fsString += listDirWeb(fs, file.path(), levels - 1);
       }
     } else {
       filesCount++;
-      fsString += "<tr><td><div style='color:black;' class='file' id='fil_" + fileIdStr + "'><td>&nbsp;</td><td>&rarr;</td>";
-      double fileSizeMB = double(file.size()) / 1024.0 / 1024.0;
-      fsString += "<td>" + String(file.name()) + "</td>";
-      fsString += "<td>" + String(fileSizeMB, 3) + "MB</td></div></tr>";
+      fsString += "<tr style='border-bottom: 1px solid #808080;'>";
+      
+      if (levels == 3) fsString += "<td>&nbsp;</td>";
+      if (levels == 2) fsString += "<td>&nbsp;</td><td>&nbsp;</td>";
+      if (levels == 1) fsString += "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>";
+
+      fsString += "<div style='color:black;' class='file' id='fil_" + fileIdStr + "'>";
+      double fileSizeMB = double(file.size()) / KILOBYTE / KILOBYTE;
+      fsString += "<td>/" + String(file.name()) + " [";
+      fsString += String(fileSizeMB, 3) + "Mb]</td></div></tr>";
     }
     file = root.openNextFile();
     fileId++;
@@ -234,61 +250,8 @@ String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
 
 
 
-void listDir(fs::FS &fs, const char *dirname, uint8_t levels) {
-  // Serial.printf("Listing directory: %s\n", dirname);
-  uint8_t filesCount = 0;
-
-  File root = fs.open(dirname);
-  if (!root) {
-    Serial.println("- failed to open directory");
-    return;
-  }
-  if (!root.isDirectory()) {
-    tft.drawString("Not a directory", 60, 100, 3);
-    return;
-  }
-
-  File file = root.openNextFile();
-  while (file) {
-    if (file.isDirectory()) {
-      // tft.drawString(String(file.name()));
-      Serial.print("  DIR : ");
-      Serial.println(file.name());
-      if (levels) {
-        listDir(fs, file.path(), levels - 1);
-      }
-    } else {
-      filesCount++;
-      // tft.drawString(String(file.name())), 20, 40 + (12 * filesCount), 2); //  + " Size: " + String(file.size()
-      Serial.print("  FILE: ");
-      Serial.print(file.name());
-      Serial.print("  SIZE: ");
-      Serial.println(file.size());
-    }
-    file = root.openNextFile();
-  }
-}
 
 
-
-
-void createDir(fs::FS &fs, const char *path) {
-  Serial.printf("Creating Dir: %s\n", path);
-  if (fs.mkdir(path)) {
-    Serial.println("Dir created");
-  } else {
-    Serial.println("mkdir failed");
-  }
-}
-
-void removeDir(fs::FS &fs, const char *path) {
-  Serial.printf("Removing Dir: %s\n", path);
-  if (fs.rmdir(path)) {
-    Serial.println("Dir removed");
-  } else {
-    Serial.println("rmdir failed");
-  }
-}
 
 void readFile(fs::FS &fs, const char *path) {
   Serial.printf("Reading file: %s\n", path);
@@ -337,8 +300,11 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
 
   File file = fs.open(path, FILE_APPEND);
   if (!fs.exists(path)) {
-    fs.mkdir(path);
-    file = fs.open(path, FILE_APPEND);
+    if (fs.mkdir(path)) {
+      file = fs.open(path, FILE_APPEND);
+    } else {
+      Serial.println("mkdir failed");
+    }
   }
   if (file.print(message)) {
     // Serial.println("Message appended");
@@ -366,5 +332,23 @@ void deleteFile(fs::FS &fs, const char *path) {
     Serial.println("File deleted");
   } else {
     Serial.println("Delete failed");
+  }
+}
+
+void createDir(fs::FS &fs, const char *path) {
+  Serial.printf("Creating Dir: %s\n", path);
+  if (fs.mkdir(path)) {
+    Serial.println("Dir created");
+  } else {
+    Serial.println("mkdir failed");
+  }
+}
+
+void removeDir(fs::FS &fs, const char *path) {
+  Serial.printf("Removing Dir: %s\n", path);
+  if (fs.rmdir(path)) {
+    Serial.println("Dir removed");
+  } else {
+    Serial.println("rmdir failed");
   }
 }

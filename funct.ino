@@ -399,7 +399,6 @@ void pollBME() {
   lastBMEpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  int i;
 
   if (bme.checkStatus()) {
     if (bme.checkStatus() == BME68X_ERROR) {
@@ -432,7 +431,7 @@ void pollBME() {
     // delayMicroseconds(bme.getMeasDur());
 
     while (!bme.fetchData()) {
-      delay(5);
+      delay(3);
     }
     bme.getData(data);
     if (!conditioning_duration) bme_resistance[bmeProfile] += data.gas_resistance;

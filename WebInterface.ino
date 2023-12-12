@@ -2,39 +2,35 @@
 #include <pgmspace.h>
 
 
-void handleRoot() {
-  if (!server.authenticate("hexpod", "noguess8142")) {
-    return server.requestAuthentication();
+void handleNotFound() {
+  String message = "Page Not Found\n\n";
+  message += "URI: ";
+  message += server.uri();
+  message += "\nMethod: ";
+  message += (server.method() == HTTP_GET) ? "GET" : "POST";
+  message += "\nArguments: ";
+  message += server.args();
+  message += "\n";
+
+  for (uint8_t i = 0; i < server.args(); i++) {
+    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
-  server.send(200, "text/html", generateHomePage());
+
+  server.send(404, "text/plain", message);
 }
 
-void handleSensors() {
-  if (!server.authenticate("hexpod", "noguess8142")) {
-    return server.requestAuthentication();
-  }
-  server.send(200, "text/html", generateSensorsPage());
-}
-
-void handleUtility() {
-  if (!server.authenticate("hexpod", "noguess8142")) {
-    return server.requestAuthentication();
-  }
-  server.send(200, "text/html", generateUtilityPage());
-}
-
-void handleFS() {
-  if (!server.authenticate("hexpod", "noguess8142")) {
-    return server.requestAuthentication();
-  }
-  server.send(200, "text/html", generateFileSystemPage());
-}
 
 
 void streamToServer() {
-  String filePath = server.arg("file");
+  // String filePath = server.arg("file");
+  String filePath = logfilePath;
 
-  if (!LittleFS.begin(false, "/littlefs", 20, "spiffs")) {
+  if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+    return server.requestAuthentication();
+  }
+
+
+  if (!LittleFS.begin()) {
     tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
     server.send(500, "text/plain", "<h2>Spiffs failed</h2>");
     return;
@@ -51,9 +47,12 @@ void streamToServer() {
       contentType = "text/plain";
     } else if (filePath.endsWith(".jpg")) {
       contentType = "image/jpeg";
+    } else if (filePath.endsWith(".csv")) {
+      contentType = "text/csv";
     }
 
     server.sendHeader("Content-Type", contentType);
+    server.sendHeader("Content-Disposition", "attachment; filename=" + String(file.name()));
     server.streamFile(file, contentType);
     file.close();
   } else {
@@ -62,25 +61,46 @@ void streamToServer() {
   LittleFS.end();
 }
 
-String generateFileContentPage(String content) {
-  String page = "<div style='display: flex;'>";
-  page += "<table style='min-width: 1000px; padding:20x; margin: 25px; '>";
-  page += "<tr><td><h2>File Content</h2></td></tr>";
-  page += "<tr><td><pre>" + content + "</pre></td></tr>";
-  page += "</table></div>";
-  return generateCommonPageStructure(page);
-}
+
 
 
 
 void setupWebInterface() {  // in setup()
 
-  server.on("/", HTTP_GET, handleRoot);
-  server.on("/sensors", HTTP_GET, handleSensors);
-  server.on("/utility", HTTP_GET, handleUtility);
-  server.on("/filesystem", HTTP_GET, handleFS);
 
-  server.on("/download", HTTP_GET, streamToServer);
+  server.on("/", HTTP_GET, []() {
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+    server.send(200, "text/html", generateHomePage());
+  });
+  server.on("/sensors", HTTP_GET, []() {
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+    server.send(200, "text/html", generateSensorsPage());
+  });
+  server.on("/utility", HTTP_GET, []() {
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+    server.send(200, "text/html", generateUtilityPage());
+  });
+  server.on("/filesystem", HTTP_GET, []() {
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+    server.send(200, "text/html", generateFSPage());
+  });
+
+  server.on("/download", HTTP_GET, []() {
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+    streamToServer();
+    //server.send(200, "text/html", generateFSPage());
+  });
+
 
   server.on("/toggleLED", []() {
     LEDon = !LEDon;
@@ -106,13 +126,14 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "OLED toggled");
   });
 
+  server.on("/toggleFAN", []() {
+    FANon = !FANon;
+    FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
+    server.send(200, "text/plain", "FAN toggled");
+  });
+
   server.on("/updateLoggingInterval", HTTP_GET, []() {
     loggingInterval = server.arg("value").toInt();
-
-    /*taskManager.cancelTask(BMEID);
-    taskManager.cancelTask(SGPID);
-    taskManager.cancelTask(LOG);
-    taskManager.cancelTask(TEMPID);*/
 
     preferences.begin("my - app", false);
     preferences.putUInt("logItvl", loggingInterval);
@@ -125,20 +146,12 @@ void setupWebInterface() {  // in setup()
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-    /*
-    TEMPID = taskManager.schedule(repeatMillis(loggingInterval), pollTemp);
-    BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-    SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);*/
     launchUtility();
     server.send(200, "text/plain", "Logging interval updated");
   });
 
   server.on("/updateBMEsamples", HTTP_GET, []() {
     bmeSamples = server.arg("value").toInt();
-    /* taskManager.cancelTask(BMEID);
-    taskManager.cancelTask(SGPID);
-    taskManager.cancelTask(LOG);*/
 
     preferences.begin("my - app", false);
     preferences.putUInt("bmeSpls", bmeSamples);
@@ -150,10 +163,6 @@ void setupWebInterface() {  // in setup()
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-
-    /* BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-    SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging); */
     launchUtility();
     server.send(200, "text/plain", "BME samples updated");
   });
@@ -176,32 +185,73 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "BME pause updated");
   });
 
-
-  server.on("/getFileContent", HTTP_GET, []() {  // implement displaying file content in the table here, or put condition in listDirWeb funct and call it from here
+  /*
+  server.on("/getFileContent", HTTP_GET, []() {
     String fileId = server.arg("id");
-    String filename;
-
-    filename = "/" + fileId.substring(4);  // Remove the "fil_" prefix
-    Serial.println(filename);
+    String filename = "/" + fileId.substring(4);  // Remove the "fil_" prefix
 
     File file = LittleFS.open(filename);
     if (file) {
-      String content;
+      server.sendHeader("Content-Type", "text/plain");
+      server.sendHeader("Connection", "close");
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Content-Disposition", "inline; filename=" + String(file.name()));
+
       while (file.available()) {
-        content += String(file.read());
-        if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
-          content += " -- Out of Ram. File too big. " + String(esp_get_minimum_free_heap_size());
-          break;
+        uint8_t buffer[1024];  // Adjust the buffer size as needed
+        size_t bytesRead = file.read(buffer, sizeof(buffer));
+        if (bytesRead > 0) {
+          server.sendContent(reinterpret_cast<const char*>(buffer), bytesRead);
+          yield();  // Allow the server to handle other tasks
         }
       }
-      // Serial.println(content);
-      file.close();
 
-      String page = generateFileContentPage(content);
-      Serial.println(page);
-      server.send(200, "text/html", page);
+      file.close();
+      server.client().stop();  // Ensure the client connection is closed after streaming
     } else {
       server.send(500, "text/plain", "Error reading file");
+    }
+  });
+*/
+  server.on("/deletePath", HTTP_GET, []() {
+    String pathToDelete = "/" + server.arg("path");
+    if (pathToDelete.length() > 0) {
+      LittleFS.begin();
+      removeDir(LittleFS, pathToDelete.c_str());
+      deleteFile(LittleFS, pathToDelete.c_str());
+      // createDir(LittleFS, pathToDelete.c_str());
+      // LittleFS.remove(pathToDelete.c_str());
+      LittleFS.end();
+
+      server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
+  });
+
+  server.on("/createFile", HTTP_GET, []() {
+    String pathToCreate = "/" + server.arg("path");
+    if (pathToCreate.length() > 0) {
+      LittleFS.begin();
+      writeFile(LittleFS, pathToCreate.c_str(), "");
+      LittleFS.end();
+
+      server.send(200, "text/plain", "File created: " + pathToCreate);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
+  });
+
+  server.on("/createDir", HTTP_GET, []() {
+    String pathToCreate = "/" + server.arg("path");
+    if (pathToCreate.length() > 0) {
+      LittleFS.begin();
+      createDir(LittleFS, pathToCreate.c_str());
+      LittleFS.end();
+
+      server.send(200, "text/plain", "Directory created: " + pathToCreate);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
     }
   });
 
@@ -217,6 +267,7 @@ void setupWebInterface() {  // in setup()
     ESP.restart();
     server.send(200, "text/plain", "Restart");
   });
+
   server.on("/toggleLS", []() {
     SLEEPENABLE = !SLEEPENABLE;
     preferences.begin("my - app", false);
@@ -224,6 +275,8 @@ void setupWebInterface() {  // in setup()
     preferences.end();
     server.send(200, "text/plain", "Sleep Enabled");
   });
+
+
   server.on("/toggleLOGGING", []() {
     LOGGING = !LOGGING;
     preferences.begin("my - app", false);
@@ -257,56 +310,37 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "BME LOG enabled");
   });
 
-  server.on("/deletePath", HTTP_GET, []() {
-    String pathToDelete = server.arg("path");
-    if (pathToDelete.length() > 0) {
-      pathToDelete = "/" + pathToDelete;
-      LittleFS.begin();
-      deleteFile(LittleFS, pathToDelete.c_str());
-      removeDir(LittleFS, pathToDelete.c_str());
-      // createDir(LittleFS, logfilePath);
-      LittleFS.end();
-
-      server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
-    } else {
-      server.send(400, "text/plain", "Invalid or missing path parameter");
-    }
-  });
   server.on("/triggerUP", []() {
     UP = true;
-    pwm.writeScaled(1.0);
+    pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
     server.send(200, "text/plain", "UP");
   });
   server.on("/triggerDOWN", []() {
     DOWN = true;
-    pwm.writeScaled(1.0);
+    pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
     server.send(200, "text/plain", "DOWN");
   });
   server.on("/triggerLEFT", []() {
     LEFT = true;
-    pwm.writeScaled(1.0);
+    pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
     server.send(200, "text/plain", "LEFT");
   });
   server.on("/triggerRIGHT", []() {
     RIGHT = true;
-    pwm.writeScaled(1.0);
+    pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
     server.send(200, "text/plain", "RIGHT");
   });
   server.on("/triggerCTR", []() {
     BUTTON = true;
-    pwm.writeScaled(1.0);
+    pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
     server.send(200, "text/plain", "CTR");
   });
-  server.on("/toggleFAN", []() {
-    FANon = !FANon;
-    FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
-    server.send(200, "text/plain", "FAN toggled");
-  });
+
   server.on("/updateNTP", []() {
     taskManager.schedule(onceMicros(15), getNTP);
     server.send(200, "text/plain", "NTP Time updated");
@@ -351,6 +385,19 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "    fetch('/deletePath?path=' + encodeURIComponent(pathToDelete));"
          "  }"
          "}"
+         "function createFile() { "
+         "  var pathToCreate = prompt('Please enter path + filename to create:');"
+         "  if (pathToCreate !== null) {"
+         "    fetch('/createFile?path=' + encodeURIComponent(pathToCreate));"
+         "  }"
+         "}"
+         "function createDir() { "
+         "  var pathToCreate = prompt('Please enter path + filename to create:');"
+         "  if (pathToCreate !== null) {"
+         "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
+         "  }"
+         "}"
+         "function download() { fetch('/download'); }"
          "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
          "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
          "function toggleOLED() { fetch('/toggleOLED'); }"
@@ -369,7 +416,7 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);"
          "  xhr.send();"
          "}"
-
+         /*
          "document.addEventListener('click', function(e) {"
          "  var target = e.target;"
          "  if (target.classList.contains('dir') || target.classList.contains('file')) {"
@@ -378,7 +425,7 @@ String generateJavaScriptFunctions() {  // JavaScript functions
          "      .then(response => response.text())"
          "      .then(content => { document.body.innerHTML = content; });"
          "  }"
-         "});"
+         "});" */
 
          "document.addEventListener('keydown', function(event) {"
          "  switch(event.key) {"
@@ -499,7 +546,7 @@ String generateHomePage() {
   page += generateTimeOptions(loggingInterval);
   page += "</select></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";
-  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME webLOG</button></td></tr>";
+  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
 
   page += "</table>";
 
@@ -845,32 +892,15 @@ String generateUtilityPage() {
   page += "</table>";
   page += "</div>";  // Close the flex container
 
+  // Task Manager
   page += "<div style='display: flex;'>";
   page += generateTaskManagerTable();
 
 
   if (LittleFS.begin()) {
-    // tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
-
     getSPIFFSsizes();
-
-    // page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
-    // Task Manager
-    page += "<table style=' margin: 20px; padding: 20px 15px;'>";
-    page += "<tr><th colspan='5'><h2>SPIFFS</h2></th></tr>";
-
-    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Used</td><td>" + String(double(SPIFFS_used / ONEMILLIONB), 3) + "Mb</td></tr>";
-    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-    page += "<tr><td>Log Path </td><td colspan='5'>" + String(logfilePath) + "</td></tr>";
-
-    page += "<tr><td>&nbsp;</td><td>&nbsp;</td></tr>";
-    page += "<tr><td><b>CPU</td></tr>";
-
-    page += "<tr><td>" + listDirWeb(LittleFS, "/", 3) + "</td></tr>";
-
-    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
-    page += "</table>";
+    // SPIFFS
+    page += generateFSTable();
   }
 
   page += "</div>";
@@ -884,7 +914,7 @@ String generateUtilityPage() {
 String generateTaskManagerTable() {
   String table = "<table style='margin: 20px; padding: 20px 15px;'>";
   table += "<tr><th colspan='5'><h2>Task Manager</h2></th></tr>";
-  table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Interval</td></tr>";
+  table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
 
   for (const auto& task : tasks) {
     if (taskArray[*task.taskId] != "" /*&& *task.tracker > 0.0 */ && *task.taskId != 0) {  // don't add free, unscheduled task slots
@@ -897,57 +927,93 @@ String generateTaskManagerTable() {
 }
 
 
+String generateFileContentPage(String content) {
+  String page = "<div style='display: flex;'>";
+  page += "<table style='min-width: 1000px; padding:20x; margin: 25px; '>";
+  page += "<tr><td><h2>File Content</h2></td></tr>";
+  page += "<tr><td><pre>" + content + "</pre></td></tr>";
+  page += "</table></div>";
+  return generateCommonPageStructure(page);
+}
 
 
-String generateFileSystemPage() {
+
+String generateFSTable() {
+
+  filesCount = 0;
+  directoryCount = 0;
+
+  String table_fs = "<table style='width:100%;'>";
+  table_fs += "<tr><th><h2>FS</h2></th></tr>";
+
+  table_fs += "<tr><td><b>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
+  table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
+  table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
+  table_fs += "<tr><td><b>Log Path </td><td>" + String(logfilePath) + "</td></tr><tr>";
+
+  table_fs += "<td></td><td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
+  table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
+  table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
+  table_fs += "<td><a href='/download?file=" + String(logfilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logfilePath) + "</button></a></td>";
+  table_fs += "<tr><td>&nbsp;</td></tr>";
+
+  table_fs += "</tr><tr><th><b>Files</th></tr>";
+  table_fs += "<pre>" + listDirWeb(LittleFS, "/", 4) + "</pre>";
+
+  table_fs += "<tr><td>&nbsp;</td></tr>";
+  table_fs += "<tr><td><b>" + String(directoryCount) + " Folders</td></tr>";
+  table_fs += "<tr><td><b>" + String(filesCount) + " Files</td></tr>";
+
+  table_fs += "</table>";
+
+  return table_fs;
+}
+
+
+String generateFSPage() {
   String page;
 
   if (LittleFS.begin()) {
 
     getSPIFFSsizes();
 
-    page = "<div>";
-
-    page += "<table style='width:100%;'>";
-    page += "<tr><th><h2>FS</h2></th></tr>";
-
-    page += "<tr><td>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
-    page += "<tr><td>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-    page += "<tr><td>Log Path </td><td>" + String(logfilePath) + "</td></tr>";
-    page += "<tr><td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: 303030; border: solid 1px #505050;')>Delete Path</button></td></tr>";
-
-    page += "<tr><td>&nbsp;</td></tr>";
-    page += "<tr><td><pre>" + listDirWeb(LittleFS, "/", 3) + "</pre></td></tr>";
-
-    page += "<tr><td>" + String(filesCount) + " Files</td></tr>";
-    page += "</table>";
+    page = "<div style='display: flex; '>";
+    page += generateFSTable();
     page += "</div>";
-
 
     page += "<div style='display: flex;'>";
     File file = LittleFS.open(logfilePath);
-    String content;
-    while (file.available()) {
-      content += char(file.read());
-      if (esp_get_minimum_free_heap_size() < 10000) {  // failsafe for big files
-        content += " -- Out of RAM. File is too big. " + String(esp_get_minimum_free_heap_size());
-        break;
+    if (file) {
+      server.sendHeader("Content-Type", "text/html");
+      server.sendHeader("Connection", "close");
+      server.sendHeader("Access-Control-Allow-Origin", "*");
+      server.sendHeader("Content-Disposition", "inline; filename=" + String(file.name()));
+
+      double fileSizeMB = double(file.size()) / ONEMILLIONB;
+      page += "<table style='width:100%;'>";
+      page += "<tr><td>" + String(file.name()) + "</td></tr>";
+      page += "<tr><td>[" + String(fileSizeMB, 4) + "mb]</td></tr><tr><td><pre>";
+
+      while (file.available()) {
+        uint8_t buffer[1024];  // Adjust the buffer size as needed
+        size_t bytesRead = file.read(buffer, sizeof(buffer));
+        if (bytesRead > 0) {
+          page += String(reinterpret_cast<const char*>(buffer), bytesRead);
+          yield();  // Allow the server to handle other tasks
+        }
       }
+
+      page += "</pre></td></tr></table>";
+      file.close();
+      server.client().stop();  // Ensure the client connection is closed after streaming
+    } else {
+      page += "<table>";
+      page += "<tr><td><h3>Error reading file</h3></td></tr>";
+      page += "</table>";
     }
-    double fileSizeMB = double(file.size()) / ONEMILLIONB;
-    page += "<table style='width:100%;'>";
-    page += "<tr><td>" + String(file.name()) + "</td></tr>";
-    page += "<tr><td>" + String(fileSizeMB, 4) + "mb</td></tr>";
-    page += "<tr><td><pre>" + String(content) + "</pre></td></tr>";
-    page += "</table>";
+
     page += "</div>";
 
-    content = "";
-    // Serial.println(content);
-    // deleteFile(LittleFS, "/_LOG/test.txt");
-
-    file.close();
     LittleFS.end();
   } else {
     page = "<table>";
@@ -955,24 +1021,4 @@ String generateFileSystemPage() {
     page += "</table>";
   }
   return generateCommonPageStructure(page);
-}
-
-
-
-
-void handleNotFound() {
-  String message = "Page Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-
-  server.send(404, "text/plain", message);
 }
