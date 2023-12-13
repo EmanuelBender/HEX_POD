@@ -1,7 +1,6 @@
 #include <pgmspace.h>
 
-const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX\n";
-String restartHeader;
+
 
 
 void getSPIFFSsizes() {

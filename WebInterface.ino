@@ -409,7 +409,7 @@ String generateCSSstyles() {
   return "<style>"
          "@import url('https://fonts.cdnfonts.com/css/din-alternate');"
          "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 720px; margin: 18px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "table { width: 720px; margin: 15px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "th, td { white-space: nowrap; border-radius: 10px; padding-top: 1px;  padding-bottom: 1px; color: #050505; text-align: left;}"
          "h2, h3 { font-family: 'DIN Alternate', sans-serif; color: #303030; text-align: left; margin-bottom: 5px; }"
          "p { font-family: 'DIN Alternate', sans-serif; } "
@@ -418,10 +418,6 @@ String generateCSSstyles() {
          "div { color: white; }"
          "#navbar { background-color: #303030; text-align: center; justify-content: center; }"
          "#sidebar { width: 180px; height: 100%; background-color: #353535; padding: 8px; margin: 15px; padding-top: 20px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
-         "#table_TL { border-top-left-radius: 15px; }"
-         "#table_TR { border-top-right-radius: 15px; }"
-         "#table_BL { border-bottom-left-radius: 15px; }"
-         "#table_BR { border-bottom-right-radius: 15px; }"
          "</style>";
 }
 
@@ -450,37 +446,43 @@ String generateCommonPageStructure(String content) {
 
 
 
-
 String generateNavBar() {
   // HTML for the navigation bar
-  String page = "<a href='/download?file=" + String(logFilePath) + "'><div style='text-align:center; margin-bottom: 5px; margin-top: 10px; '><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
-  page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
-  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'><br>";
+  String page = "<div style='text-align:center; margin-bottom: 5px; margin-top: 10px;  '>";
+  page += "<a href='/download?file=" + String(logFilePath) + "'>";
+  page += "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
 
-  page += "<div style='text-align:center; '><a class='button' href='/'>MAIN</a> <br> <a class='button' href='/sensors'>AIR</a> <br> <a class='button' href='/utility'>SYS</a> <br> <a class='button' href='/filesystem'>LOG</a></div><br>";
-  page += "<div style='text-align:center; color: #808080; font-size:11px; '>" + printTime + "<br>";
+  page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
+  page += "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
+
+  page += "<div style='text-align:center; '>";
+  page += "<a class='button' href='/'>MAIN</a> <br>";
+  page += "<a class='button' href='/sensors'>AIR</a> <br>";
+  page += "<a class='button' href='/utility'>SYS</a> <br>";
+  page += "<a class='button' href='/filesystem'>LOG</a></div><br>";
+
+  page += "<div style='text-align:center; color: #808080; font-size:11px; '>";
+  page += printTime + "<br>";
   page += String(restarts) + " Restarts<br>";
   page += "Uptime " + uptimeString + "<br>";
-  page += WiFiIP;
-  page += "</div>";
+  page += WiFiIP + "</div>";
 
   // Controls
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
   page += "<div style='text-align:center; '>";
-  page += "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; margin: auto; padding auto; background-color: transparent; box-shadow: none;'>";
-  page += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td>";
-  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()'>&#8594;</button></td>";  // <td><button onclick='triggerCTR()'>&#9678;</button></td>
+  page += "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; background-color: transparent; box-shadow: none;'>";
+  page += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td></tr>";
+  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()'>&#8594;</button></td></tr>";
   page += "<tr><td><button onclick='restartESP()'>&#8634;</button></td><td><button onclick='triggerDOWN()'>&#8595;</button></td><td></td></tr>";
-  page += "</table>";
-  page += "</div>";
+  page += "</table></div>";
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
 
   // Toggles
   page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
-  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";  // deletePath
+  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";
   page += "<button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button>";
-
   page += "</div>";
+
   return page;
 }
 
@@ -488,10 +490,9 @@ String generateNavBar() {
 
 
 
-
 String generateHomePage() {
 
-  String page = "<table style=' margin: 20px; padding: 20px; min-width: 1000px; '>";
+  String page = "<table style=' margin: 15px; padding: 20px; min-width: 1000px; '>";
 
   page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
   page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
@@ -543,7 +544,7 @@ String generateConsole() {
 
 String generateSensorsPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
-  page += "<table style=' margin: 20px; padding: 20px; '>";
+  page += "<table style=' margin: 15px; padding: 20px; '>";
   // Settings table
   page += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
@@ -591,7 +592,7 @@ String generateSensorsPage() {
   page += "</table>";
 
   // Empty Table
-  page += "<table style=' margin: 20px; padding: 20px; '>";
+  page += "<table style=' margin: 15px; padding: 20px; '>";
   // page += "<tr><td><canvas id='myChart' width='400' height='200'></canvas></td></tr>";
   page += "</table>";
 
@@ -599,7 +600,7 @@ String generateSensorsPage() {
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // BME1 Table
-  page += "<table style=' margin: 20px; padding: 15px; '>";
+  page += "<table style=' margin: 15px; padding: 15px; '>";
   page += "<tr><td colspan='5'><h2> BME_1 </h2></td></tr>";
   page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
@@ -622,7 +623,7 @@ String generateSensorsPage() {
   page += "</table>";
 
   //BME2 table
-  page += "<table style='margin: 20px; padding: 15px; '>";
+  page += "<table style='margin: 15px; padding: 15px; '>";
   page += "<tr><td colspan='5'><h2>BME_2</h2></td></tr>";
   page += "</table>";
 
@@ -630,7 +631,7 @@ String generateSensorsPage() {
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // SGP41 Table
-  page += "<table style=' margin: 20px; padding: 15px; '>";
+  page += "<table style=' margin: 15px; padding: 15px; '>";
   page += "<tr><td colspan='5'><h2> SGP41 </h2></td></tr>";
   page += "<tr><td>" + String(sgpErrorMsg) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
@@ -671,7 +672,7 @@ String generateSensorsPage() {
   page += "</table>";
 
   // SCD41 table
-  page += "<table style='margin: 20px; padding: 15px; '>";
+  page += "<table style='margin: 15; padding: 15px; '>";
   page += "<tr><td><h2>SCD41</h2></td></tr>";
   page += "</table>";
 
@@ -689,7 +690,7 @@ String generateUtilityPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // Buttons Interface
-  page += "<table style=' width: 100%; margin: 20px; padding: 15px;'>";
+  page += "<table>";
   page += "<tr><th colspan='5'><h2>Controls</h2></th></tr>";
 
   page += "<tr>";
@@ -705,13 +706,13 @@ String generateUtilityPage() {
 
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
-  // System Info Table
-  page += "<table id='table_TL' style=' margin: 20px; padding: 15px 15px;'>";
-  page += "<tr><th colspan='3'><h2>Device Stats</h2></th></tr>";
+  // Device Stats
+  page += "<table>";
+  page += "<tr><th colspan='2'><h2>Device Stats</h2></th></tr>";
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
   page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
-  page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
   page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
@@ -751,15 +752,15 @@ String generateUtilityPage() {
   page += "</table>";
 
   // System Sensors
-  page += "<table style=' margin: 20px; padding: 15px 15px;'>";
+  page += "<table>";
   page += "<tr><th colspan='4'><h2>System Sensors</h2></th></tr>";
   page += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
   page += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+  page += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td colspan='4'><b>" + String(DSdevices) + " DS18B20</td></tr>";
   page += "<tr>";
@@ -788,7 +789,6 @@ String generateUtilityPage() {
   page += "<div style='display: flex;'>";
   page += generateTaskManagerTable();
 
-
   if (LittleFS.begin()) {
     getSPIFFSsizes();
     // SPIFFS
@@ -804,7 +804,7 @@ String generateUtilityPage() {
 
 
 String generateTaskManagerTable() {
-  String table = "<table style='margin: 20px; padding: 20px 15px;'>";
+  String table = "<table>";
   table += "<tr><th colspan='5'><h2>Task Manager</h2></th></tr>";
   table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
 
@@ -821,7 +821,7 @@ String generateTaskManagerTable() {
 
 String generateFileContentPage(String content) {
   String page = "<div style='display: flex;'>";
-  page += "<table style='min-width: 1000px; padding:20x; margin: 25px; '>";
+  page += "<table style='min-width: auto;'>";
   page += "<tr><td><h2>File Content</h2></td></tr>";
   page += "<tr><td><pre>" + content + "</pre></td></tr>";
   page += "</table></div>";
@@ -835,21 +835,24 @@ String generateFSTable() {
   filesCount = 0;
   directoryCount = 0;
 
-  String table_fs = "<table style='width:100%;'>";
+  String table_fs = "<table>";
   table_fs += "<tr><th><h2>FS</h2></th></tr>";
 
   table_fs += "<tr><td><b>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-  table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr><tr>";
+  table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr>";
 
+  table_fs += "<tr>";
   table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
   table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
   table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
   table_fs += "<td><a href='/download?file=" + String(logFilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logFilePath) + "</button></a></td>";
+  table_fs += "</tr>";
+
   table_fs += "<tr><td>&nbsp;</td></tr>";
 
-  table_fs += "</tr><tr><th><b>/</th></tr>";
+  table_fs += "<tr><th><b>/</th></tr>";
   table_fs += "<pre>" + listDirWeb(LittleFS, "/", 4) + "</pre>";
 
   table_fs += "<tr><td>&nbsp;</td></tr>";
