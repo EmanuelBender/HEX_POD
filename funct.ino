@@ -60,12 +60,16 @@ void launchUtility() {
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-  if (LOGGING && LOGGING != pastLOGGINGstate) {
+  if (LOGGING && LOGGING != pastLOGGINGstate) {  // reinitialize after LOGGING toggle
     pastLOGGINGstate = LOGGING;
     conditioning_duration = 30;
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
     LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+    taskManager.schedule(onceMicros(100), pollBME);  // crude conditioning
+    taskManager.schedule(onceSeconds(5), pollBME);
+    taskManager.schedule(onceMillis(10), pollBME);
+    taskManager.schedule(onceMillis(15), pollBME);
   }
   // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
   // taskManager.setTaskEnabled(IMUID, false);
@@ -111,7 +115,9 @@ void PowerStates() {
 
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
-      webServerPollMs = 500;
+      webServerPollMs = 800;
+      taskManager.cancelTask(WEB);
+      WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       taskManager.cancelTask(STATID);
       // taskManager.setTaskEnabled(STATID, false);
 
@@ -124,9 +130,13 @@ void PowerStates() {
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
       webServerPollMs = 200;
+      taskManager.cancelTask(WEB);
+      WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
     } else if (currentPowerState == NORMAL) {
       setCpuFrequencyMhz(240);
       webServerPollMs = 120;
+      taskManager.cancelTask(WEB);
+      WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
     }
   }
 
@@ -511,7 +521,7 @@ void pollSGP() {
   if (conditioning_duration > 0) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
     if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
-    taskManager.schedule(onceMicros(50), pollBME);
+    // taskManager.schedule(onceMicros(50), pollBME);
     conditioning_duration--;
   } else {
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);

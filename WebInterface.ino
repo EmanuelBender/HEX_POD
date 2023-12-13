@@ -22,7 +22,6 @@ void handleNotFound() {
 
 
 void streamToServer() {
-  // String filePath = server.arg("file");
   String filePath = logFilePath;
 
   if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
@@ -39,7 +38,6 @@ void streamToServer() {
   if (LittleFS.exists(filePath)) {
     File file = LittleFS.open(filePath, "r");
 
-    // Set the content type based on the file extension
     String contentType = "application/octet-stream";  // Default to binary/octet-stream
     if (filePath.endsWith(".txt")) {
       contentType = "text/plain";
@@ -67,6 +65,12 @@ void streamToServer() {
 
 void setupWebInterface() {  // in setup()
 
+  if (!MDNS.begin("HEX")) {  //  http://HEX.local
+    Serial.println("Error setting up MDNS responder!");
+    while (1) {
+      delay(1000);
+    }
+  }
 
   server.on("/", HTTP_GET, []() {
     if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
@@ -92,13 +96,11 @@ void setupWebInterface() {  // in setup()
     }
     server.send(200, "text/html", generateFSPage());
   });
-
   server.on("/download", HTTP_GET, []() {
     if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
       return server.requestAuthentication();
     }
     streamToServer();
-    //server.send(200, "text/html", generateFSPage());
   });
 
 
@@ -125,11 +127,50 @@ void setupWebInterface() {  // in setup()
     }
     server.send(200, "text/plain", "OLED toggled");
   });
-
   server.on("/toggleFAN", []() {
     FANon = !FANon;
     FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
     server.send(200, "text/plain", "FAN toggled");
+  });
+
+  server.on("/deletePath", HTTP_GET, []() {
+    String pathToDelete = "/" + server.arg("path");
+    if (pathToDelete.length() > 0) {
+      LittleFS.begin();
+      removeDir(LittleFS, pathToDelete.c_str());
+      deleteFile(LittleFS, pathToDelete.c_str());
+      // createDir(LittleFS, pathToDelete.c_str());
+      // LittleFS.remove(pathToDelete.c_str());
+      LittleFS.end();
+
+      server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
+  });
+  server.on("/createFile", HTTP_GET, []() {
+    String pathToCreate = "/" + server.arg("path");
+    if (pathToCreate.length() > 0) {
+      LittleFS.begin();
+      writeFile(LittleFS, pathToCreate.c_str(), "");
+      LittleFS.end();
+
+      server.send(200, "text/plain", "File created: " + pathToCreate);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
+  });
+  server.on("/createDir", HTTP_GET, []() {
+    String pathToCreate = "/" + server.arg("path");
+    if (pathToCreate.length() > 0) {
+      LittleFS.begin();
+      createDir(LittleFS, pathToCreate.c_str());
+      LittleFS.end();
+
+      server.send(200, "text/plain", "Directory created: " + pathToCreate);
+    } else {
+      server.send(400, "text/plain", "Invalid or missing path parameter");
+    }
   });
 
   server.on("/updateLoggingInterval", HTTP_GET, []() {
@@ -184,49 +225,10 @@ void setupWebInterface() {  // in setup()
 
     server.send(200, "text/plain", "BME pause updated");
   });
-
-  server.on("/deletePath", HTTP_GET, []() {
-    String pathToDelete = "/" + server.arg("path");
-    if (pathToDelete.length() > 0) {
-      LittleFS.begin();
-      removeDir(LittleFS, pathToDelete.c_str());
-      deleteFile(LittleFS, pathToDelete.c_str());
-      // createDir(LittleFS, pathToDelete.c_str());
-      // LittleFS.remove(pathToDelete.c_str());
-      LittleFS.end();
-
-      server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
-    } else {
-      server.send(400, "text/plain", "Invalid or missing path parameter");
-    }
+  server.on("/restart", []() {
+    ESP.restart();
+    server.send(200, "text/plain", "Restart");
   });
-
-  server.on("/createFile", HTTP_GET, []() {
-    String pathToCreate = "/" + server.arg("path");
-    if (pathToCreate.length() > 0) {
-      LittleFS.begin();
-      writeFile(LittleFS, pathToCreate.c_str(), "");
-      LittleFS.end();
-
-      server.send(200, "text/plain", "File created: " + pathToCreate);
-    } else {
-      server.send(400, "text/plain", "Invalid or missing path parameter");
-    }
-  });
-
-  server.on("/createDir", HTTP_GET, []() {
-    String pathToCreate = "/" + server.arg("path");
-    if (pathToCreate.length() > 0) {
-      LittleFS.begin();
-      createDir(LittleFS, pathToCreate.c_str());
-      LittleFS.end();
-
-      server.send(200, "text/plain", "Directory created: " + pathToCreate);
-    } else {
-      server.send(400, "text/plain", "Invalid or missing path parameter");
-    }
-  });
-
   server.on("/updateTFTbrightness", []() {
     String value = server.arg("value");
     TFTbrightness = value.toFloat();
@@ -234,12 +236,6 @@ void setupWebInterface() {  // in setup()
     lastInputTime = micros();
     server.send(200, "text/plain", "Display Brightness");
   });
-
-  server.on("/restart", []() {
-    ESP.restart();
-    server.send(200, "text/plain", "Restart");
-  });
-
   server.on("/toggleLS", []() {
     SLEEPENABLE = !SLEEPENABLE;
     preferences.begin("my - app", false);
@@ -282,7 +278,6 @@ void setupWebInterface() {  // in setup()
     empty2DArray(console);
     server.send(200, "text/plain", "BME LOG enabled");
   });
-
   server.on("/triggerUP", []() {
     UP = true;
     pwm.writeScaled(TFTbrightness = 1.0);
@@ -319,15 +314,13 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "NTP Time updated");
   });
 
-
   server.onNotFound(handleNotFound);
   server.begin();
 }
 
 
 
-String generateJavaScriptFunctions() {  // JavaScript functions
-                                        // "<script src='https://cdn.jsdelivr.net/npm/chart.js'>"
+String generateJavaScriptFunctions() {  // JavaScript functions "<script src='https://cdn.jsdelivr.net/npm/chart.js'>"
   return "<script>"
          "function updateLoggingInterval() { "
          "var intervalSelect = document.getElementById('loggingInterval');"
@@ -444,7 +437,7 @@ String generateCommonPageStructure(String content) {
   pageC += "<body>";
   pageC += "<div style='display: flex; padding: 15px; '>";
   pageC += "<div id='sidebar' style=' text-align:center; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 15px; ' >";
-  pageC += generateNavBar();  // Include your existing navbar in the sidebar
+  pageC += generateNavBar();
   pageC += "</div>";
   pageC += "<div style='display: block; justify-content:center;'>";
   pageC += content;
@@ -524,9 +517,7 @@ String generateHomePage() {
 
 String generateConsole() {
   String consoleOutput;
-
   // Update circular buffer with the current sensor data
-
   // Display the last 55 entries in reverse order
   for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
@@ -545,67 +536,10 @@ String generateConsole() {
       }
     }
   }
-
   return consoleOutput;
 }
 
 
-
-String generateTimeOptions(int selectedValue) {
-  String pageS = "";
-
-  // Seconds
-  for (int i = 2; i <= 59; i += 5) {
-    if (i == 7) i -= 2;
-    int value = i * 1000;
-    pageS += "<option value='" + String(value) + "s'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "s</option>";
-  }
-
-  // Minutes
-  for (int i = 1; i <= 59; i += 5) {
-    if (i > 4 && i < 7) i -= 1;
-    if (i > 30) i += 10;
-    int value = i * MINUTES_IN_HOUR * 1000;
-    pageS += "<option value='" + String(value) + "m'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "m</option>";
-  }
-
-  // Hours
-  for (int i = 1; i <= 24; i++) {
-    int value = i * HOURS_IN_DAY * 1000;
-    pageS += "<option value='" + String(value) + "h'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "h</option>";
-  }
-
-  return pageS;
-}
-
-
-String valueOptions(int selectedValue) {
-  String pageS = "";
-  int i;
-
-  for (i = 0; i <= 100; i += 1) {
-    int value = i;
-    pageS += "<option value='" + String(value) + "'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "</option>";
-  }
-
-  return pageS;
-}
 
 
 String generateSensorsPage() {
@@ -620,7 +554,6 @@ String generateSensorsPage() {
   page += "</select></td>";
   page += "</tr>";
 
-  // page += "<tr><td><b>Samples</b></td>";
   page += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>";
   page += "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
   page += valueOptions(bmeSamples);
@@ -633,7 +566,6 @@ String generateSensorsPage() {
   page += "</select></td>";
   page += "</tr>";
 
-  //page += "<tr><td><b> Pause</b>[ms]</td>";
   page += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>";
   page += "<td><select id='bmePause' onchange='updateBMEpause()'>";
   page += valueOptions(bmeProfilePause);
@@ -664,7 +596,7 @@ String generateSensorsPage() {
   // page += "<tr><td><canvas id='myChart' width='400' height='200'></canvas></td></tr>";
   page += "</table>";
 
-  page += "</div>";                        // Close the flex container
+  page += "</div>";
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // BME1 Table
@@ -695,7 +627,7 @@ String generateSensorsPage() {
   page += "<tr><td colspan='5'><h2>BME_2</h2></td></tr>";
   page += "</table>";
 
-  page += "</div>";                        // Close the flex container
+  page += "</div>";
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // SGP41 Table
@@ -737,14 +669,14 @@ String generateSensorsPage() {
   page += "<td>" + String(std_initial) + "</td>";
   page += "<td>" + String(gain_factor) + "</td>";
   page += "</tr>";
-  page += "</table>";  // button execute conditioning with conditioning_s = 10  or  sgp41.executeConditioning(data.humidity * 65535 / 100, (data.temperature + 45) * 65535 / 175, srawVoc);  // defaultRh, defaultT
+  page += "</table>";
 
   // SCD41 table
   page += "<table style='margin: 20px; padding: 15px; '>";
   page += "<tr><td><h2>SCD41</h2></td></tr>";
   page += "</table>";
 
-  page += "</div>";  // Close the flex container
+  page += "</div>";
 
   return generateCommonPageStructure(page);
 }
@@ -770,7 +702,7 @@ String generateUtilityPage() {
   page += "</tr>";
   page += "</table>";
 
-  page += "</div>";  // Close the flex container
+  page += "</div>";
 
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
@@ -780,7 +712,6 @@ String generateUtilityPage() {
   page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
   page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
-  // page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr><td colspan='8'><hr style='border: 1px solid #808080;'></td></tr>";
 
   page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
@@ -806,7 +737,6 @@ String generateUtilityPage() {
   page += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
   page += "<td>" + String(WiFi.RSSI()) + "db</td>";
   page += "<td>" + String(WiFi.channel()) + "</td>";
-  // page += "<td>" + String(lastNTPtimeFail) + "</td>";
   page += "</tr>";
   page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
@@ -984,4 +914,59 @@ String generateFSPage() {
     page += "</table>";
   }
   return generateCommonPageStructure(page);
+}
+
+
+String generateTimeOptions(int selectedValue) {
+  String pageS = "";
+
+  // Seconds
+  for (int i = 2; i <= 59; i += 5) {
+    if (i == 7) i -= 2;
+    int value = i * 1000;
+    pageS += "<option value='" + String(value) + "s'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "s</option>";
+  }
+  // Minutes
+  for (int i = 1; i <= 59; i += 5) {
+    if (i > 4 && i < 7) i -= 1;
+    if (i > 30) i += 10;
+    int value = i * MINUTES_IN_HOUR * 1000;
+    pageS += "<option value='" + String(value) + "m'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "m</option>";
+  }
+  // Hours
+  for (int i = 1; i <= 24; i++) {
+    int value = i * HOURS_IN_DAY * 1000;
+    pageS += "<option value='" + String(value) + "h'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "h</option>";
+  }
+
+  return pageS;
+}
+
+
+String valueOptions(int selectedValue) {
+  String pageS = "";
+  int i;
+
+  for (i = 0; i <= 100; i += 1) {
+    int value = i;
+    pageS += "<option value='" + String(value) + "'";
+    if (value == selectedValue) {
+      pageS += " selected";
+    }
+    pageS += ">" + String(i) + "</option>";
+  }
+
+  return pageS;
 }
