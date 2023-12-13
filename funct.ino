@@ -35,18 +35,12 @@ void launchUtility() {
   TAG = "launchUtility()";
   timeTracker = micros();
   taskManager.reset();
-  // tft.fillScreen(TFT_BLACK);
-
 
   for (byte i = 0; i < slotsSize; ++i) {
     memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
     taskArray[i].clear();                        // Clear the String array
-    // if (!LOGGING && LOGGING != pastLOGGINGstate) {
-    //  if (i = BMEID || i != SGPID || i != LOG) taskManager.cancelTask(i);
-    //  }
   }
   LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = 0;
-  // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
@@ -66,13 +60,11 @@ void launchUtility() {
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
     LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
-    taskManager.schedule(onceMicros(100), pollBME);  // crude conditioning
-    taskManager.schedule(onceSeconds(5), pollBME);
+    taskManager.schedule(onceMicros(1500), pollBME);  // crude conditioning
+    taskManager.schedule(onceSeconds(6), pollBME);
     taskManager.schedule(onceMillis(10), pollBME);
     taskManager.schedule(onceMillis(15), pollBME);
   }
-  // IMUID = taskManager.schedule(repeatMicros(imuInterval), pollIMU);
-  // taskManager.setTaskEnabled(IMUID, false);
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
 }
@@ -116,15 +108,12 @@ void PowerStates() {
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
       webServerPollMs = 800;
+      taskManager.cancelTask(STATID);
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-      taskManager.cancelTask(STATID);
-      // taskManager.setTaskEnabled(STATID, false);
-
       while (TFTbrightness > 0.0) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
-        // taskManager.yieldForMicros(500);
       }
 
     } else if (currentPowerState == IDLE) {
@@ -132,6 +121,11 @@ void PowerStates() {
       webServerPollMs = 200;
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
+      while (TFTbrightness > 0.4) {
+        TFTbrightness -= 0.01;
+        pwm.writeScaled(TFTbrightness);
+      }
+
     } else if (currentPowerState == NORMAL) {
       setCpuFrequencyMhz(240);
       webServerPollMs = 120;
@@ -344,9 +338,10 @@ void pollTemp() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (tempSens.isConversionComplete()) {
-    for (i = 0; i < DSdevices; i++) {
-      tempValues[i] = tempSens.getTempCByIndex(i);
-    }
+    // for (i = 0; i < DSdevices; i++) {
+    tempValues[0] = tempSens.getTempC(tempProbe1);
+    // }
+
     // tempSens.processAlarms();
     tempSens.requestTemperatures();
 

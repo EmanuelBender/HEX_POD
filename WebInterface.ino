@@ -522,12 +522,11 @@ String generateConsole() {
   for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
-    for (int i = 0; i < consoleColumns; i++) {
-      if (serialPrintLOG) {
-        // console[line][i] = SDarray[SDIndex][i];
-      } else {
-        consoleOutput += console[line][i];
-      }
+    for (i = 0; i < consoleColumns; i++) {
+
+      // console[line][i] = SDarray[SDIndex][i];
+      consoleOutput += console[line][i];
+
       if (i < consoleColumns - 1) {
         if (line == consoleRows) line = 0;
         consoleOutput += "\t";  // Add a tab between values, except for the last one

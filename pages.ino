@@ -173,7 +173,6 @@ void utilPage() {
           debugF(timeTracker);
           taskManager.reset();
           WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-          // taskManager.schedule(onceMicros(10), handleSPIFFS);
 
           LittleFS.begin();
           deleteFile(LittleFS, logFilePath.c_str());
