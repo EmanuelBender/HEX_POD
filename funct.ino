@@ -111,6 +111,7 @@ void PowerStates() {
 
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
+      webServerPollMs = 500;
       taskManager.cancelTask(STATID);
       // taskManager.setTaskEnabled(STATID, false);
 
@@ -122,8 +123,10 @@ void PowerStates() {
 
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
+      webServerPollMs = 200;
     } else if (currentPowerState == NORMAL) {
       setCpuFrequencyMhz(240);
+      webServerPollMs = 120;
     }
   }
 
@@ -508,6 +511,7 @@ void pollSGP() {
   if (conditioning_duration > 0) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
     if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
+    taskManager.schedule(onceMicros(50), pollBME);
     conditioning_duration--;
   } else {
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);

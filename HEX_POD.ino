@@ -154,10 +154,10 @@ uint32_t free_flash_size, flash_size, program_size, program_free, program_used, 
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
-bool LEDon, FANon, isFading, OLEDon;
-bool SDinserted;
-uint8_t filesCount, directoryCount;
-int fileId = 0;
+bool LEDon, FANon, isFading, OLEDon, SDinserted;
+uint8_t filesCount, directoryCount, fileId;
+String logFilePath = "";
+String rootHexPath = "/HEX";
 
 String TAG = "ESP";
 
@@ -264,24 +264,24 @@ uint16_t heatProf_1[] = {
   280,  // 10
   300,  // 11
   320,  // 12
-  340,  // 13
+  330,  // 13
 };
 
 uint16_t durProf_1[] = {
-  5,  // 0
-  5,  // 1
-  5,  // 2
-  5,  // 3
-  5,  // 4
-  5,  // 5
-  5,  // 6
-  5,  // 7
-  5,  // 8
-  5,  // 9
-  5,  // 10
-  5,  // 11
-  5,  // 12
-  5,  // 13
+  10,  // 0
+  10,  // 1
+  10,  // 2
+  10,  // 3
+  10,  // 4
+  10,  // 5
+  10,  // 6
+  10,  // 7
+  10,  // 8
+  10,  // 9
+  10,  // 10
+  10,  // 11
+  10,  // 12
+  10,  // 13
 };
 
 
@@ -561,6 +561,7 @@ void setup() {
   lastInputTime = micros();
   timeTracker = lastInputTime;
   lastRestart = printTime + " " + printDate;
+  logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";  // String(loggingInterval / ONEMILLION)
 
   //___________________________ END REPORT _____________________________
 
@@ -568,7 +569,7 @@ void setup() {
     TAG = "ESP";
     ESP_LOGI(TAG, "Reset Reason: %s", getResetReason());
     ESP_LOGI(TAG, "%d Restarts:", restarts);
-    ESP_LOGI(TAG, "Setup took: %.2lfs\n\n", (millis() - timeTracker) / ONETHOUSAND);
+    ESP_LOGI(TAG, "Setup took: %.3fs\n\n", (millis() - timeTracker) / ONETHOUSAND);
     ESP_LOGI(TAG, "WiFi IP: %s", WiFiIP);
   }
 }

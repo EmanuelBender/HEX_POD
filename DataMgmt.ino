@@ -1,7 +1,6 @@
 #include <pgmspace.h>
 
-String path = "/LOG.csv";
-const char *logfilePath = path.c_str();
+const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX\n";
 
 void getSPIFFSsizes() {
   SPIFFS_size = LittleFS.totalBytes();
@@ -139,8 +138,9 @@ void logging() {  // Assign values to the array at the current index
 
     LittleFS.begin();
     // const char *logLineCStr = logLine.c_str();
-    const char *airLogcstr = airLog.c_str();
-    appendFile(LittleFS, logfilePath, airLogcstr);
+    logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
+
+    appendFile(LittleFS, logFilePath.c_str(), airLog.c_str());
     LittleFS.end();
     airLog.clear();
     // }
@@ -229,7 +229,7 @@ String listDirWeb(fs::FS &fs, const char *dirname, uint8_t levels) {
     } else {
       filesCount++;
       fsString += "<tr style='border-bottom: 1px solid #808080;'>";
-      
+
       if (levels == 3) fsString += "<td>&nbsp;</td>";
       if (levels == 2) fsString += "<td>&nbsp;</td><td>&nbsp;</td>";
       if (levels == 1) fsString += "<td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>";
@@ -298,16 +298,20 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
     return;
   }
 
+
   File file = fs.open(path, FILE_APPEND);
   if (!fs.exists(path)) {
-    if (fs.mkdir(path)) {
-      file = fs.open(path, FILE_APPEND);
-    } else {
-      Serial.println("mkdir failed");
+    createDir(fs, rootHexPath.c_str());  // create system root Dir for safety
+    if (LOGGING) {
+      writeFile(fs, logFilePath.c_str(), logHeader.c_str());
+      if (!fs.open(path, FILE_APPEND)) {
+        file = fs.open(path, FILE_APPEND);
+      }
+      // file.print(logHeader.c_str());
     }
   }
   if (file.print(message)) {
-    // Serial.println("Message appended");
+
   } else {
     Serial.println("Append failed");
   }
@@ -315,6 +319,7 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
   getSPIFFSsizes();
   file.close();
 }
+
 
 
 void renameFile(fs::FS &fs, const char *path1, const char *path2) {

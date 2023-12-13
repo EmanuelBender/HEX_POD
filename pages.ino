@@ -176,8 +176,8 @@ void utilPage() {
           // taskManager.schedule(onceMicros(10), handleSPIFFS);
 
           LittleFS.begin();
-          deleteFile(LittleFS, logfilePath);
-          writeFile(LittleFS, logfilePath, "");
+          deleteFile(LittleFS, logFilePath.c_str());
+          writeFile(LittleFS, logFilePath.c_str(), logHeader.c_str());
           LittleFS.end();
 
           break;

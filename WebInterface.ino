@@ -23,7 +23,7 @@ void handleNotFound() {
 
 void streamToServer() {
   // String filePath = server.arg("file");
-  String filePath = logfilePath;
+  String filePath = logFilePath;
 
   if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
     return server.requestAuthentication();
@@ -460,7 +460,7 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String page = "<a href='/download?file=" + String(logfilePath) + "'><div style='text-align:center; margin-bottom: 5px; margin-top: 10px; '><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
+  String page = "<a href='/download?file=" + String(logFilePath) + "'><div style='text-align:center; margin-bottom: 5px; margin-top: 10px; '><img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
   page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'><br>";
 
@@ -566,8 +566,9 @@ String generateTimeOptions(int selectedValue) {
   }
 
   // Minutes
-  for (int i = 1; i <= 59; i += 15) {
-    if (i > 5 && i < 20) i -= 1;
+  for (int i = 1; i <= 59; i += 5) {
+    if (i > 4 && i < 7) i -= 1;
+    if (i > 30) i += 10;
     int value = i * MINUTES_IN_HOUR * 1000;
     pageS += "<option value='" + String(value) + "m'";
     if (value == selectedValue) {
@@ -911,12 +912,12 @@ String generateFSTable() {
   table_fs += "<tr><td><b>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-  table_fs += "<tr><td><b>Log Path </td><td>" + String(logfilePath) + "</td></tr><tr>";
+  table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr><tr>";
 
-  table_fs += "<td></td><td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
+  table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
   table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
   table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
-  table_fs += "<td><a href='/download?file=" + String(logfilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logfilePath) + "</button></a></td>";
+  table_fs += "<td><a href='/download?file=" + String(logFilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logFilePath) + "</button></a></td>";
   table_fs += "<tr><td>&nbsp;</td></tr>";
 
   table_fs += "</tr><tr><th><b>/</th></tr>";
@@ -944,7 +945,7 @@ String generateFSPage() {
     page += "</div>";
 
     page += "<div style='display: flex;'>";
-    File file = LittleFS.open(logfilePath);
+    File file = LittleFS.open(logFilePath);
     if (file) {
       server.sendHeader("Content-Type", "text/html");
       server.sendHeader("Connection", "close");
