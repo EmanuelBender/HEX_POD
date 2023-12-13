@@ -6,8 +6,6 @@ void reloadMenu() {  // one-shot
   TAG = "reloadMenu()";
   timeTracker = micros();
 
-
-
   tft.setTextColor(TFT_WHITE);
   tft.setTextDatum(TL_DATUM);
 
@@ -114,28 +112,30 @@ void utilPage() {
   tft.setTextDatum(TL_DATUM);
   tft.setTextPadding(150);
 
-  if (menuTrigger) {
+  if (menuTrigger && blockMenu) {
     menuTrigger = false;
-    taskManager.schedule(onceMicros(30), statusBar);
+    // taskManager.schedule(onceMicros(30), statusBar);
 
     if (DOWN || CLICK_DOWN) {
       DOWN = false;
       utilIndex = (utilIndex % 9) + 1;
-      UTILID = taskManager.schedule(onceMicros(10), utilPage);
+      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
       // return;
     }
     if (UP) {
       utilIndex = ((utilIndex - 2 + 9) % 9) + 1;
       UP = false;
-      UTILID = taskManager.schedule(onceMicros(10), utilPage);
+      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
       // return;
     }
 
     if (LEFT) {
       LEFT = false;
-      launchUtility();
-      UTILID = taskManager.schedule(onceMicros(10), utilPage);
-      // return;
+      blockMenu = false;
+      // launchUtility();
+      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
+      taskManager.schedule(onceMicros(2), reloadMenu);
+      return;
     }
 
     if (BUTTON || RIGHT || CLICK) {
@@ -312,34 +312,6 @@ void colorTest() {
 
 
 
-
-void updateTaskArray() {
-
-  for (i = 0; i < slotsSize; i++) {
-    switch (taskFreeSlots[i]) {
-      case 'R':
-        taskArray[i] = "[ ]";
-        break;  // Repeating
-      case 'r':
-        taskArray[i] = "[>]";
-        break;  // Repeating running
-      case 'U':
-        taskArray[i] = "[o]";
-        break;  // OneShot
-      case 'u':
-        taskArray[i] = "[O]";
-        break;  // OneShot running
-      case 'F':
-        taskArray[i] = "";
-        break;  // free
-      case 'f':
-        taskArray[i] = "[Err]";
-        break;  // error
-    }
-  }
-}
-
-
 String assembleTaskData() {
   String result;
 
@@ -364,7 +336,7 @@ void taskM() {
     updateTaskArray();
 
     String taskData = assembleTaskData();
-    std::istringstream taskStream(taskData.c_str());  // Use std::istringstream
+    std::istringstream taskStream(taskData.c_str());
 
     for (i = 0; i < slotsSize; i++) {
       std::string line;  // Change the type to std::string
@@ -379,7 +351,7 @@ void taskM() {
       }
     }
 
-    taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+    // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
     if (DEBUG) {
       timeTracker = (micros() - timeTracker) / ONETHOUSAND;

@@ -35,6 +35,7 @@ void launchUtility() {
   TAG = "launchUtility()";
   timeTracker = micros();
   taskManager.reset();
+  if (DEBUG) ESP_LOGI(TAG, "%s", "taskManager Reset");
 
   for (byte i = 0; i < slotsSize; ++i) {
     memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
@@ -46,24 +47,22 @@ void launchUtility() {
 
   debugF(timeTracker);
 
-  // CLKID = taskManager.schedule(repeatMillis(30), accClick);
-  SECID = taskManager.schedule(repeatMillis(997), updateTime);
+  SECID = taskManager.schedule(repeatMillis(990), updateTime);
   STATID = taskManager.schedule(repeatMillis(996), statusBar);
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
-  TEMPID = taskManager.schedule(repeatMillis(980), pollTemp);
+  TEMPID = taskManager.schedule(repeatMillis(984), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
   WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-  if (LOGGING && LOGGING != pastLOGGINGstate) {  // reinitialize after LOGGING toggle
+  BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
+  SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
+  LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+  if (LOGGING && LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
     pastLOGGINGstate = LOGGING;
     conditioning_duration = 30;
-    BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-    SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
-    taskManager.schedule(onceMicros(1500), pollBME);  // crude conditioning
-    taskManager.schedule(onceSeconds(6), pollBME);
-    taskManager.schedule(onceMillis(10), pollBME);
-    taskManager.schedule(onceMillis(15), pollBME);
+    taskManager.schedule(onceSeconds(5), pollBME);
+    taskManager.schedule(onceSeconds(10), pollBME);
+    taskManager.schedule(onceSeconds(15), pollBME);
   }
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
@@ -118,9 +117,9 @@ void PowerStates() {
 
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
-      webServerPollMs = 200;
-      taskManager.cancelTask(WEB);
-      WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
+      // webServerPollMs = 150;
+      // taskManager.cancelTask(WEB);
+      // WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.4) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
@@ -177,9 +176,14 @@ void pollButtons() {
       CLICK_LEFT = false;
       blockMenu = false;
       lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
-      launchUtility();
-      taskManager.schedule(onceMicros(2), reloadMenu);
+      switch (carousel) {
+        case 1: taskManager.cancelTask(HOMEID); break;
+        case 2: taskManager.cancelTask(SNSID); break;
+        case 5: taskManager.cancelTask(SYSID); break;
+      }
       tft.fillScreen(TFT_BLACK);
+      taskManager.schedule(onceMicros(2), reloadMenu);
+      return;
     }
 
     if (!blockMenu) {
@@ -208,7 +212,7 @@ void pollButtons() {
 
         switch (carousel) {
           case 1:
-            HOMEID = taskManager.schedule(repeatMillis(900), homePage);
+            HOMEID = taskManager.schedule(repeatMillis(950), homePage);
             break;
           case 2:
             for (i = 1; i < 9; i++) {
@@ -229,7 +233,7 @@ void pollButtons() {
             break;
           case 4:
             tft.drawString("TaskManager", 15, 15, 4);
-            taskManager.schedule(onceMicros(10), taskM);
+            taskManager.schedule(onceMicros(50), taskM);
             break;
           case 5:
             tft.drawString("System Info", 15, 15, 4);
@@ -569,7 +573,7 @@ void debugF(uint32_t tracker) {
     ESP_LOGI(TAG, "%.3fms", elapsedTime);
 
     console[consoleLine][0] = printTime;
-    console[consoleLine][1] = String(tracker / 1000) + "ms";
+    console[consoleLine][1] = String(tracker / ONETHOUSAND) + "ms";
     console[consoleLine][2] = TAG;
     console[consoleLine][3] = String(elapsedTime) + "ms";
 
@@ -582,13 +586,45 @@ void debugF(uint32_t tracker) {
   }
 
   if (carousel == 4 && blockMenu) {
-    taskManager.schedule(onceMicros(5), taskM);
+    TMID = taskManager.schedule(onceMicros(5), taskM);
   }
 }
 
 
 
 
+void updateTaskArray() {
+
+  for (i = 0; i < slotsSize; i++) {
+    switch (taskFreeSlots[i]) {
+      case 'R':
+        taskArray[i] = "[ ]";
+        break;  // Repeating
+      case 'r':
+        taskArray[i] = "[>]";
+        break;  // Repeating running
+      case 'U':
+        taskArray[i] = "[o]";
+        break;  // OneShot
+      case 'u':
+        taskArray[i] = "[O]";
+        break;  // OneShot running
+      case 'F':
+        taskArray[i] = "";
+        break;  // free
+      case 'f':
+        taskArray[i] = "[Err]";
+        break;  // error
+    }
+  }
+}
+
+void addLOGmarker(String lead, String markerText) {
+  LittleFS.begin();
+  markerText = printTime + ", " + lead + " " + markerText + "\n";
+  appendFile(LittleFS, logFilePath.c_str(), markerText.c_str());
+  LittleFS.end();
+}
 
 
 String getResetReason() {

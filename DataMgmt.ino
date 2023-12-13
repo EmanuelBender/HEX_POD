@@ -121,7 +121,6 @@ void logging() {  // Assign values to the array at the current index
   SDarray[SDIndex][numProfiles + 28] = srawVoc;
   SDarray[SDIndex][numProfiles + 29] = srawNox; */
 
-
     // if (serialPrintLOG) {
     // String logLine = "";
     // Serial.print("Raw Data: ");

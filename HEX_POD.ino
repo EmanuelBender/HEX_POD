@@ -36,15 +36,15 @@ uint16_t webServerPollMs = 120;
 
 // ________________  ESP32 UTILITY  ____________________
 
-#include "esp_log.h" 
-// #include <stdio.h>
-// #include "sdkconfig.h"
+#include <stdio.h>
+#include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "driver/i2c.h"
 // #include <esp_system.h>
+#include "esp_log.h"
 #include <esp_cpu.h>
-// #include <stdexcept>
+#include <stdexcept>
 #include <sstream>
 #include <inttypes.h>
 
@@ -77,7 +77,7 @@ const char* wifiStatusChar[] = {
 
 // ___________________________________  TIME  ________________________________
 const char* hostname = "[HEX]POD";
-const int WiFiTimeout = 8000;
+const int WiFiTimeout = 5000;
 String WiFiIP;
 String webHost, webPw;
 const char* ntpServer1 = "pool.ntp.org";   // NTP Time server
@@ -176,7 +176,7 @@ const char* menuOptions[] = {
   "System",
 };
 
-uint32_t idleDelay = 15000 * ONETHOUSAND;        // 15 sec
+uint32_t idleDelay = 20000 * ONETHOUSAND;
 uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // 3 min
 // uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
 
@@ -292,7 +292,7 @@ int32_t gating_max_duration_minutes;
 int32_t std_initial;
 int32_t gain_factor;
 
-uint8_t conditioning_duration = 20;
+uint8_t conditioning_duration = 30;
 uint16_t sgpInterval;  // handled in preferences
 
 uint16_t sgpError, error;
@@ -558,21 +558,21 @@ void setup() {  // ________________ SETUP ___________________
   launchUtility();  // setup tasks, launch utility Menu
 
   lastInputTime = micros();
-  timeTracker = lastInputTime;
   lastRestart = printTime + " " + printDate;
   logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
+  
+  resetReasonString = print_wakeup_reason();
+  addLOGmarker("[R]", resetReasonString);
 
   //___________________________ END REPORT _____________________________
-
+  TAG = "ESP";
   if (DEBUG) {
-    TAG = "ESP";
-    ESP_LOGI(TAG, "Reset Reason: %s", getResetReason());
+    ESP_LOGI(TAG, "Reset Reason: %s", resetReasonString);
     ESP_LOGI(TAG, "%d Restarts:", restarts);
-    ESP_LOGI(TAG, "Setup took: %.3fs\n\n", (millis() - timeTracker) / ONETHOUSAND);
+    ESP_LOGI(TAG, "Setup took: %.3fs\n\n", (micros() - timeTracker) / ONEMILLION);
     ESP_LOGI(TAG, "WiFi IP: %s", WiFiIP);
   }
 }
-
 
 
 

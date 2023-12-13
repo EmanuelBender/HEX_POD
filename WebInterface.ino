@@ -173,6 +173,13 @@ void setupWebInterface() {  // in setup()
     }
   });
 
+  server.on("/LOGMarker", HTTP_GET, []() {
+    String markerText = server.arg("markerText");
+    addLOGmarker("[M]", markerText);
+    server.send(200, "text/plain", "LOG Marker set");
+  });
+
+
   server.on("/updateLoggingInterval", HTTP_GET, []() {
     loggingInterval = server.arg("value").toInt();
 
@@ -261,7 +268,7 @@ void setupWebInterface() {  // in setup()
   });
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
-    DEBUG ? Serial.begin(115200) : Serial.end();
+    if (DEBUG) Serial.begin(115200); else Serial.end();
     consoleLine = 0;
     preferences.begin("my - app", false);
     preferences.putBool("debug", DEBUG);
@@ -361,6 +368,12 @@ String generateJavaScriptFunctions() {  // JavaScript functions "<script src='ht
          "  var pathToCreate = prompt('Please enter folder name (path):');"
          "  if (pathToCreate !== null) {"
          "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
+         "  }"
+         "}"
+         "function LOGMarker() { "
+         "  var note = prompt('LOG Marker. Please enter marker Note:');"
+         "  if (note !== null) {"
+         "    fetch('/LOGMarker?markerText=' + encodeURIComponent(note));"
          "  }"
          "}"
          "function download() { fetch('/download'); }"
@@ -492,7 +505,7 @@ String generateNavBar() {
 
 String generateHomePage() {
 
-  String page = "<table style=' margin: 15px; padding: 20px; min-width: 1000px; '>";
+  String page = "<table min-width: 50%; '>";
 
   page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
   page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
@@ -506,8 +519,7 @@ String generateHomePage() {
 
   page += "</table>";
 
-
-  page += "<table style='min-height: 300px; min-width: 1000px; padding: 40px; margin:20px;'>";
+  page += "<table style='min-height: 300px; min-width: 50%; padding: 40px;'>";
   page += "<tr><td><h2>Web Console</h2></td></tr>";
   page += "<tr><td><pre>" + generateConsole() + "</pre>";
   page += "<td></tr></table>";
@@ -544,7 +556,7 @@ String generateConsole() {
 
 String generateSensorsPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
-  page += "<table style=' margin: 15px; padding: 20px; '>";
+  page += "<table>";
   // Settings table
   page += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
@@ -592,15 +604,16 @@ String generateSensorsPage() {
   page += "</table>";
 
   // Empty Table
-  page += "<table style=' margin: 15px; padding: 20px; '>";
+  page += "<table>";
   // page += "<tr><td><canvas id='myChart' width='400' height='200'></canvas></td></tr>";
+  page += "<tr><td><button onclick='LOGMarker()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>LOG Marker</button></td></tr>";
   page += "</table>";
 
   page += "</div>";
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // BME1 Table
-  page += "<table style=' margin: 15px; padding: 15px; '>";
+  page += "<table>";
   page += "<tr><td colspan='5'><h2> BME_1 </h2></td></tr>";
   page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
@@ -631,7 +644,7 @@ String generateSensorsPage() {
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
   // SGP41 Table
-  page += "<table style=' margin: 15px; padding: 15px; '>";
+  page += "<table>";
   page += "<tr><td colspan='5'><h2> SGP41 </h2></td></tr>";
   page += "<tr><td>" + String(sgpErrorMsg) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
@@ -672,7 +685,7 @@ String generateSensorsPage() {
   page += "</table>";
 
   // SCD41 table
-  page += "<table style='margin: 15; padding: 15px; '>";
+  page += "<table>";
   page += "<tr><td><h2>SCD41</h2></td></tr>";
   page += "</table>";
 
@@ -842,6 +855,7 @@ String generateFSTable() {
   table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
   table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr>";
+  table_fs += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
   table_fs += "<tr>";
   table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
@@ -856,6 +870,7 @@ String generateFSTable() {
   table_fs += "<pre>" + listDirWeb(LittleFS, "/", 4) + "</pre>";
 
   table_fs += "<tr><td>&nbsp;</td></tr>";
+  table_fs += "<tr><td><button onclick='LOGMarker()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>LOG Marker</button></td></tr>";
   table_fs += "<tr><td><b>" + String(directoryCount) + " Folders</td></tr>";
   table_fs += "<tr><td><b>" + String(filesCount) + " Files</td></tr>";
 
@@ -885,8 +900,9 @@ String generateFSPage() {
       server.sendHeader("Content-Disposition", "inline; filename=" + String(file.name()));
 
       double fileSizeMB = double(file.size()) / ONEMILLIONB;
-      page += "<table style='width:100%;'>";
-      page += "<tr><td>" + String(file.name()) + "</td></tr>";
+      page += "<table style='width:auto;'>";
+      page += "<tr><th><h2>Log File Content</h2></th></tr>";
+      page += "<tr><td><b>" + String(file.name()) + "</td></tr>";
       page += "<tr><td>[" + String(fileSizeMB, 4) + "mb]</td></tr><tr><td><pre>";
 
       while (file.available()) {
@@ -917,6 +933,8 @@ String generateFSPage() {
   }
   return generateCommonPageStructure(page);
 }
+
+
 
 
 String generateTimeOptions(int selectedValue) {
