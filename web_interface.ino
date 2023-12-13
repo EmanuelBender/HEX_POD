@@ -268,7 +268,8 @@ void setupWebInterface() {  // in setup()
   });
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
-    if (DEBUG) Serial.begin(115200); else Serial.end();
+    if (DEBUG) Serial.begin(115200);
+    else Serial.end();
     consoleLine = 0;
     preferences.begin("my - app", false);
     preferences.putBool("debug", DEBUG);
@@ -701,183 +702,35 @@ String generateUtilityPage() {
   getDeviceInfo();
 
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
-
-  // Buttons Interface
-  page += "<table>";
-  page += "<tr><th colspan='5'><h2>Controls</h2></th></tr>";
-
-  page += "<tr>";
-  page += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>LED</button></td>";
-  page += "<td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>FAN</button></td>";
-  page += "<td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>OLED</button></td>";
-  page += "<td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>SLEEP</button></td>";
-  page += "<td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:505050; border: solid 1px #505050;'>Update Time</button></td>";
-  page += "</tr>";
-  page += "</table>";
-
+  // Device Controls
+  page += generateDeviceControlsTable();
   page += "</div>";
+
 
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
-
   // Device Stats
-  page += "<table>";
-  page += "<tr><th colspan='2'><h2>Device Stats</h2></th></tr>";
-  page += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
-  page += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
-  page += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
-  page += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  page += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td><td>" + String(flash_UsedP) + "%</td></tr>";
-  if (program_size > 0) page += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
-  if (deviceInfo.total_allocated_bytes > 0) page += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
-  if (SPIFFS_size > 0) page += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
-
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
-  page += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
-  page += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
-  page += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
-  page += "</tr>";
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
-  page += "<tr>";
-  page += "<td>&nbsp;</td>";
-  page += "<td>" + String(WiFi.SSID()) + "</td>";
-  page += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
-  page += "<td>" + String(WiFi.RSSI()) + "db</td>";
-  page += "<td>" + String(WiFi.channel()) + "</td>";
-  page += "</tr>";
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td>&nbsp;</td><td><b> SD Card </td><td><b> </td><td><b> Last NTP </td><td><b> Last Reset </td><td></td></tr>";
-  page += "<tr>";
-  page += "<td>&nbsp;</td><td>";
-  page += SDinserted ? "Present" : "None";
-  page += "</td>";
-  page += "<td>&nbsp;</td>";
-  page += "<td>" + String(lastNTPtime) + "</td>";
-  page += "<td>" + lastRestart + "</td>";
-  page += "</tr>";
-  page += "</table>";
-
+  page += generateDeviceStatsTable();
   // System Sensors
-  page += "<table>";
-  page += "<tr><th colspan='4'><h2>System Sensors</h2></th></tr>";
-  page += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
-  page += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
-  page += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
-  page += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td colspan='4'><b>" + String(DSdevices) + " DS18B20</td></tr>";
-  page += "<tr>";
-
-  for (int i = 0; i < DSdevices; i++) {
-    page += "<td><b>" + String(tempID[i]) + "</td>";
-  }
-  page += "</tr><tr>";
-
-  for (int i = 0; i < DSdevices; i++) {
-    if (tempValues[i] > 0.0) page += "<td>" + String(tempValues[i]) + "&deg;C</td>";
-  }
-  page += "</tr>";
-
-  page += "<tr><td><b>CPU</td></tr>";
-  page += "<tr><td>" + String(CPUTEMP) + "&deg;C</td></tr>";
-
-  page += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  page += "<tr><td><b>Light Sensors</td></tr>";
-
-  page += "</table>";
+  page += generateSystemSensorsTable();
   page += "</div>";  // Close the flex container
 
-  // Task Manager
-  page += "<div style='display: flex;'>";
-  page += generateTaskManagerTable();
 
+  page += "<div style='display: flex;'>";
+  // Task Manager
+  page += generateTaskManagerTable();
+  // File System
   if (LittleFS.begin()) {
     getSPIFFSsizes();
-    // SPIFFS
     page += generateFSTable();
+    LittleFS.end();
   }
 
   page += "</div>";
 
-  LittleFS.end();
   return generateCommonPageStructure(page);
 }
 
 
-
-String generateTaskManagerTable() {
-  String table = "<table>";
-  table += "<tr><th colspan='5'><h2>Task Manager</h2></th></tr>";
-  table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
-
-  for (const auto& task : tasks) {
-    if (taskArray[*task.taskId] != "" /*&& *task.tracker > 0.0 */ && *task.taskId != 0) {  // don't add free, unscheduled task slots
-      table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskArray[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
-    }
-  }
-
-  table += "</table>";
-  return table;
-}
-
-
-String generateFileContentPage(String content) {
-  String page = "<div style='display: flex;'>";
-  page += "<table style='min-width: auto;'>";
-  page += "<tr><td><h2>File Content</h2></td></tr>";
-  page += "<tr><td><pre>" + content + "</pre></td></tr>";
-  page += "</table></div>";
-  return generateCommonPageStructure(page);
-}
-
-
-
-String generateFSTable() {
-
-  filesCount = 0;
-  directoryCount = 0;
-
-  String table_fs = "<table>";
-  table_fs += "<tr><th><h2>FS</h2></th></tr>";
-
-  table_fs += "<tr><td><b>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-  table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
-  table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
-  table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr>";
-  table_fs += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  table_fs += "<tr>";
-  table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
-  table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
-  table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
-  table_fs += "<td><a href='/download?file=" + String(logFilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logFilePath) + "</button></a></td>";
-  table_fs += "</tr>";
-
-  table_fs += "<tr><td>&nbsp;</td></tr>";
-
-  table_fs += "<tr><th><b>/</th></tr>";
-  table_fs += "<pre>" + listDirWeb(LittleFS, "/", 4) + "</pre>";
-
-  table_fs += "<tr><td>&nbsp;</td></tr>";
-  table_fs += "<tr><td><button onclick='LOGMarker()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>LOG Marker</button></td></tr>";
-  table_fs += "<tr><td><b>" + String(directoryCount) + " Folders</td></tr>";
-  table_fs += "<tr><td><b>" + String(filesCount) + " Files</td></tr>";
-
-  table_fs += "</table>";
-
-  return table_fs;
-}
 
 
 String generateFSPage() {
@@ -892,37 +745,7 @@ String generateFSPage() {
     page += "</div>";
 
     page += "<div style='display: flex;'>";
-    File file = LittleFS.open(logFilePath);
-    if (file) {
-      server.sendHeader("Content-Type", "text/html");
-      server.sendHeader("Connection", "close");
-      server.sendHeader("Access-Control-Allow-Origin", "*");
-      server.sendHeader("Content-Disposition", "inline; filename=" + String(file.name()));
-
-      double fileSizeMB = double(file.size()) / ONEMILLIONB;
-      page += "<table style='width:auto;'>";
-      page += "<tr><th><h2>Log File Content</h2></th></tr>";
-      page += "<tr><td><b>" + String(file.name()) + "</td></tr>";
-      page += "<tr><td>[" + String(fileSizeMB, 4) + "mb]</td></tr><tr><td><pre>";
-
-      while (file.available()) {
-        uint8_t buffer[1024];  // buffering mechanism still work in progress
-        size_t bytesRead = file.read(buffer, sizeof(buffer));
-        if (bytesRead > 0) {
-          page += String(reinterpret_cast<const char*>(buffer), bytesRead);
-          yield();  // Allow the server to handle other tasks
-        }
-      }
-
-      page += "</pre></td></tr></table>";
-      file.close();
-      server.client().stop();
-    } else {
-      page += "<table>";
-      page += "<tr><td><h3>[Error] File does not exist. </h3></td></tr>";
-      page += "</table>";
-    }
-
+    page += generateLogFileContent();
     page += "</div>";
 
     LittleFS.end();
@@ -931,6 +754,7 @@ String generateFSPage() {
     page += "<tr><td><h3>LittleFS / SPIFFS couldn't be mounted</h3></td></tr>";
     page += "</table>";
   }
+
   return generateCommonPageStructure(page);
 }
 
