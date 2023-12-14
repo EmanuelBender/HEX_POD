@@ -11,11 +11,11 @@ String generateDeviceControlsTable() {
   output += "<tr><th colspan='6'><h2>Device Controls</h2></th></tr>";
 
   output += "<tr>";
-  output += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>LED</button></td>";
-  output += "<td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>FAN</button></td>";
-  output += "<td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>OLED</button></td>";
-  output += "<td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "505050; border: solid 1px #505050;") + "'>SLEEP</button></td>";
-  output += "<td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:505050; border: solid 1px #505050;'>Update Time</button></td>";
+  output += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>LED</button></td>";
+  output += "<td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>FAN</button></td>";
+  output += "<td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>OLED</button></td>";
+  output += "<td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>SLEEP</button></td>";
+  output += "<td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:#505050; border: solid 1px #505050;'>Update Time</button></td>";
   output += "</tr>";
   output += "</table>";
 
@@ -78,18 +78,18 @@ String generateSystemSensorsTable() {
 
   output += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
   output += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
-  output += "<tr><td>&nbsp;</td></tr>";  // empty Row DSdevices
+  output += "<tr><td>&nbsp;</td></tr>";  // empty Row DTdevice
   output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td colspan='4'><b>" + String(DSdevices) + " DS18B20</td></tr>";
+  output += "<tr><td colspan='4'><b>" + String(DTdevice) + " DS18B20</td></tr>";
   output += "<tr>";
 
-  for (int i = 0; i < DSdevices; i++) {
+  for (int i = 0; i < DTdevice; i++) {
     output += "<td><b>" + String(tempID[i]) + "</td>";
   }
   output += "</tr><tr>";
 
-  for (int i = 0; i < DSdevices; i++) {
+  for (int i = 0; i < DTdevice; i++) {
     if (tempValues[i] > 0.0) output += "<td>" + String(tempValues[i]) + "&deg;C</td>";
   }
   output += "</tr>";
@@ -143,7 +143,8 @@ String generateFSTable() {
   table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
   table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
   table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
-  table_fs += "<td><a href='/download?file=" + String(logFilePath) + "'><button style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download " + String(logFilePath) + "</button></a></td>";
+  table_fs += "<td><button onclick='download()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download</button></td>";
+  table_fs += "<td><input type='file' id='fileInput' accept='.csv, .txt' onchange='uploadFile()' style='display: none;'><button onclick='document.getElementById(\"fileInput\").click();' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080; '>Upload</button></td>";
   table_fs += "</tr>";
 
   table_fs += "<tr><td>&nbsp;</td></tr>";
@@ -187,6 +188,7 @@ String generateLogFileContent() {
       if (bytesRead > 0) {
         output += String(reinterpret_cast<const char*>(buffer), bytesRead);
         yield();  // Allow the server to handle other tasks
+        // taskManager.delayMicroseconds(500);
       }
     }
 

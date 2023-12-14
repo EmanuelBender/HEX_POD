@@ -21,23 +21,17 @@ void handleNotFound() {
 
 
 
-void streamToServer() {
-  String filePath = logFilePath;
-
-  if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
-    return server.requestAuthentication();
-  }
-
+void streamToServer(String filePath) {
+  //  filePath = logFilePath;
 
   if (!LittleFS.begin()) {
-    tft.drawString("LITTLEFS/SPIFFS couldn't be Mounted.", 60, 100, 3);
     server.send(500, "text/plain", "<h2>Spiffs failed</h2>");
     return;
   }
 
   if (LittleFS.exists(filePath)) {
     File file = LittleFS.open(filePath, "r");
-
+    Serial.println(file);
     String contentType = "application/octet-stream";  // Default to binary/octet-stream
     if (filePath.endsWith(".txt")) {
       contentType = "text/plain";
@@ -62,6 +56,7 @@ void streamToServer() {
 
 
 
+File fsUploadFile;
 
 void setupWebInterface() {  // in setup()
 
@@ -97,10 +92,60 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/html", generateFSPage());
   });
   server.on("/download", HTTP_GET, []() {
+    String downloadPath = server.arg("path");
+    Serial.print("Download Path:");
+    Serial.println(downloadPath);
     if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
       return server.requestAuthentication();
     }
-    streamToServer();
+    streamToServer(downloadPath);
+  });
+
+
+  server.on("/upload", HTTP_POST, []() {
+    // Check authentication if needed
+    if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
+      return server.requestAuthentication();
+    }
+
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      // Extract file extension
+      String filename = upload.filename;
+      int lastDotIndex = filename.lastIndexOf('.');
+      if (lastDotIndex == -1) {
+        server.send(400, "text/plain", "Invalid file format");
+        return;
+      }
+
+      String fileExtension = filename.substring(lastDotIndex);
+
+      // Check FS size before writing
+      if (upload.totalSize > SPIFFS_free) {
+        server.send(400, "text/plain", "File size exceeds available space");
+        return;
+      }
+
+      LittleFS.begin();
+      getSPIFFSsizes();
+      // Open the file for writing
+      fsUploadFile = LittleFS.open("/" + filename, "w");
+      if (!fsUploadFile) {
+        server.send(500, "text/plain", "Failed to open file for writing");
+        return;
+      }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      // Write the next chunk of data to the file
+      if (fsUploadFile) {
+        fsUploadFile.write(upload.buf, upload.currentSize);
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      // File upload finished
+      if (fsUploadFile) {
+        fsUploadFile.close();
+      }
+    }
+    LittleFS.end();
   });
 
 
@@ -377,7 +422,28 @@ String generateJavaScriptFunctions() {  // JavaScript functions "<script src='ht
          "    fetch('/LOGMarker?markerText=' + encodeURIComponent(note));"
          "  }"
          "}"
-         "function download() { fetch('/download'); }"
+         "function download() {"
+         "  var pathToDownload = prompt('Please enter path to download:');"
+         "  if (pathToDownload !== null) {"
+         "     window.location.href = '/download?path=' + encodeURIComponent(pathToDownload);"
+         "  }"
+         "}"
+         "function uploadFile() { "
+         "  var input = document.getElementById('fileInput');"
+         "  var file = input.files[0];"
+         "  if (file) {"
+         "    var allowedFormats = ['.csv', '.txt'];"
+         "    var fileFormat = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();"
+         "    if (allowedFormats.includes(fileFormat)) {"
+         "      var formData = new FormData();"
+         "      formData.append('upload', file);"
+         "      fetch('/upload', { method: 'POST', body: formData });"
+         "    } else {"
+         "      alert('Invalid file format. Please upload a file with one of the following formats: .csv, .txt');"
+         "    }"
+         "  }"
+         "}"
+
          "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
          "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
          "function toggleOLED() { fetch('/toggleOLED'); }"
@@ -422,23 +488,27 @@ String generateJavaScriptFunctions() {  // JavaScript functions "<script src='ht
 String generateCSSstyles() {
   return "<style>"
          "@import url('https://fonts.cdnfonts.com/css/din-alternate');"
+         "@import url('https://fonts.cdnfonts.com/css/demon-cubic-block-nkp');"  // font-family: 'DemonCubicBlock NKP Black', sans-serif;    font-family: 'DemonCubicBlock NKP Dark', sans-serif;    font-family: 'DemonCubicBlock NKP Shade', sans-serif;    font-family: 'DemonCubicBlock NKP Tile', sans-serif;
+         "@import url('https://fonts.cdnfonts.com/css/barcode-font');"           // font-family: 'barcode font', sans-serif;
          "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
-         "table { width: 720px; margin: 15px; padding: 15px; background-color: #D8D8D8; border-radius: 17px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "table { width: 710px; margin: 15px; padding: 20px; background-color: #D8D8D8; border-radius: 20px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "th, td { white-space: nowrap; border-radius: 10px; padding-top: 1px;  padding-bottom: 1px; color: #050505; text-align: left;}"
          "h2, h3 { font-family: 'DIN Alternate', sans-serif; color: #303030; text-align: left; margin-bottom: 5px; }"
-         "p { font-family: 'DIN Alternate', sans-serif; } "
-         "a.button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 5px; padding: 10px 10px; text-decoration: none; border: none; color: white; background-color: #008080; border-radius: 8px; font-size: 16px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
-         "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; background-color: #008080; border-radius: 8px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
+         "p { font-family: 'DIN Alternate', sans-serif; margin: 3px 5px; } "
+         "a.button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 4px; padding: 8px; text-decoration: none; border: none; color: white; background-color: #008080; border: solid 1px #009090; border-radius: 8px; font-size: 17px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; border-radius: 8px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
          "div { color: white; }"
-         "#navbar { background-color: #303030; text-align: center; justify-content: center; }"
-         "#sidebar { width: 180px; height: 100%; background-color: #353535; padding: 8px; margin: 15px; padding-top: 20px; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "#navbar { background-color: transparent; text-align: center; justify-content: center; }"
+         "#sidebar { height: 850px; background-color: #353535; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 20px; padding: 2px; margin: 15px; padding-top: 20px; text-align:center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "#blocksFont { font-family: 'DemonCubicBlock NKP Shade', sans-serif; }"
+         "#barcodeFont { font-family: 'barcode font', sans-serif; }"
          "</style>";
 }
 
 
 String generateCommonPageStructure(String content) {
-
-  String pageC = "<html lang='en'>";
+  String pageC = "<!DOCTYPE html>";
+  pageC += "<html lang='en'>";
   pageC += "<head>";
   pageC += "<meta http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
   pageC += "<title>[HEX]POD Center</title>";
@@ -446,7 +516,7 @@ String generateCommonPageStructure(String content) {
   pageC += "</head>";
   pageC += "<body>";
   pageC += "<div style='display: flex; padding: 15px; '>";
-  pageC += "<div id='sidebar' style=' text-align:center; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 15px; ' >";
+  pageC += "<div id='sidebar'>";
   pageC += generateNavBar();
   pageC += "</div>";
   pageC += "<div style='display: block; justify-content:center;'>";
@@ -462,11 +532,12 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  String page = "<div style='text-align:center; margin-bottom: 5px; margin-top: 10px;  '>";
-  page += "<a href='/download?file=" + String(logFilePath) + "'>";
-  page += "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' alt='Hex-Logo' border='0' style='width: 80px; height: auto;'></a></div>";
+  // String page = "<div style='text-align:center; margin-bottom: 5px; margin-top: 10px;  '>";
 
-  page += "<p style='font-size:12px; text-align: center; '>[HEX]POD<br>" + String(codeRevision) + "<br><br></p>";
+  String page = "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>";
+
+  page += "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>";
+  // page += "<p>" + String(codeRevision) + "<br><br></p>";
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
 
   page += "<div style='text-align:center; '>";
@@ -485,9 +556,9 @@ String generateNavBar() {
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
   page += "<div style='text-align:center; '>";
   page += "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; background-color: transparent; box-shadow: none;'>";
-  page += "<tr><td></td><td><button onclick='triggerUP()'>&#8593;</button></td><td></td></tr>";
-  page += "<tr><td><button onclick='triggerLEFT()'>&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()'>&#8594;</button></td></tr>";
-  page += "<tr><td><button onclick='restartESP()'>&#8634;</button></td><td><button onclick='triggerDOWN()'>&#8595;</button></td><td></td></tr>";
+  page += "<tr><td></td><td><button onclick='triggerUP()' style='background-color:#008080;'>&#8593;</button></td><td></td></tr>";
+  page += "<tr><td><button onclick='triggerLEFT()' style='background-color:#008080;' >&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()' style='background-color:#008080' ;>&#8594;</button></td></tr>";
+  page += "<tr><td><button onclick='restartESP()' style='background-color:#008080;' >&#8634;</button></td><td><button onclick='triggerDOWN()' style='background-color:#008080' ;>&#8595;</button></td><td></td></tr>";
   page += "</table></div>";
   page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
 
@@ -495,6 +566,7 @@ String generateNavBar() {
   page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
   page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";
   page += "<button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button>";
+  page += "<p id='barcodeFont' style='font-size:30px; color:#b0b0b0; '><br></br>HEX-POD " + String(codeRevision) + "<br></p>";
   page += "</div>";
 
   return page;
@@ -502,32 +574,6 @@ String generateNavBar() {
 
 
 
-
-
-String generateHomePage() {
-
-  String page = "<table min-width: 50%; '>";
-
-  page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
-  page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
-  page += "<tr><td><b>Log Period</td>";
-  page += "<td><label for='loggingInterval'>Interval</label></td>";
-  page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
-  page += generateTimeOptions(loggingInterval);
-  page += "</select></td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";
-  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
-
-  page += "</table>";
-
-  page += "<table style='min-height: 300px; min-width: 50%; padding: 40px;'>";
-  page += "<tr><td><h2>Web Console</h2></td></tr>";
-  page += "<tr><td><pre>" + generateConsole() + "</pre>";
-  page += "<td></tr></table>";
-
-
-  return generateCommonPageStructure(page);
-}
 
 String generateConsole() {
   String consoleOutput;
@@ -553,6 +599,31 @@ String generateConsole() {
 }
 
 
+
+String generateHomePage() {
+
+  String page = "<table min-width: 70%; '>";
+
+  page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
+  page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
+  page += "<tr><td><b>Log Period</td>";
+  page += "<td><label for='loggingInterval'>Interval</label></td>";
+  page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
+  page += generateTimeOptions(loggingInterval);
+  page += "</select></td></tr>";
+  page += "<tr><td>&nbsp;</td></tr>";
+  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
+
+  page += "</table>";
+
+  page += "<table style='min-height: 300px; min-width: 50%; padding: 40px;'>";
+  page += "<tr><td><h2>Web Console</h2></td></tr>";
+  page += "<tr><td><pre>" + generateConsole() + "</pre>";
+  page += "<td></tr></table>";
+
+
+  return generateCommonPageStructure(page);
+}
 
 
 String generateSensorsPage() {
@@ -701,18 +772,18 @@ String generateUtilityPage() {
 
   getDeviceInfo();
 
-  String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
+  String page = "<div style='display: flex;'>";
   // Device Controls
   page += generateDeviceControlsTable();
   page += "</div>";
 
 
-  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+  page += "<div style='display: flex;'>";
   // Device Stats
   page += generateDeviceStatsTable();
   // System Sensors
   page += generateSystemSensorsTable();
-  page += "</div>";  // Close the flex container
+  page += "</div>";
 
 
   page += "<div style='display: flex;'>";
@@ -724,7 +795,6 @@ String generateUtilityPage() {
     page += generateFSTable();
     LittleFS.end();
   }
-
   page += "</div>";
 
   return generateCommonPageStructure(page);

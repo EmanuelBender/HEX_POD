@@ -47,8 +47,8 @@ void launchUtility() {
 
   debugF(timeTracker);
 
-  SECID = taskManager.schedule(repeatMillis(990), updateTime);
-  STATID = taskManager.schedule(repeatMillis(996), statusBar);
+  SECID = taskManager.schedule(repeatMillis(994), updateTime);
+  // STATID = taskManager.schedule(repeatMillis(996), statusBar);
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(984), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
@@ -107,7 +107,7 @@ void PowerStates() {
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
       webServerPollMs = 800;
-      taskManager.cancelTask(STATID);
+      // taskManager.cancelTask(STATID);
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.0) {
@@ -117,9 +117,6 @@ void PowerStates() {
 
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
-      // webServerPollMs = 150;
-      // taskManager.cancelTask(WEB);
-      // WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.4) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
@@ -283,6 +280,8 @@ void statusLED(bool LEDon) {
   io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
 }
 
+
+
 void updateTime() {
   TAG = "updateTime() ";
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
@@ -295,10 +294,12 @@ void updateTime() {
   }
 
   printToOLED(printTime);
+  if (currentPowerState == IDLE || currentPowerState == NORMAL) taskManager.schedule(onceMillis(1), statusBar);
 
   debugF(uTimeTracker);
   uTimeTracker = (micros() - uTimeTracker) / double(ONETHOUSAND);
 }
+
 
 
 void getNTP() {
@@ -342,8 +343,8 @@ void pollTemp() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (tempSens.isConversionComplete()) {
-    // for (i = 0; i < DSdevices; i++) {
-    tempValues[0] = tempSens.getTempC(tempProbe1);
+    // for (i = 0; i < DTdevice; i++) {
+    tempValues[0] = tempSens.getTempC(DTprobe_1);
     // }
 
     // tempSens.processAlarms();

@@ -144,7 +144,7 @@ long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
 bool LEDon, FANon, isFading, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
-String logFilePath, rootHexPath = "/HEX";
+String logFilePath, rootHexPath = "/.sys";
 
 String TAG = "ESP";
 
@@ -220,12 +220,12 @@ const uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 1
 //DS18B20___________________________________________________________________
 OneWire oneWire(GPIO_NUM_8);
 DallasTemperature tempSens(&oneWire);
-DeviceAddress tempProbe1 = { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 };
-byte DSdevices;
+DeviceAddress DTprobe_1 = { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 };
+byte DTdevice;
 
 float tempValues[2];
 const char* tempID[] = {
-  "ESP",
+  "ESP_prox",
   ""
 };
 
@@ -492,11 +492,11 @@ void setup() {  // ________________ SETUP ___________________
 
   tempSens.begin();
   tempSens.setWaitForConversion(false);
-  tempSens.setResolution(9);                  // set global resolution to 9, 10 (default), 11, or 12 bits
-  tempSens.setHighAlarmTemp(tempProbe1, 65);  // Dallas tempProbe Alarm Thresholds
-  tempSens.setLowAlarmTemp(tempProbe1, -1);
+  tempSens.setResolution(9);                 // set global resolution to 9, 10 (default), 11, or 12 bits
+  tempSens.setHighAlarmTemp(DTprobe_1, 65);  // Dallas tempProbe Alarm Thresholds
+  tempSens.setLowAlarmTemp(DTprobe_1, -1);
 
-  DSdevices = tempSens.getDeviceCount();
+  DTdevice = tempSens.getDeviceCount();
 
   //___________________________ INITIALIZE INA219 _____________________
 
@@ -560,7 +560,7 @@ void setup() {  // ________________ SETUP ___________________
   lastInputTime = micros();
   lastRestart = printTime + " " + printDate;
   logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
-  
+
   resetReasonString = print_wakeup_reason();
   addLOGmarker("[R]", resetReasonString);
 
