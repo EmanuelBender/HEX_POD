@@ -5,24 +5,24 @@
 void pollServer() {
   TAG = "pollWeb()      ";
   timeTracker = micros();
-  // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   server.handleClient();
 
-  debugF(timeTracker);
+  // debugF(timeTracker);
   clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
+
 void IRAM_ATTR CTR_ISR() {
   BUTTON = true;
-  BTNID = taskManager.schedule(onceMicros(5), pollButtons);
+  BTNID = taskManager.schedule(onceMicros(3), pollButtons);
 }
 void IRAM_ATTR UDLR_ISR() {
   INT_TRGR = true;
   BTNID = taskManager.schedule(onceMicros(1), pollButtons);
 }
 void IRAM_ATTR SD_ISR() {
-  if (millis() - lastSDInterrupt > 100) {
+  if (millis() - lastSDInterrupt > 110) {
     lastSDInterrupt = millis();
     SDinserted = !digitalRead(GPIO_NUM_47);
     if (DEBUG) ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed");
@@ -33,7 +33,7 @@ void IRAM_ATTR SD_ISR() {
 
 void launchUtility() {
   TAG = "launchUtility()";
-  timeTracker = micros();
+  // timeTracker = micros();
   taskManager.reset();
   if (DEBUG) ESP_LOGI(TAG, "%s", "taskManager Reset");
 
@@ -45,10 +45,9 @@ void launchUtility() {
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
-  debugF(timeTracker);
 
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
-  // STATID = taskManager.schedule(repeatMillis(996), statusBar);
+  STATID = taskManager.schedule(repeatMillis(996), statusBar);
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(984), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
@@ -63,9 +62,11 @@ void launchUtility() {
     taskManager.schedule(onceSeconds(5), pollBME);
     taskManager.schedule(onceSeconds(10), pollBME);
     taskManager.schedule(onceSeconds(15), pollBME);
+    taskManager.schedule(onceSeconds(25), pollBME);
   }
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
+  // debugF(timeTracker);
 }
 
 
@@ -294,7 +295,7 @@ void updateTime() {
   }
 
   printToOLED(printTime);
-  if (currentPowerState == IDLE || currentPowerState == NORMAL) taskManager.schedule(onceMillis(1), statusBar);
+  // if (currentPowerState == IDLE || currentPowerState == NORMAL) STATID = taskManager.schedule(onceMillis(1), statusBar);
 
   debugF(uTimeTracker);
   uTimeTracker = (micros() - uTimeTracker) / double(ONETHOUSAND);
@@ -399,7 +400,7 @@ void pollINA2() {
   BUS2_Power = INA2.getPower_mW();
   // BUS2_OVF = INA2.getMathOverflowFlag();
 
-  debugF(ina2Tracker);
+  debugF(timeTracker);
   ina2Tracker = (micros() - ina2Tracker) / double(ONETHOUSAND);
   //  }
 }
@@ -459,10 +460,7 @@ void pollBME() {
         bme_resistance[i] /= bmeSamples;
       }
 
-      // samplingDelta = ((bmeInterval / double(ONETHOUSAND)) / bmeSamples) / 60.0 /*+ (durProf_1[0])*/;  // work in progress, compensation for saturation of sensor, when too many measurements make the sensor go hot..?
-
-      for (i = 0; i < numProfiles; ++i) {  // apply sampl delta & average
-        // bme_resistance[i] *= samplingDelta; work in progress
+      for (i = 0; i < numProfiles; ++i) {
         bme_gas_avg += bme_resistance[i];
       }
       bme_gas_avg /= numProfiles;
@@ -520,19 +518,16 @@ void pollSGP() {
 
   if (conditioning_duration > 0) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
-    if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
-    // taskManager.schedule(onceMicros(50), pollBME);
     conditioning_duration--;
   } else {
-    error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
+    sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
     delay(140);
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
     VOC = voc_algorithm.process(srawVoc);
     NOX = nox_algorithm.process(srawNox);
-    error = sgp41.turnHeaterOff();
-    if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
+    sgp41.turnHeaterOff();
   }
-
+  if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
   debugF(timeTracker);
   sgpTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
@@ -567,7 +562,7 @@ void configSGP() {
 
 void debugF(uint32_t tracker) {
 
-  updateTaskArray();
+  // updateTaskArray();
 
   if (DEBUG) {
     elapsedTime = (micros() - tracker) / double(ONETHOUSAND);
@@ -587,13 +582,13 @@ void debugF(uint32_t tracker) {
   }
 
   if (carousel == 4 && blockMenu) {
-    TMID = taskManager.schedule(onceMicros(5), taskM);
+    taskManager.schedule(onceMicros(3), taskM);
   }
 }
 
 
 
-
+/*
 void updateTaskArray() {
 
   for (i = 0; i < slotsSize; i++) {
@@ -619,6 +614,8 @@ void updateTaskArray() {
     }
   }
 }
+*/
+
 
 void addLOGmarker(String lead, String markerText) {
   LittleFS.begin();

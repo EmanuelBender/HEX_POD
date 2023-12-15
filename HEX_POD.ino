@@ -149,6 +149,13 @@ String logFilePath, rootHexPath = "/.sys";
 String TAG = "ESP";
 
 const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX\n";
+const String logColumns[22] = { "Time", "BME_0", "BME_1", "BME_2", "BME_3", "BME_4", "BME_5", "BME_6", "BME_7", "BME_8", "BME_9", "BME_10", "BME_11", "BME_12", "BME_13", "BME_T", "BME_H", "BME_P", "SGP_VOC", "SGP_NOX", "SGP_rVOC", "SGP_rNOX" };
+const byte log_idx_bme1_temp = 15;   // index in log file
+const byte log_idx_bme1_humid = 16;  // index in log file
+const byte log_idx_bme1_press = 17;  // index in log file
+const byte log_idx_sgp_voc = 18;
+const byte log_idx_sgp_nox = 19;
+uint16_t chart_max_data = 120;
 String restartHeader;
 
 enum PowerState { NORMAL,

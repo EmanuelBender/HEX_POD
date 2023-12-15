@@ -3,6 +3,320 @@
 
 
 
+String generateSGPchart() {
+  LittleFS.begin();
+  File file = LittleFS.open(logFilePath.c_str(), "r");
+  if (!file) {
+    return "console.error('Error opening file');";
+  }
+  String chartData = "<script type='text/javascript'>";
+  chartData += "function drawSGPchart() {\n"
+               "  var data_sgp = google.visualization.arrayToDataTable([\n"
+               "    [";
+
+  chartData += "'" + logColumns[0] + "', ";  // time
+  chartData += "'" + logColumns[log_idx_sgp_voc] + "', ";
+  chartData += "'" + logColumns[log_idx_sgp_nox] + "'";
+  chartData += "],\n";
+
+  String line;
+  size_t lineCount = 0;
+
+
+  while (file.available() && lineCount < chart_max_data) {
+    line = file.readStringUntil('\n');
+
+    int commaIndex = line.indexOf(',');
+    String timestampChar = line.substring(0, commaIndex);
+    String values = line.substring(commaIndex + 1);
+
+    String valueArray[3];
+    int i = 0;
+    size_t lastCommaIndex = 0;
+
+    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
+    valueArray[0] = timestamp;
+
+
+    while (i <= log_idx_sgp_nox) {
+      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+      if (currentCommaIndex == std::string::npos) {
+        currentCommaIndex = values.length();
+      }
+
+      String value = values.substring(lastCommaIndex, currentCommaIndex);
+      if (value.length() == 0) {
+        break;
+      } else {
+        if (i == log_idx_sgp_voc - 1 || i == log_idx_sgp_nox - 1) valueArray[i - (log_idx_sgp_voc - 2)] = value;
+      }
+      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+      i++;
+    }
+
+    lineCount++;
+    if (i < log_idx_sgp_voc) {  // skip the line if empty
+      continue;
+    }
+
+    chartData += "["
+                 + valueArray[0] + ", "
+                 + valueArray[1] + ", "
+                 + valueArray[2]
+                 + "],\n";
+  }
+
+  chartData += "  ]);\n\n"
+               "  var maxDataValue = calculateMaxValue(data_sgp);\n"
+               "  var options_sgp = {\n"
+               "    title: 'VOC, NOx',\n"
+               "    curveType: 'function',\n"
+               "    legend: { position: 'bottom' },\n"
+               "    backgroundColor: 'transparent',\n"
+               "    series: {\n"
+               // "      16: {targetAxisIndex: 1},\n"
+               // "      2: {targetAxisIndex: 1},\n"
+               "      1: {targetAxisIndex: 1}\n"
+               "    },\n"
+               "    vAxes: {\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },  // Left axis\n"
+               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }   // Right axis\n"
+               "    }\n"
+               "  };\n\n"
+               "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
+               "  chart.draw(data_sgp, options_sgp);\n"
+               "}\n";
+  chartData += "google.charts.load('current', {'packages':['corechart']});"
+               "google.charts.setOnLoadCallback(drawSGPchart);"
+               "</script>";
+
+  file.close();
+  LittleFS.end();
+  return chartData;
+}
+
+
+
+
+
+String generateTHPchart() {
+  LittleFS.begin();
+  File file = LittleFS.open(logFilePath.c_str(), "r");
+  if (!file) {
+    return "console.error('Error opening file');";
+  }
+  String chartData = "<script type='text/javascript'>";
+  chartData += "function drawTPHchart() {\n"
+               "  var data_thp = google.visualization.arrayToDataTable([\n"
+               "    [";
+
+  chartData += "'" + logColumns[0] + "', ";  // time
+  chartData += "'" + logColumns[log_idx_bme1_temp] + "', ";
+  chartData += "'" + logColumns[log_idx_bme1_humid] + "', ";
+  chartData += "'" + logColumns[log_idx_bme1_press] + "'";
+  chartData += "],\n";
+
+  String line;
+  size_t lineCount = 0;
+
+
+  while (file.available() && lineCount < chart_max_data) {
+    line = file.readStringUntil('\n');
+
+    int commaIndex = line.indexOf(',');
+    String timestampChar = line.substring(0, commaIndex);
+    String values = line.substring(commaIndex + 1);
+
+    String valueArray[4];
+    int i = 0;
+    size_t lastCommaIndex = 0;
+
+    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
+    valueArray[0] = timestamp;
+
+
+    while (i <= log_idx_bme1_press) {
+      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+      if (currentCommaIndex == std::string::npos) {
+        currentCommaIndex = values.length();
+      }
+
+      String value = values.substring(lastCommaIndex, currentCommaIndex);
+      if (value.length() == 0) {
+        break;
+      } else {
+        if (i == log_idx_bme1_temp - 1 || i == log_idx_bme1_humid - 1 || i == log_idx_bme1_press - 1) valueArray[i - (log_idx_bme1_temp - 2)] = value;
+      }
+      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+      i++;
+    }
+
+    lineCount++;
+    if (i < log_idx_bme1_temp) {  // skip the line if empty
+      continue;
+    }
+
+    chartData += "["
+                 + valueArray[0] + ", "
+                 + valueArray[1] + ", "
+                 + valueArray[2] + ", "
+                 + valueArray[3]
+                 + "],\n";
+  }
+
+  chartData += "  ]);\n\n"
+               "  var maxDataValue = calculateMaxValue(data_thp);\n"
+               "  var options_tph = {\n"
+               "    title: 'Temp, Humid, Press',\n"
+               "    curveType: 'function',\n"
+               "    legend: { position: 'bottom' },\n"
+               "    backgroundColor: 'transparent',\n"
+               "    series: {\n"
+               // "      16: {targetAxisIndex: 1},\n"
+               // "      2: {targetAxisIndex: 1},\n"
+               "      2: {targetAxisIndex: 1}\n"
+               "    },\n"
+               "    vAxes: {\n"
+               "      0: { viewWindow: { min: -10, max: 90 } },  // Left axis\n"
+               "      1: { viewWindow: { min: maxDataValue - 5000, max: maxDataValue + 5000 } }   // Right axis\n"
+               "    }\n"
+               "  };\n\n"
+               "  var chart = new google.visualization.LineChart(document.getElementById('thp_chart'));\n"
+               "  chart.draw(data_thp, options_tph);\n"
+               "}\n";
+  chartData += "google.charts.load('current', {'packages':['corechart']});"
+               "google.charts.setOnLoadCallback(drawTPHchart);"
+               "</script>";
+
+  file.close();
+  LittleFS.end();
+  return chartData;
+}
+
+
+
+String generateBMEchart() {
+  LittleFS.begin();
+  File file = LittleFS.open(logFilePath.c_str(), "r");
+
+  if (!file) {
+    return "console.error('Error opening file');";
+  }
+  // size_t fileSize = file.size();
+  // size_t startPosition = fileSize > 8000 ? fileSize - 8000 : 0;
+  // file.seek(startPosition);
+
+  String chartData = "<script type='text/javascript'>";
+  chartData += "function drawBMEchart() {\n"
+               "  var data = google.visualization.arrayToDataTable([\n"
+               "    [";
+
+
+  for (int i = 0; i < 15; ++i) {
+    chartData += "'" + logColumns[i] + "'";
+    if (i < 14) chartData += ", ";
+  }
+
+  chartData += "],\n";
+  String line;
+  size_t lineCount = 0;
+
+  while (file.available() && lineCount < chart_max_data) {
+    line = file.readStringUntil('\n');
+
+    // Split the line into timestamp and values
+    int commaIndex = line.indexOf(',');
+    String timestampChar = line.substring(0, commaIndex);
+    String values = line.substring(commaIndex + 1);
+
+    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
+
+    // Split values into an array
+    String valueArray[15];
+    int i = 1;
+    size_t lastCommaIndex = 0;
+
+    valueArray[0] = timestamp;
+    // Split the values using commas
+    while (i < 15) {
+      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+      if (currentCommaIndex == std::string::npos) {
+        currentCommaIndex = values.length();
+      }
+
+      String value = values.substring(lastCommaIndex, currentCommaIndex);
+
+      if (value.length() == 0) {
+        break;
+      } else {
+        valueArray[i] = value;
+      }
+
+      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+      i++;
+    }
+
+    lineCount++;
+
+    if (i < 14) {
+      continue;
+    }
+
+    chartData += "["
+                 + valueArray[0] + ", "
+                 + valueArray[1] + ", " + valueArray[2] + ", "
+                 + valueArray[3] + ", " + valueArray[4] + ", "
+                 + valueArray[5] + ", " + valueArray[6] + ", "
+                 + valueArray[7] + ", " + valueArray[8] + ", "
+                 + valueArray[9] + ", " + valueArray[10] + ", "
+                 + valueArray[11] + ", " + valueArray[12] + ", "
+                 + valueArray[13] + ", " + valueArray[14] + ", "
+                 //  + valueArray[15] + ", " + valueArray[16] + ", "
+                 //  + valueArray[17] + ", " + valueArray[18] + ", "
+                 //  + valueArray[19] + ", " + valueArray[20] + ", " + valueArray[21]
+                 + "],\n";
+  }
+
+
+
+  chartData += "  ]);\n\n"
+               "  var maxDataValue = calculateMaxValue(data);\n"
+               "  var options = {\n"
+               "    title: 'BME[1] log',\n"
+               "    curveType: 'function',\n"
+               "    legend: { position: 'bottom' },\n"
+               "    backgroundColor: 'transparent',\n"
+               // "    width: '100%',\n"   // Set width to 100% for responsiveness
+               // "    height: '100%',\n"  // Set height to 100% for responsiveness
+               // "    series: {\n"
+               // "      16: {targetAxisIndex: 1},\n"
+               // "      19: {targetAxisIndex: 1},\n"
+               // "      20: {targetAxisIndex: 1},\n"
+               // "    },\n"
+               "    vAxes: {\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue } },  // Left axis\n"
+               "      1: { viewWindow: { min: 0, max: maxDataValue } }   // Right axis\n"
+               "    }\n"
+               "  };\n\n"
+               "  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));\n"
+               "  chart.draw(data, options);\n"
+               "}\n";
+  chartData += "google.charts.load('current', {'packages':['corechart']});"
+               "google.charts.setOnLoadCallback(drawBMEchart);"
+               "</script>";
+
+  file.close();
+  LittleFS.end();
+  return chartData;
+}
+
+
+
+
+
 
 
 String generateDeviceControlsTable() {
@@ -114,8 +428,8 @@ String generateTaskManagerTable() {
   table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
 
   for (const auto& task : tasks) {
-    if (taskArray[*task.taskId] != "" /*&& *task.tracker > 0.0 */ && *task.taskId != 0) {  // don't add free, unscheduled task slots
-      table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskArray[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
+    if (taskFreeSlots[*task.taskId] != char('F') /*&& *task.tracker > 0.0  && *task.taskId != 0*/) {  // don't add free, unscheduled task slots
+      table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskFreeSlots[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
     }
   }
 

@@ -316,8 +316,8 @@ String assembleTaskData() {
   String result;
 
   for (const auto& task : tasks) {
-    if (taskArray[*task.taskId] != "" /* && *task.tracker > 0.0 */ && *task.taskId != 0) {
-      result += "[" + String(*task.taskId) + "]" + String(taskArray[*task.taskId]) + " " + task.taskName + " " + String(*task.tracker) + "ms\n";
+    if (taskFreeSlots[*task.taskId] != char('F') /* && *task.tracker > 0.0  && *task.taskId != 0*/) {
+      result += "[" + String(*task.taskId) + "]" + String(taskFreeSlots[*task.taskId]) + " " + task.taskName + " " + String(*task.tracker) + "ms\n";
     }
   }
 
@@ -333,7 +333,7 @@ void taskM() {
     tft.setTextDatum(TL_DATUM);
     tft.setTextPadding(180);
 
-    updateTaskArray();
+    // updateTaskArray();
 
     String taskData = assembleTaskData();
     std::istringstream taskStream(taskData.c_str());

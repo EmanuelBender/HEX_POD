@@ -70,9 +70,9 @@ void logging() {  // Assign values to the array at the current index
   timeTracker = loggingTracker;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  getDeviceInfo();
-
   if (conditioning_duration == 0) {
+    getDeviceInfo();
+
     String airLog;
     airLog = printTime + ", ";
     /* 

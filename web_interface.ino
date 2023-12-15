@@ -21,6 +21,22 @@ void handleNotFound() {
 
 
 
+#include <TimeLib.h>  // Include the TimeLib library for time functions
+
+unsigned long convertTimestampToMillis(String timestamp) {
+  int hours, minutes, seconds;
+  sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
+
+  // Ensure hours, minutes, and seconds are within valid ranges
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+    return 10000000;  // Return 0 if the timestamp is invalid
+  }
+
+  return (hours * 3600UL + minutes * 60UL + seconds) * 1000UL;
+}
+
+
+
 void streamToServer(String filePath) {
   //  filePath = logFilePath;
 
@@ -56,7 +72,7 @@ void streamToServer(String filePath) {
 
 
 
-File fsUploadFile;
+
 
 void setupWebInterface() {  // in setup()
 
@@ -103,6 +119,8 @@ void setupWebInterface() {  // in setup()
 
 
   server.on("/upload", HTTP_POST, []() {
+    File fsUploadFile;
+
     // Check authentication if needed
     if (!server.authenticate(webHost.c_str(), webPw.c_str())) {
       return server.requestAuthentication();
@@ -374,12 +392,12 @@ void setupWebInterface() {  // in setup()
 
 
 String generateJavaScriptFunctions() {  // JavaScript functions "<script src='https://cdn.jsdelivr.net/npm/chart.js'>"
-  return "<script>"
-         "function updateLoggingInterval() { "
-         "var intervalSelect = document.getElementById('loggingInterval');"
-         "var selectedValue = intervalSelect.options[intervalSelect.selectedIndex].value;"
-         "fetch('/updateLoggingInterval?value=' + selectedValue);"
-         "}"
+  return "<script>\n"
+         "function updateLoggingInterval() { \n"
+         "var intervalSelect = document.getElementById('loggingInterval');\n"
+         "var selectedValue = intervalSelect.options[intervalSelect.selectedIndex].value;\n"
+         "fetch('/updateLoggingInterval?value=' + selectedValue);\n"
+         "}\n"
          "function updateBMEsamples() { "
          "var sampleSelect = document.getElementById('bmeSamples');"
          "var selectedValue = sampleSelect.options[sampleSelect.selectedIndex].value;"
@@ -456,32 +474,44 @@ String generateJavaScriptFunctions() {  // JavaScript functions "<script src='ht
          "function restartESP() { fetch('/restart'); }"
          "function updateNTP() { fetch('/updateNTP'); }"
 
-         "function updateTFTbrightness(value) {"
-         "  document.getElementById('TFTslider').value = value;"
-         "  var xhr = new XMLHttpRequest();"
-         "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);"
-         "  xhr.send();"
-         "}"
-         "document.addEventListener('keydown', function(event) {"
-         "  switch(event.key) {"
-         "    case 'ArrowUp':"
-         "      fetch('/triggerUP');"
-         "      break;"
-         "    case 'ArrowDown':"
-         "      fetch('/triggerDOWN');"
-         "      break;"
-         "    case 'ArrowLeft':"
-         "      fetch('/triggerLEFT');"
-         "      break;"
-         "    case 'ArrowRight':"
-         "      fetch('/triggerRIGHT');"
-         "      break;"
-         "    case 'Enter':"
-         "      fetch('/triggerCTR');"
-         "      break;"
+         "function updateTFTbrightness(value) {\n"
+         "  document.getElementById('TFTslider').value = value;\n"
+         "  var xhr = new XMLHttpRequest();\n"
+         "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);\n"
+         "  xhr.send();\n"
+         "}\n"
+         "document.addEventListener('keydown', function(event) {\n"
+         "  switch(event.key) {\n"
+         "    case 'ArrowUp':\n"
+         "      fetch('/triggerUP');\n"
+         "      break;\n"
+         "    case 'ArrowDown':\n"
+         "      fetch('/triggerDOWN');\n"
+         "      break;\n"
+         "    case 'ArrowLeft':\n"
+         "      fetch('/triggerLEFT');\n"
+         "      break;\n"
+         "    case 'ArrowRight':\n"
+         "      fetch('/triggerRIGHT');\n"
+         "      break;\n"
+         "    case 'Enter':\n"
+         "      fetch('/triggerCTR');\n"
+         "      break;\n"
+         "  }\n"
+         "});\n"
+         "function calculateMaxValue(data) {"
+         "  var max = 0;"
+         "  for (var i = 0; i < data.getNumberOfRows(); i++) {"
+         "    for (var j = 1; j < data.getNumberOfColumns(); j++) {"
+         "      var value = data.getValue(i, j);"
+         "      if (value > max) {"
+         "        max = value;"
+         "      }"
+         "    }"
          "  }"
-         "});"
-         "</script>";
+         "  return max;"
+         "}\n"
+         "</script>\n";
 }
 
 
@@ -510,8 +540,9 @@ String generateCommonPageStructure(String content) {
   String pageC = "<!DOCTYPE html>";
   pageC += "<html lang='en'>";
   pageC += "<head>";
-  pageC += "<meta http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
+  pageC += "<meta charset='UTF-8' http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
   pageC += "<title>[HEX]POD Center</title>";
+  pageC += "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>";
   pageC += generateCSSstyles();
   pageC += "</head>";
   pageC += "<body>";
@@ -629,7 +660,7 @@ String generateHomePage() {
 String generateSensorsPage() {
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
   page += "<table>";
-  // Settings table
+  // Sensor Settings
   page += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
   page += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
@@ -675,45 +706,81 @@ String generateSensorsPage() {
   page += "</tr>";
   page += "</table>";
 
-  // Empty Table
-  page += "<table>";
-  // page += "<tr><td><canvas id='myChart' width='400' height='200'></canvas></td></tr>";
-  page += "<tr><td><button onclick='LOGMarker()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>LOG Marker</button></td></tr>";
-  page += "</table>";
+
+  // Temp Humidity Press Chart
+  page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
+  page += "<div id='thp_chart' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
+  page += generateTHPchart();
+  page += "</div>";
+  page += "</td></tr></table> ";
+
 
   page += "</div>";
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
+
   // BME1 Table
   page += "<table>";
-  page += "<tr><td colspan='5'><h2> BME_1 </h2></td></tr>";
+  page += "<tr><td colspan='5'><h2> BME[1] </h2></td></tr>";
   page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(bmeTracker) + "ms</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastBMEpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Duration </b><br>" + String(bmeTracker) + "ms</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Last </b><br> " + String(lastBMEpoll) + "</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Poll Pd </b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> GAS_AVG </b><br>" + String(bme_gas_avg) + "</td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Temp </b><br> " + String(data.temperature) + "&deg;C</td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Humid </b><br> " + String(data.humidity) + "%</td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Press </b><br> " + String(data.pressure / ONETHOUSAND) + "mBar</td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Alt </b><br> " + String(Altitude) + "m</td></tr>";
   page += "</tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr style='font-size: 14px;'><td></td><td><b> GAS_AVG </td><td><b> Temp </td><td><b >Humid </td><td><b> Press </td><td><b> Alt </td></tr>";
-  page += "<tr style='font-size: 14px;'><td></td><td>" + String(bme_gas_avg) + "</td><td>" + String(data.temperature) + "&deg;C</td><td>" + String(data.humidity) + "%</td><td>" + String(data.pressure / 1000) + "mBar</td><td>" + String(Altitude) + "m</td></tr>";
+
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
 
   page += "<tr style='font-size: 14px;'></td><td>";
   for (i = 0; i < numProfiles; i += 1) {
     if (i == 7) page += "</tr><tr style='font-size: 14px;'><td></td>";
-    page += "<td><b>BME_" + String(i + 1) + "</b></br>" + String(bme_resistance_avg[i]) + "</td>";
+    page += "<td><b>BME_" + String(i) + "</b></br>" + String(bme_resistance_avg[i]) + "</td>";
   }
   page += "</tr>";
-
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "</table>";
 
-  //BME2 table
-  page += "<table style='margin: 15px; padding: 15px; '>";
-  page += "<tr><td colspan='5'><h2>BME_2</h2></td></tr>";
-  page += "</table>";
+  // CHART
+  page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
+  page += "<div id='chart_div' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
+  page += generateBMEchart();
+  page += "</div>";
+  page += "</td></tr></table> ";
+
 
   page += "</div>";
+  /*
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
+
+  //BME2 table
+  page += "<table>";
+  page += "<tr><td colspan='5'><h2> BME[2] </h2></td></tr>";
+  page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
+  page += "<tr style='background-color: #707070;'>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b>Duration</b><br> " + String() + "ms</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b>Last</b><br> " + String() + "</div></td>";
+  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b>Poll Pd</b><br> " + String() + "s</div></td>";
+  page += "</tr>";
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  page += "</table>";
+
+  // CHART 2
+  page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
+  page += "<div id='chart_div' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
+
+  page += "</div>";
+  page += "</td></tr></table> ";
+
+
+  page += "</div>"; */
+  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
 
   // SGP41 Table
   page += "<table>";
@@ -756,10 +823,12 @@ String generateSensorsPage() {
   page += "</tr>";
   page += "</table>";
 
-  // SCD41 table
-  page += "<table>";
-  page += "<tr><td><h2>SCD41</h2></td></tr>";
-  page += "</table>";
+  // SCD41 log chart
+  page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
+  page += "<div id='sgp_chart' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
+  page += generateSGPchart();
+  page += "</div>";
+  page += "</td></tr></table> ";
 
   page += "</div>";
 
