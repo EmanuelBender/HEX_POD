@@ -180,20 +180,7 @@ void setupWebInterface() {  // in setup()
   });
   server.on("/toggleOLED", []() {
     OLEDon = !OLEDon;
-    preferences.begin("my - app", false);
-    preferences.putBool("oled", OLEDon);
-    preferences.end();
-    io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
-    if (OLEDon) {
-      u8g2.clearBuffer();
-      u8g2.sleepOn();
-      u8g2.setFontDirection(0);
-      u8g2.setFontMode(0);
-      u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
-      u8g2.begin();
-      delay(50);
-      updateTime();
-    }
+    toggleOLED();
     server.send(200, "text/plain", "OLED toggled");
   });
   server.on("/toggleFAN", []() {

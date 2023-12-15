@@ -420,7 +420,7 @@ String generateTaskManagerTable() {
   table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
 
   for (const auto& task : tasks) {
-    if (taskFreeSlots[*task.taskId] != char('F') /*&& *task.tracker > 0.0  && *task.taskId != 0*/) {  // don't add free, unscheduled task slots
+    if (taskFreeSlots[*task.taskId] != char('F') && *task.tracker > 0.00 || *task.taskId != 0) {  // don't add free, unscheduled task slots
       table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskFreeSlots[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
     }
   }

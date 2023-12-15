@@ -5,6 +5,7 @@
 void pollServer() {
   TAG = "pollWeb()      ";
   timeTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   server.handleClient();
 
@@ -37,33 +38,36 @@ void launchUtility() {
   taskManager.reset();
   if (DEBUG) ESP_LOGI(TAG, "%s", "taskManager Reset");
 
+  /*
   for (byte i = 0; i < slotsSize; ++i) {
     memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
     taskArray[i].clear();                        // Clear the String array
-  }
-  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = 0;
+  } */
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
+
+  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = 0;
 
 
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
   STATID = taskManager.schedule(repeatMillis(996), statusBar);
+  ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
+  WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(984), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
-  ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
-  WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
-  BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
-  SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
-  LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
-  if (LOGGING && LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
-    pastLOGGINGstate = LOGGING;
-    conditioning_duration = 30;
-    taskManager.schedule(onceSeconds(5), pollBME);
-    taskManager.schedule(onceSeconds(10), pollBME);
-    taskManager.schedule(onceSeconds(15), pollBME);
+  if (LOGGING) {
+    BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
+    SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
+    LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
+    if (LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
+      pastLOGGINGstate = LOGGING;
+      conditioning_duration = 30;
+      taskManager.schedule(onceSeconds(5), pollBME);
+      taskManager.schedule(onceSeconds(10), pollBME);
+      taskManager.schedule(onceSeconds(15), pollBME);
+    }
   }
-
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
   // debugF(timeTracker);
 }
@@ -106,25 +110,27 @@ void PowerStates() {
 
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
-      webServerPollMs = 800;
+      webServerPollMs = 500;
       // taskManager.cancelTask(STATID);
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.0) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
+        delay(3);
       }
 
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
-      while (TFTbrightness > 0.4) {
+      while (TFTbrightness > 0.3) {
         TFTbrightness -= 0.01;
         pwm.writeScaled(TFTbrightness);
+        delay(1);
       }
 
     } else if (currentPowerState == NORMAL) {
       setCpuFrequencyMhz(240);
-      webServerPollMs = 120;
+      webServerPollMs = 80;
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
     }
@@ -157,10 +163,6 @@ void pollButtons() {
     LEFT = P0[9];
     RIGHT = P0[10];
     INT_TRGR = false;
-    while (TFTbrightness < 1.0) {  // here as long as no brightness slider in TFT ui
-      TFTbrightness += 0.01;
-      pwm.writeScaled(TFTbrightness);
-    }
   }
 
   if (UP || DOWN || LEFT || RIGHT || BUTTON || CLICK) {
@@ -168,18 +170,34 @@ void pollButtons() {
     lastInputTime = micros();
     taskManager.schedule(onceMicros(500), statusBar);
 
+
     if (LEFT) {
       LEFT = false;
       CLICK_LEFT = false;
-      blockMenu = false;
       lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
-      switch (carousel) {
-        case 1: taskManager.cancelTask(HOMEID); break;
-        case 2: taskManager.cancelTask(SNSID); break;
-        case 5: taskManager.cancelTask(SYSID); break;
+      if (blockMenu) {
+        switch (carousel) {
+          case 1:
+            taskManager.cancelTask(HOMEID);
+            homePageTracker = HOMEID = 0;
+            break;
+          case 2:
+            taskManager.cancelTask(SNSID);
+            taskManager.cancelTask(IMUID);
+            delay(100);
+            imuTracker = sensorPageTracker = SNSID = IMUID = 0;
+            break;
+          case 3:
+            UTILID = 0;
+            break;
+          case 5:
+            SYSID = systemPageTracker = 0;
+            break;
+        }
       }
+      blockMenu = false;
       tft.fillScreen(TFT_BLACK);
-      taskManager.schedule(onceMicros(2), reloadMenu);
+      taskManager.schedule(onceMicros(1), reloadMenu);
       return;
     }
 
@@ -209,7 +227,8 @@ void pollButtons() {
 
         switch (carousel) {
           case 1:
-            HOMEID = taskManager.schedule(repeatMillis(950), homePage);
+            HOMEID = taskManager.schedule(repeatMillis(985), homePage);
+            taskManager.schedule(onceMicros(5), homePage);
             break;
           case 2:
             for (i = 1; i < 9; i++) {
@@ -217,7 +236,6 @@ void pollButtons() {
             }
             tft.drawString("Sensors", 15, 15, 4);
             lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_1K6HZ);
-            // taskManager.setTaskEnabled(IMUID, true);
             IMUID = taskManager.schedule(repeatMillis(5), pollIMU);
             SNSID = taskManager.schedule(repeatMillis(50), sensorPage);
             break;
@@ -233,8 +251,7 @@ void pollButtons() {
             taskManager.schedule(onceMicros(50), taskM);
             break;
           case 5:
-            tft.drawString("System Info", 15, 15, 4);
-            SYSID = taskManager.schedule(repeatMillis(50), systemPage);
+            SYSID = taskManager.schedule(onceMicros(10), systemPage);
             break;
           default:
             break;
@@ -242,8 +259,9 @@ void pollButtons() {
       }
     } else {
       if (carousel == 3) UTILID = taskManager.schedule(onceMicros(10), utilPage);
+      if (carousel == 5) SYSID = taskManager.schedule(onceMicros(10), systemPage);
     }
-    taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+    // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   }
   debugF(timeTracker);
 }
@@ -272,6 +290,23 @@ void printToOLED(String oledString) {
     u8g2.clearBuffer();
     u8g2.drawStr(0, 32, oledString.c_str());
     u8g2.sendBuffer();
+  }
+}
+
+void toggleOLED() {
+
+  preferences.begin("my - app", false);
+  preferences.putBool("oled", OLEDon);
+  preferences.end();
+
+  io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
+  if (OLEDon) {
+    u8g2.begin();
+    u8g2.setFontDirection(0);
+    u8g2.setFontMode(0);
+    u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
+  } else {
+    u8g2.setPowerSave(1);
   }
 }
 
@@ -402,25 +437,20 @@ void pollINA2() {
 }
 
 
-
 void pollBME() {
   TAG = "pollBME2()   ";
   bmeTracker = micros();
   lastBMEpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-
-  if (bme.checkStatus()) {
-    if (bme.checkStatus() == BME68X_ERROR) {
-      BME_ERROR = "[E] " + bme.statusString();
-      return;
-    } else if (bme.checkStatus() == BME68X_WARNING) {
-      BME_ERROR = "[W] " + bme.statusString();
-    }
+  if (bme.checkStatus() == BME68X_ERROR) {
+    BME_ERROR = "[E] " + bme.statusString();
+    return;
+  } else if (bme.checkStatus() == BME68X_WARNING) {
+    BME_ERROR = "[W] " + bme.statusString();
   }
 
   Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
-
 
   bme.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
   bme.setFilter(bmeFilter);
@@ -438,7 +468,6 @@ void pollBME() {
     bme.setAmbientTemp(data.temperature);
     bme.setHeaterProf(heaterTemp, duration);
     bme.setOpMode(BME68X_FORCED_MODE);
-    // delayMicroseconds(bme.getMeasDur());
 
     while (!bme.fetchData()) {
       delay(3);
@@ -451,27 +480,16 @@ void pollBME() {
     bme_gas_avg = 0;
 
     if (!conditioning_duration) {
-
-      for (i = 0; i < numProfiles; ++i) {  // calc Average Samples
+      for (i = 0; i < numProfiles; ++i) {
         bme_resistance[i] /= bmeSamples;
-      }
-
-      for (i = 0; i < numProfiles; ++i) {
         bme_gas_avg += bme_resistance[i];
+        // offsetDelta = 5684;  // min(offsetDelta, bme_resistance[i]);
       }
-      bme_gas_avg /= numProfiles;
-      offsetDelta = findSmallestValue(bme_resistance);
-      ;
 
-      // Serial.printf("Curr Meas: %d", repeater);
-      // Serial.println();
-      // Serial.printf("Offset Delta:%d", offsetDelta);
-      // Serial.println();
-      // Serial.printf("Sampling Delta: %f", samplingDelta);
-      // Serial.println();
+      bme_gas_avg /= numProfiles;
 
       for (i = 0; i < numProfiles; ++i) {
-        bme_resistance_avg[i] = (bme_resistance[i] - offsetDelta);  // work in progress
+        bme_resistance_avg[i] = bme_resistance[i] - offsetDelta;
 
         if (serialPrintBME1) {
           console[consoleLine][i] = String(bme_resistance_avg[i]);
@@ -480,20 +498,16 @@ void pollBME() {
       }
 
       if (serialPrintBME1) {
-        consoleLine++;
-        if (consoleLine >= 55) consoleLine = 0;
+        consoleLine = (consoleLine + 1) % 55;
         Serial.println();
       }
 
-      for (i = 0; i < numProfiles; ++i) {  // empty resistance array
-        bme_resistance[i] = 0;
-      }
+      std::fill_n(bme_resistance, numProfiles, 0);  // empty resistance array
     }
     repeater = 0;
   }
+
   bme.setOpMode(BME68X_SLEEP_MODE);
-
-
 
   debugF(bmeTracker);
   bmeTracker = (micros() - bmeTracker) / double(ONETHOUSAND);

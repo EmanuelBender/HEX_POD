@@ -4,52 +4,53 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "SPI.h"
-#include <WiFi.h>
-#include <ArduinoBLE.h>
-#include <Preferences.h>
-#include "time.h"
+#include "WiFi.h"
+#include "ArduinoBLE.h"
+#include "Preferences.h"
 
 #include "FS.h"
-#include <LittleFS.h>
+#include "LittleFS.h"
 #include "SD.h"
 
 #include "TFT_eSPI.h"
-#include <U8g2lib.h>
-#include <PCA95x5.h>
-#include <ESP32Servo.h>
+#include "U8g2lib.h"
+#include "PCA95x5.h"
+#include "ESP32Servo.h"
 
-#include <Adafruit_Sensor.h>
+#include "Adafruit_Sensor.h"
 #include "INA219.h"
 #include "bme68xLibrary.h"
-#include <SensirionI2CSgp41.h>
-#include <VOCGasIndexAlgorithm.h>
-#include <NOxGasIndexAlgorithm.h>
-#include <DallasTemperature.h>
-#include <OneWire.h>
-#include <Adafruit_LIS3DH.h>
+#include "SensirionI2CSgp41.h"
+#include "VOCGasIndexAlgorithm.h"
+#include "NOxGasIndexAlgorithm.h"
+#include "DallasTemperature.h"
+#include "OneWire.h"
+#include "Adafruit_LIS3DH.h"
 
-#include <WebServer.h>
-#include <ESPmDNS.h>
+#include "WebServer.h"
+#include "ESPmDNS.h"
 #include "esp_sntp.h"
 WebServer server(80);
-uint16_t webServerPollMs = 120;
+uint16_t webServerPollMs = 80;
 
 // ________________  ESP32 UTILITY  ____________________
 
-#include <stdio.h>
+#include "stdio.h"
 #include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "driver/i2c.h"
-// #include <esp_system.h>
-#include "esp_log.h"
+#include <esp_log.h>
 #include <esp_cpu.h>
 #include <stdexcept>
 #include <sstream>
 #include <inttypes.h>
+#include <sstream>
+
 
 #include "TaskManagerIO.h"
 #include <TimeLib.h>
+#include "time.h"
 
 esp_chip_info_t chip_info;
 esp_reset_reason_t resetReason;
@@ -140,7 +141,7 @@ const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
 multi_heap_info_t deviceInfo;
-uint32_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, out_size;
+uint32_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free /*out_size*/;
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
@@ -157,7 +158,7 @@ const byte log_idx_bme1_humid = 16;  // index in log file
 const byte log_idx_bme1_press = 17;  // index in log file
 const byte log_idx_sgp_voc = 18;
 const byte log_idx_sgp_nox = 19;
-uint16_t chart_max_data = 60;
+uint16_t chart_max_data = 180;
 String restartHeader;
 
 enum PowerState { NORMAL,
@@ -185,7 +186,7 @@ const char* menuOptions[] = {
   "System",
 };
 
-uint32_t idleDelay = 20000 * ONETHOUSAND;
+uint32_t idleDelay = 30000 * ONETHOUSAND;
 uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // 3 min
 // uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
 
@@ -247,10 +248,11 @@ Bme68x bme;
 String BME_ERROR, lastBMEpoll;
 const byte numProfiles = 14;
 uint32_t bme_resistance[numProfiles], bme_resistance_avg[numProfiles];
-uint32_t bmeInterval, bme_gas_avg, offsetDelta;
+uint32_t bmeInterval, bme_gas_avg;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 double Altitude, samplingDelta;
+uint16_t offsetDelta = 5684;
 
 const uint16_t heatProf_1[numProfiles] = {
   90,   // 0
@@ -324,8 +326,8 @@ bool BUS2_CNVR;
 bool INA2_iscalibrated;
 
 // Task Manager _______________________________________________________________________
-taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB;  // task IDs
-double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker;
+taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID;  // task IDs
+double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker;
 uint32_t tmTracker;
 
 const byte slotsSize = 24;
@@ -336,21 +338,23 @@ struct TaskData {
   const char* taskName;
   double* tracker;
   taskid_t* taskId;
-  //String* lastPoll;
 };
 
 TaskData tasks[] = {
   { "updateTime", &uTimeTracker, &SECID },
   { "updateStat", &statBaTracker, &STATID },
+  { "powerStates", &powerStTracker, &ST1 },
+  { "pollServer", &clientTracker, &WEB },
   { "getNTP", &ntpTracker, &NTPID },
   { "pollTemp", &tempTracker, &TEMPID },
   { "pollINA", &ina2Tracker, &INA2ID },
-  { "powerStates", &powerStTracker, &ST1 },
-  { "pollServer", &clientTracker, &WEB },
-  { "pollIMU", &imuTracker, &IMUID },
   { "pollBME", &bmeTracker, &BMEID },  // &lastBMEpoll
   { "pollSGP", &sgpTracker, &SGPID },  // &lastSGPpoll
-  { "logging", &loggingTracker, &LOG }
+  { "pollIMU", &imuTracker, &IMUID },
+  { "logging", &loggingTracker, &LOG },
+  { "systemPage", &systemPageTracker, &SYSID },
+  { "homePage", &homePageTracker, &HOMEID },
+  { "sensorPage", &sensorPageTracker, &SNSID },
 };
 
 
@@ -404,6 +408,7 @@ void setup() {  // ________________ SETUP ___________________
   preferences.putUInt("restarts", restarts);
   preferences.end();
 
+  esp_chip_info(&chip_info);
   getDeviceInfo();
 
   getNTP();
@@ -549,19 +554,21 @@ void setup() {  // ________________ SETUP ___________________
 
   //___________________________ INITIALIZE OLED ________________________
 
-  if (OLEDon) {
-    u8g2.begin();
-    u8g2.setFontDirection(0);
-    u8g2.setFontMode(0);
-    u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
+  if (u8g2.begin()) {
+    if (OLEDon) {
+      u8g2.setFontDirection(0);
+      u8g2.setFontMode(0);
+      u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
 
-    if (DEBUG) {
-      u8g2.clearBuffer();
-      u8g2.drawStr(oledDatum_X, oledDatum_Y, "OLED Good.");
-      u8g2.sendBuffer();
+      if (DEBUG) {
+        u8g2.clearBuffer();
+        u8g2.drawStr(oledDatum_X, oledDatum_Y, "OLED Good.");
+        u8g2.sendBuffer();
+      }
+    } else {
+      u8g2.setPowerSave(1);
     }
   }
-
   //___________________________ TASK MANAGER ________________________
 
   launchUtility();  // setup tasks, launch utility Menu

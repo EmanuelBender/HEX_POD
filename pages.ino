@@ -58,12 +58,14 @@ void homePage() {
   TAG = "homePage";
   timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  taskManager.schedule(onceMicros(20), statusBar);
 
   tft.setTextDatum(TC_DATUM);
   tft.setTextPadding(180);
   tft.drawString(printTime, TFT_WIDTH / 2, 90, 6);
   tft.drawString(printDate, TFT_WIDTH / 2, 135, 4);
+
+  debugF(timeTracker);
+  homePageTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -71,7 +73,7 @@ void homePage() {
 
 void sensorPage() {
   TAG = "sensorPage()";
-  timeTracker = micros();
+  sensorPageTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   tft.setTextDatum(TL_DATUM);
   tft.setTextPadding(60);
@@ -88,11 +90,10 @@ void sensorPage() {
   tft.drawString("PWR " + String(BUS2_Power) + "mW", 115, (26 * 5), 2);
 
   tft.setTextPadding(45);
-  tft.drawString("BME:" + String(data.meas_index), 20, (26 * 6), 2);  // data1.temperature , data1.humidity, data1.pressure
+  tft.drawString("BME[1]", 20, (26 * 6), 2);
   tft.drawString("T" + String(data.temperature), 75, (26 * 6), 2);
   tft.drawString("H" + String(data.humidity), 128, (26 * 6), 2);
-  double pressure = (data.pressure / 10000.0);
-  tft.drawString("P" + String(pressure), 182, (26 * 6), 2);
+  tft.drawString("P" + String(data.pressure / 10000.0), 182, (26 * 6), 2);
   tft.setTextPadding(70);
   tft.drawString("A" + String(bme_resistance_avg[0]), 20, (26 * 7), 2);  // bme1_resistance, gas_index, meas_index, bme1_idac
   tft.drawString("B" + String(bme_resistance_avg[1]), 90, (26 * 7), 2);
@@ -103,7 +104,12 @@ void sensorPage() {
   tft.setTextPadding(90);
   tft.drawString("VOC " + String(VOC), 20, (26 * 9), 2);  // sgpHumidity, sgpTemperature
   tft.drawString("NOX " + String(NOX), 115, (26 * 9), 2);
+
+  debugF(sensorPageTracker);
+  sensorPageTracker = (micros() - sensorPageTracker) / double(ONETHOUSAND);
 }
+
+
 
 
 void utilPage() {
@@ -114,51 +120,53 @@ void utilPage() {
 
   if (menuTrigger && blockMenu) {
     menuTrigger = false;
-    // taskManager.schedule(onceMicros(30), statusBar);
 
     if (DOWN || CLICK_DOWN) {
       DOWN = false;
       utilIndex = (utilIndex % 9) + 1;
-      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
       // return;
     }
     if (UP) {
       utilIndex = ((utilIndex - 2 + 9) % 9) + 1;
       UP = false;
-      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
       // return;
     }
 
     if (LEFT) {
       LEFT = false;
       blockMenu = false;
-      // launchUtility();
-      // UTILID = taskManager.schedule(onceMicros(10), utilPage);
+
+      if (utilIndex == 1) {
+        taskManager.cancelTask(IMUID);
+        taskManager.cancelTask(CUBEID);
+        imuTracker = 0;
+        IMUID = 0;
+        CUBEID = 0;
+      } else if (utilIndex == 3) {
+        taskManager.cancelTask(BLEID);
+        BLEID = 0;
+      }
+      tft.fillScreen(TFT_BLACK);
       taskManager.schedule(onceMicros(2), reloadMenu);
       return;
     }
 
     if (BUTTON || RIGHT || CLICK) {
-      taskManager.cancelTask(UTILID);
       BUTTON = false;
       RIGHT = false;
       switch (utilIndex) {
         case 1:
           debugF(timeTracker);
-          taskManager.reset();
           lis.setDataRate(LIS3DH_DATARATE_LOWPOWER_5KHZ);
           initializeCube();
-          IMUID = taskManager.schedule(repeatMicros(630), pollIMU);  // 625us * 50 = 31.25ms, 550 * 55 * 30.35ms
-          // taskManager.setTaskEnabled(IMUID, true);
-          taskManager.schedule(repeatMicros(630), calcCube);
-          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
+          IMUID = taskManager.schedule(repeatMicros(820), pollIMU);  // 625us * 50 = 31.25ms, 550 * 55 * 30.35ms
+          CUBEID = taskManager.schedule(repeatMicros(820), calcCube);
           tft.fillScreen(TFT_BLACK);
           break;
         case 2:
           WIFIID = taskManager.schedule(onceMillis(1), WiFiScan);
           break;
         case 3:
-          debugF(timeTracker);
           WiFi.disconnect(true);
           WiFi.mode(WIFI_OFF);
           if (!BLE.begin()) {
@@ -166,13 +174,12 @@ void utilPage() {
               ESP_LOGE(TAG, "Bluetooth® Low Energy module failed!");
             }
           }
-          taskManager.reset();
-          taskManager.schedule(repeatMillis(1000), BLEscan);
+          BLEID = taskManager.schedule(repeatMillis(2000), BLEscan);
+          tft.fillScreen(TFT_BLACK);
+          debugF(timeTracker);
           break;
         case 4:
           debugF(timeTracker);
-          taskManager.reset();
-          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
 
           LittleFS.begin();
           deleteFile(LittleFS, logFilePath.c_str());
@@ -186,34 +193,19 @@ void utilPage() {
           break;
         case 6:
           OLEDon = !OLEDon;
-          io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
-          if (OLEDon) {
-            u8g2.begin();
-            delay(50);
-            u8g2.setFontDirection(0);
-            u8g2.setFontMode(0);
-            u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
-            updateTime();
-          }
+          toggleOLED();
           break;
         case 7:
           FANon = !FANon;
-          if (FANon) {
-            digitalWrite(GPIO_NUM_1, true);
-          } else {
-            digitalWrite(GPIO_NUM_1, false);
-          }
+          FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
           break;
         case 8:
+          tft.fillScreen(TFT_BLACK);
           debugF(timeTracker);
-          taskManager.reset();
-          WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
           taskManager.schedule(onceMillis(50), colorTest);
-          // tft.fillScreen(TFT_BLACK);
           break;
-
         case 9:
-          debugF(timeTracker);
+          tft.fillScreen(TFT_BLACK);
           ESP.restart();
           break;
 
@@ -316,7 +308,7 @@ String assembleTaskData() {
   String result;
 
   for (const auto& task : tasks) {
-    if (taskFreeSlots[*task.taskId] != char('F') /* && *task.tracker > 0.0  && *task.taskId != 0*/) {
+    if (taskFreeSlots[*task.taskId] != char('F') && *task.tracker > 0.00 || *task.taskId != 0) {
       result += "[" + String(*task.taskId) + "]" + String(taskFreeSlots[*task.taskId]) + " " + task.taskName + " " + String(*task.tracker) + "ms\n";
     }
   }
@@ -367,150 +359,159 @@ void taskM() {
 
 void systemPage() {
   TAG = "systemPage()";
-  timeTracker = micros();
+  systemPageTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  tft.setTextDatum(TL_DATUM);
 
-  getDeviceInfo();
-
-  if (DOWN) {
-    sysIndex -= 1;
-    DOWN = false;
-  }
-  if (UP && sysIndex <= -1) {
-    sysIndex += 1;
-    UP = false;
-  }
-
-  if (menuTrigger) {
+  if (menuTrigger && blockMenu) {
     menuTrigger = false;
-    if (sysIndex <= 0) {
-      tft.setTextPadding(220);
 
-      // unsigned major_rev = chip_info.revision;
-      // unsigned minor_rev = chip_info.revision % 100;
+    tft.setTextDatum(TL_DATUM);
+    tft.drawString("System Info", 15, 15, 4);
 
-      for (int i = 2; i <= 40; i++) {
-        if (sysIndex + i >= 2 && sysIndex + i <= 40) {
+    if (DOWN) {
+      sysIndex -= 1;
+      DOWN = false;
+    }
+    if (UP && sysIndex <= -1) {
+      sysIndex += 1;
+      UP = false;
+    }
 
-          switch (i) {
-            case 2:
-              label = String(CONFIG_IDF_TARGET) /* + " " + String(major_rev)*/;
-              if (esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
-                value = "failed";
-                ESP_LOGE(TAG, "Get flash size failed");
-              } else {
-                value = String(flash_size / ONEMILLIONB) + "MB " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
-              }
-              break;
-            case 3:
-              label = "CPU:       ";
-              value = String(cpu_freq_mhz) + " MHZ" + " x" + String(chip_info.cores);
-              break;
-            case 4:
-              label = "Features:  ";
-              value = String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi, " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT, " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "");
-              break;
-            case 5:
-              label = "PSRAM:    ";
-              // value = String((chip_info.features & CHIP_FEATURE_EMB_PSRAM ? "YES " : "-- "));
-              value = "T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb,  F:" + String(deviceInfo.total_free_bytes / KILOBYTE) + "Kb";
-              break;
-            case 6:
-              label = "SPIFFS:    ";
-              value = "F: " + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb,  U: " + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb";
-              break;
-            case 7:
-              label = "XTAL:      ";
-              value = String(cpu_xtal_mhz) + " MHZ";
-              break;
-            case 8:
-              label = "ABP:       ";
-              value = String(cpu_abp_hz / ONEMILLION) + " MHZ";
-              break;
-            case 9:
-              label = "I2C:        ";
-              value = String(I2C_SPEED / 1000) + " KHZ";
-              break;
-            case 10:
-              label = "SPI:        ";
-              value = String(SPI_FREQUENCY / ONEMILLION) + " MHZ";
-              break;
-            case 11:
-              label = "SPI_READ: ";
-              value = String(SPI_READ_FREQUENCY / ONEMILLION) + " MHZ";
-              break;
-            case 12:
-              label = "SD:        ";
-              value = SDinserted ? "TRUE" : "FALSE";
-              break;
-            case 13:
-              label = "OS Version ";
-              value = String(codeRevision);
-              break;
-            case 14:
-              label = print_wakeup_reason();
-              value = "";
-              break;
-            case 15:
-              label = "Free_heap:      ";
-              value = String(esp_get_free_heap_size() / KILOBYTE) + "KB";
-              break;
-            case 16:
-              label = "Minimum_heap:   ";
-              value = String(esp_get_minimum_free_heap_size() / KILOBYTE) + "KB";
-              break;
-            case 17:
-              label = "Internal_heap:   ";
-              value = String(esp_get_free_internal_heap_size() / KILOBYTE) + "KB";
-              break;
-            case 18:
-              label = "Sketch Used:     ";
-              value = String(program_UsedP) + "%";
-              break;
-            case 19:
-              label = "WiFi IP:         ";
-              value = String(WiFiIP);
-              break;
-            case 20:
-              label = "WiFi Status:      ";
-              value = String(WiFi.status());
-              break;
-            case 21:
-              label = "Last NTP OK:     ";
-              value = lastNTPtime;
-              break;
-            case 22:
-              label = "Last NTP fail:   ";
-              value = lastNTPtimeFail;
-              break;
-            case 23:
-              label = "CPU Temp:       ";
-              value = String(CPUTEMP);
-              break;
-            case 24:
-              label = "INA219:         ";
-              value = INA2.isConnected() ? "OK" : "NaN" + String(INA2_iscalibrated ? "Cal" : "NoCal");
-              break;
-            case 25:
-              label = "BME688:         ";
-              value = BME_ERROR;
-              break;
-            case 26:
-              label = "SGP41:          ";
-              value = String(sgpErrorMsg);
-              break;
+    if (LEFT) {
+      LEFT = false;
+      blockMenu = false;
+      tft.fillScreen(TFT_BLACK);
+      taskManager.schedule(onceMicros(2), reloadMenu);
+      return;
+    }
 
-            default:
-              label = "-: ";
-              value = " ";
-          }
+    getDeviceInfo();
+    tft.setTextPadding(220);
 
-          tft.drawString(label + " " + value, 20, (17 * (i + sysIndex)) + 9, 2);
+    //   if (sysIndex <= 0) {
+
+    for (int i = 2; i <= 40; i++) {
+      if (sysIndex + i >= 2 && sysIndex + i <= 40) {
+
+        switch (i) {
+          case 2:
+            label = String(CONFIG_IDF_TARGET) /* + " " + String(major_rev)*/;
+            if (esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
+              value = "failed";
+              ESP_LOGE(TAG, "Get flash size failed");
+            } else {
+              value = String(flash_size / ONEMILLIONB) + "MB " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
+            }
+            break;
+          case 3:
+            label = "CPU:       ";
+            value = String(cpu_freq_mhz) + " MHZ" + " x" + String(chip_info.cores);
+            break;
+          case 4:
+            label = "Features:  ";
+            value = String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi, " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT, " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "");
+            break;
+          case 5:
+            label = "RAM:    ";
+            // value = String((chip_info.features & CHIP_FEATURE_EMB_PSRAM ? "YES " : "-- "));
+            value = "T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb,  F:" + String(deviceInfo.total_free_bytes / KILOBYTE) + "Kb";
+            break;
+          case 6:
+            label = "SPIFFS:    ";
+            value = "F: " + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb,  U: " + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb";
+            break;
+          case 7:
+            label = "XTAL:      ";
+            value = String(cpu_xtal_mhz) + " MHZ";
+            break;
+          case 8:
+            label = "ABP:       ";
+            value = String(cpu_abp_hz / ONEMILLION) + " MHZ";
+            break;
+          case 9:
+            label = "I2C:        ";
+            value = String(I2C_SPEED / 1000) + " KHZ";
+            break;
+          case 10:
+            label = "SPI:        ";
+            value = String(SPI_FREQUENCY / ONEMILLION) + " MHZ";
+            break;
+          case 11:
+            label = "SPI_READ: ";
+            value = String(SPI_READ_FREQUENCY / ONEMILLION) + " MHZ";
+            break;
+          case 12:
+            label = "SD:        ";
+            value = SDinserted ? "Present" : "None";
+            break;
+          case 13:
+            label = "OS Version ";
+            value = String(codeRevision);
+            break;
+          case 14:
+            label = print_wakeup_reason();
+            value = "";
+            break;
+          case 15:
+            label = "Free_heap:      ";
+            value = String(esp_get_free_heap_size() / KILOBYTE) + "KB";
+            break;
+          case 16:
+            label = "Minimum_heap:   ";
+            value = String(esp_get_minimum_free_heap_size() / KILOBYTE) + "KB";
+            break;
+          case 17:
+            label = "Internal_heap:   ";
+            value = String(esp_get_free_internal_heap_size() / KILOBYTE) + "KB";
+            break;
+          case 18:
+            label = "Sketch Used:     ";
+            value = String(program_UsedP) + "%";
+            break;
+          case 19:
+            label = "WiFi IP:         ";
+            value = String(WiFiIP);
+            break;
+          case 20:
+            label = "WiFi Status:      ";
+            value = String(WiFi.status());
+            break;
+          case 21:
+            label = "Last NTP OK:     ";
+            value = lastNTPtime;
+            break;
+          case 22:
+            label = "Last NTP fail:   ";
+            value = lastNTPtimeFail;
+            break;
+          case 23:
+            label = "CPU Temp:       ";
+            value = String(CPUTEMP);
+            break;
+          case 24:
+            label = "INA219:         ";
+            value = INA2.isConnected() ? "OK" : "NaN" + String(INA2_iscalibrated ? "Cal" : "NoCal");
+            break;
+          case 25:
+            label = "BME688:         ";
+            value = BME_ERROR;
+            break;
+          case 26:
+            label = "SGP41:          ";
+            value = String(sgpErrorMsg);
+            break;
+
+          default:
+            label = " ";
+            value = " ";
         }
+
+        tft.drawString(label + " " + value, 20, (17 * (i + sysIndex)) + 9, 2);
       }
     }
-    debugF(timeTracker);
+    //  }
+    debugF(systemPageTracker);
+    systemPageTracker = (micros() - systemPageTracker) / double(ONETHOUSAND);
   }
 }
 

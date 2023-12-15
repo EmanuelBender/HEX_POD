@@ -11,6 +11,7 @@ void getSPIFFSsizes() {
   percentLeftLFS = 100.0 - percentUsedLFS;
 }
 
+
 void getProgramInfo() {
   program_size = ESP.getFreeSketchSpace();
   program_used = ESP.getSketchSize();
@@ -19,28 +20,28 @@ void getProgramInfo() {
   program_LeftP = 100.0 - program_UsedP;
 }
 
+void getFlashInfo() {
+  flash_size = ESP.getFlashChipSize();
+  flash_speed = ESP.getFlashChipSpeed();
+  free_flash_size = flash_size - program_used - SPIFFS_used;
+  flash_UsedP = (program_used * 100.0) / flash_size;
+  flash_LeftP = 100.0 - flash_UsedP;
+}
+
+
 void getDeviceInfo() {
+
+  SDinserted = !digitalRead(GPIO_NUM_47);
+  resetReasonString = print_wakeup_reason();
+  if (WiFi.status() == WL_CONNECTED) WiFiIP = WiFi.localIP().toString();
 
   LittleFS.begin();
   getSPIFFSsizes();
   LittleFS.end();
 
-  esp_flash_get_size(NULL, &out_size);
-  esp_flash_get_physical_size(NULL, &flash_size);
-  esp_chip_info(&chip_info);
-
-  WiFiIP = WiFi.localIP().toString();
-
-  SDinserted = !digitalRead(GPIO_NUM_47);
-  resetReasonString = print_wakeup_reason();
-
   getProgramInfo();
 
-  flash_speed = ESP.getFlashChipSpeed();
-  flash_size = double(ESP.getFlashChipSize());
-  free_flash_size = flash_size - program_used - SPIFFS_used;
-  flash_UsedP = (program_used * 100.0) / flash_size;
-  flash_LeftP = 100.0 - flash_UsedP;
+  getFlashInfo();
 
   cpu_freq_mhz = getCpuFrequencyMhz();
   cpu_xtal_mhz = getXtalFrequencyMhz();
@@ -63,97 +64,42 @@ void getDeviceInfo() {
   // esp_get_free_internal_heap_size();
 }
 
-
-void logging() {  // Assign values to the array at the current index
+void logging() {
   TAG = "logging()    ";
   loggingTracker = micros();
-  timeTracker = loggingTracker;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (conditioning_duration == 0) {
-    getDeviceInfo();
-
-    String airLog;
-    airLog = printTime + ", ";
-    /* 
-  SDarray[SDIndex][0] = printTime;
-  SDarray[SDIndex][1] = printDate;
-  SDarray[SDIndex][2] = String(CONFIG_IDF_TARGET);
-  SDarray[SDIndex][3] = codeRevision;
-  SDarray[SDIndex][4] = print_wakeup_reason();
-  SDarray[SDIndex][5] = currentPowerState;
-  SDarray[SDIndex][6] = SLEEPENABLE;
-  SDarray[SDIndex][7] = WiFi.status();
-  SDarray[SDIndex][8] = lastNTPtime;
-  SDarray[SDIndex][9] = String(cpu_freq_mhz) + "MHZ" + " " + String(chip_info.cores) + "Core";
-  SDarray[SDIndex][10] = String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "");
-  SDarray[SDIndex][11] = String(flash_size / ONEMILLION) + "Mb " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external") + " flash";
-  SDarray[SDIndex][12] = "PSRAM Total: " + String(ESP.getPsramSize() / 1024) + "KB  Free: " + String(ESP.getFreePsram() / 1024) + "KB";
-  SDarray[SDIndex][13] = "SPIFFS Free: " + String(file_system_size / ONEMILLION) + "MB  Used: " + String(file_system_used / ONEMILLION) + "MB";
-  SDarray[SDIndex][14] = String(esp_get_free_heap_size() / 1024.0) + "KB";
-  SDarray[SDIndex][15] = String(esp_get_minimum_free_heap_size() / 1024.0) + "KB";
-  SDarray[SDIndex][16] = String(esp_get_free_internal_heap_size() / 1024.0) + "KB";
-  SDarray[SDIndex][17] = String(program_size / 1024.0) + "KB";
-  SDarray[SDIndex][18] = CPUTEMP;
-  SDarray[SDIndex][19] = tempValues[0];
-  SDarray[SDIndex][20] = BUS2_BusVoltage;
-  SDarray[SDIndex][21] = BUS2_Current;
-  SDarray[SDIndex][22] = "X" + String(X) + " Y" + String(Y) + " Z" + String(Z);
-  SDarray[SDIndex][23] = data.temperature;
-  SDarray[SDIndex][24] = data.humidity;
-  SDarray[SDIndex][25] = data.pressure;
-*/
-    for (int i = 0; i < numProfiles; ++i) {
-      // SDarray[SDIndex][26 + i] = bme_resistance_avg[i];
-      airLog += String(bme_resistance_avg[i]) + ", ";
-    }
-    airLog += String(data.temperature, 3) + ", ";
-    airLog += String(data.humidity, 2) + ", ";
-    airLog += String(data.pressure, 3) + ", ";
-    airLog += String(VOC) + ", ";
-    airLog += String(NOX) + ", ";
-    airLog += String(srawVoc) + ", ";
-    airLog += String(srawNox);
-    airLog += "\r\n";
-
-    /* SDarray[SDIndex][numProfiles + 26] = VOC;
-  SDarray[SDIndex][numProfiles + 27] = NOX;
-  SDarray[SDIndex][numProfiles + 28] = srawVoc;
-  SDarray[SDIndex][numProfiles + 29] = srawNox; */
-
-    // if (serialPrintLOG) {
-    // String logLine = "";
-    // Serial.print("Raw Data: ");
-    /*
-    for (int j = 0; j < consoleColumns; ++j) {
-      if (!SDarray[SDIndex][j].isEmpty()) {
-        // Serial.print(SDarray[SDIndex][j]);
-        // consoleLine++;
-        // console[consoleLine][i] = String(SDarray[SDIndex][j]);
-        // logLine += SDarray[SDIndex][j] + ", ";
-      }
-    } */
-    // logLine += "\r\n";
-    // Serial.println();
-
     LittleFS.begin();
-    // const char *logLineCStr = logLine.c_str();
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
-    appendFile(LittleFS, logFilePath.c_str(), airLog.c_str());
+    std::ostringstream airLog;
+
+    airLog << printTime.c_str() << ", ";
+
+    for (int i = 0; i < numProfiles; ++i) {
+      airLog << bme_resistance_avg[i] << ", ";
+    }
+
+    airLog.precision(3);                               // Set precision for temperature and pressure
+    airLog << std::fixed << data.temperature << ", ";  // Fixed precision for temperature
+    airLog << std::fixed << data.humidity << ", ";
+    airLog << std::fixed << data.pressure << ", ";
+    airLog << VOC << ", ";
+    airLog << NOX << ", ";
+    airLog << srawVoc << ", ";
+    airLog << srawNox << "\n";
+
+    // Using c_str() to get the const char* for LittleFS
+    appendFile(LittleFS, logFilePath.c_str(), airLog.str().c_str());
+    // getSPIFFSsizes();
 
     LittleFS.end();
-    airLog.clear();
-    // }
   }
-
-  // SDIndex++;  // Move to the next row for the next measurements
-  // if (SDIndex >= consoleRows) SDIndex = 0;
 
   debugF(loggingTracker);
   loggingTracker = (micros() - loggingTracker) / double(ONETHOUSAND);
 }
-
 
 
 void mountSD() {
@@ -187,13 +133,6 @@ void mountSD() {
     } else {
       // tft.drawString("Type: UNKNOWN", 20, 40, 2);
     }
-
-
-    // listDir(SD, "/", 0);
-    // createDir(SD, "/testFolder");
-    // listDir(SD, "/", 0);
-    // removeDir(SD, "/testFolder");
-    // delay(10000);
   }
 }
 

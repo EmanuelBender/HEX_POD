@@ -19,7 +19,7 @@ void FLOW_MENU() {
 
   // sprite1.createSprite(50, 50);
   if (DEBUG) {
-    timeTracker = (micros() - timeTracker) / 1000;
+    timeTracker = (micros() - timeTracker) / ONETHOUSAND;
     ESP_LOGI(TAG, "%.3lfms", timeTracker);
   }
 }
