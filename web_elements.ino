@@ -3,100 +3,6 @@
 
 
 
-String generateSGPchart() {
-  LittleFS.begin();
-  File file = LittleFS.open(logFilePath.c_str(), "r");
-  if (!file) {
-    LittleFS.end();
-    return "console.error('Error opening file');";
-  }
-  String chartData = "<script type='text/javascript'>";
-  chartData += "function drawSGPchart() {\n"
-               "  var data_sgp = google.visualization.arrayToDataTable([\n"
-               "    [";
-
-  chartData += "'" + logColumns[0] + "', ";  // time
-  chartData += "'" + logColumns[log_idx_sgp_voc] + "', ";
-  chartData += "'" + logColumns[log_idx_sgp_nox] + "'";
-  chartData += "],\n";
-
-  String line;
-  size_t lineCount = 0;
-
-  while (file.available() && lineCount < chart_max_data) {
-    line = file.readStringUntil('\n');
-
-    int commaIndex = line.indexOf(',');
-    String timestampChar = line.substring(0, commaIndex);
-    String values = line.substring(commaIndex + 1);
-
-    String valueArray[3];
-    int i = 0;
-    size_t lastCommaIndex = 0;
-
-    valueArray[0] = convertLogTimestampForChart(timestampChar);
-
-
-    while (i <= log_idx_sgp_nox) {
-      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
-
-      if (currentCommaIndex == std::string::npos) {
-        currentCommaIndex = values.length();
-      }
-
-      String value = values.substring(lastCommaIndex, currentCommaIndex);
-      if (value.length() == 0) {
-        break;
-      } else {
-        if (i == log_idx_sgp_voc - 1 || i == log_idx_sgp_nox - 1) valueArray[i - (log_idx_sgp_voc - 2)] = value;
-      }
-      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
-      i++;
-    }
-
-    lineCount++;
-    if (i < log_idx_sgp_voc) {  // skip the line if empty
-      continue;
-    }
-
-    chartData += "["
-                 + valueArray[0] + ", "
-                 + valueArray[1] + ", "
-                 + valueArray[2]
-                 + "],\n";
-  }
-
-  chartData += "  ]);\n\n"
-               "  var maxDataValue = calculateMaxValue(data_sgp);\n"
-               "  var options_sgp = {\n"
-               "    title: 'VOC, NOx',\n"
-               "    curveType: 'function',\n"
-               "    legend: { position: 'bottom' },\n"
-               "    backgroundColor: 'transparent',\n"
-               "    series: {\n"
-               // "      16: {targetAxisIndex: 1},\n"
-               // "      2: {targetAxisIndex: 1},\n"
-               "      1: {targetAxisIndex: 1}\n"
-               "    },\n"
-               "    vAxes: {\n"
-               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },  // Left axis\n"
-               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }   // Right axis\n"
-               "    }\n"
-               "  };\n\n"
-               "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
-               "  chart.draw(data_sgp, options_sgp);\n"
-               "}\n";
-  chartData += "google.charts.load('current', {'packages':['corechart']});"
-               "google.charts.setOnLoadCallback(drawSGPchart);"
-               "</script>";
-
-  file.close();
-  LittleFS.end();
-  return chartData;
-}
-
-
-
 
 
 String generateTHPchart() {
@@ -311,6 +217,98 @@ String generateBMEchart() {
 
 
 
+String generateSGPchart() {
+  LittleFS.begin();
+  File file = LittleFS.open(logFilePath.c_str(), "r");
+  if (!file) {
+    LittleFS.end();
+    return "console.error('Error opening file');";
+  }
+  String chartData = "<script type='text/javascript'>";
+  chartData += "function drawSGPchart() {\n"
+               "  var data_sgp = google.visualization.arrayToDataTable([\n"
+               "    [";
+
+  chartData += "'" + logColumns[0] + "', ";  // time
+  chartData += "'" + logColumns[log_idx_sgp_voc] + "', ";
+  chartData += "'" + logColumns[log_idx_sgp_nox] + "'";
+  chartData += "],\n";
+
+  String line;
+  size_t lineCount = 0;
+
+  while (file.available() && lineCount < chart_max_data) {
+    line = file.readStringUntil('\n');
+
+    int commaIndex = line.indexOf(',');
+    String timestampChar = line.substring(0, commaIndex);
+    String values = line.substring(commaIndex + 1);
+
+    String valueArray[3];
+    int i = 0;
+    size_t lastCommaIndex = 0;
+
+    valueArray[0] = convertLogTimestampForChart(timestampChar);
+
+
+    while (i <= log_idx_sgp_nox) {
+      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+      if (currentCommaIndex == std::string::npos) {
+        currentCommaIndex = values.length();
+      }
+
+      String value = values.substring(lastCommaIndex, currentCommaIndex);
+      if (value.length() == 0) {
+        break;
+      } else {
+        if (i == log_idx_sgp_voc - 1 || i == log_idx_sgp_nox - 1) valueArray[i - (log_idx_sgp_voc - 2)] = value;
+      }
+      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+      i++;
+    }
+
+    lineCount++;
+    if (i < log_idx_sgp_voc) {  // skip the line if empty
+      continue;
+    }
+
+    chartData += "["
+                 + valueArray[0] + ", "
+                 + valueArray[1] + ", "
+                 + valueArray[2]
+                 + "],\n";
+  }
+
+  chartData += "  ]);\n\n"
+               "  var maxDataValue = calculateMaxValue(data_sgp);\n"
+               "  var options_sgp = {\n"
+               "    title: 'VOC, NOx',\n"
+               "    curveType: 'function',\n"
+               "    legend: { position: 'bottom' },\n"
+               "    backgroundColor: 'transparent',\n"
+               "    series: {\n"
+               "      1: {targetAxisIndex: 1}\n"
+               "    },\n"
+               "    vAxes: {\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },  // Left axis\n"
+               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }   // Right axis\n"
+               "    }\n"
+               "  };\n\n"
+               "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
+               "  chart.draw(data_sgp, options_sgp);\n"
+               "}\n";
+  chartData += "google.charts.load('current', {'packages':['corechart']});"
+               "google.charts.setOnLoadCallback(drawSGPchart);"
+               "</script>";
+
+  file.close();
+  LittleFS.end();
+  return chartData;
+}
+
+
+
 
 
 String generateDeviceControlsTable() {
@@ -348,10 +346,10 @@ String generateDeviceStatsTable() {
 
   output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Min Free Heap  </td><td><b> Free Int Heap </td><td><b> </td><td><b>  </td>";
+  output += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Free Int Heap </td><td><b> Min Free Heap </td><td><b> </td><td><b>  </td>";
   output += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
-  output += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   output += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
+  output += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   output += "</tr>";
   output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 

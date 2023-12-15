@@ -21,36 +21,30 @@ void handleNotFound() {
 
 
 String convertLogTimestampForChart(String input) {
-  String output;
   int hours, minutes, seconds;
   sscanf(input.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
 
+  // String output;
   // Construct the JavaScript Date object with hours and minutes
-  output += "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ")";
-
+  //  output += "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ").toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
   // Get the time string in the format "HH:mm"
-  output += ".toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
+  // output += ".toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
 
-  return output;
+  return "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes)
+         + ").toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false })";
 }
 
 
 unsigned long convertTimestampToMillis(String timestamp) {
+
   int hours, minutes, seconds;
   sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
-
-  // Ensure hours, minutes, and seconds are within valid ranges
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
-    return 0;  // Return 0 if the timestamp is invalid
-  }
-
   return (hours * 3600UL + minutes * 60UL + seconds) * 1000UL;
 }
 
 
 
 void streamToServer(String filePath) {
-  //  filePath = logFilePath;
 
   if (!LittleFS.begin()) {
     server.send(500, "text/plain", "<h2>Spiffs failed</h2>");

@@ -157,7 +157,7 @@ const byte log_idx_bme1_humid = 16;  // index in log file
 const byte log_idx_bme1_press = 17;  // index in log file
 const byte log_idx_sgp_voc = 18;
 const byte log_idx_sgp_nox = 19;
-uint16_t chart_max_data = 120;
+uint16_t chart_max_data = 60;
 String restartHeader;
 
 enum PowerState { NORMAL,
