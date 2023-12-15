@@ -31,7 +31,7 @@ String convertLogTimestampForChart(String input) {
   // output += ".toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
 
   return "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes)
-         + ").toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false })";
+         + ").toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })";
 }
 
 
