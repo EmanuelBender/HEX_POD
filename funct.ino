@@ -8,7 +8,7 @@ void pollServer() {
 
   server.handleClient();
 
-  // debugF(timeTracker);
+  debugF(timeTracker);
   clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
@@ -62,7 +62,6 @@ void launchUtility() {
     taskManager.schedule(onceSeconds(5), pollBME);
     taskManager.schedule(onceSeconds(10), pollBME);
     taskManager.schedule(onceSeconds(15), pollBME);
-    taskManager.schedule(onceSeconds(25), pollBME);
   }
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
@@ -509,7 +508,7 @@ void pollBME() {
 
 void pollSGP() {
   TAG = "pollSGP()    ";
-  timeTracker = micros();
+  sgpTracker = micros();
   lastSGPpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
@@ -528,8 +527,8 @@ void pollSGP() {
     sgp41.turnHeaterOff();
   }
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
-  debugF(timeTracker);
-  sgpTracker = (micros() - timeTracker) / double(ONETHOUSAND);
+  debugF(sgpTracker);
+  sgpTracker = (micros() - sgpTracker) / double(ONETHOUSAND);
 }
 
 

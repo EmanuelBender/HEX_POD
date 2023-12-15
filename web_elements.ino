@@ -7,6 +7,7 @@ String generateSGPchart() {
   LittleFS.begin();
   File file = LittleFS.open(logFilePath.c_str(), "r");
   if (!file) {
+    LittleFS.end();
     return "console.error('Error opening file');";
   }
   String chartData = "<script type='text/javascript'>";
@@ -22,7 +23,6 @@ String generateSGPchart() {
   String line;
   size_t lineCount = 0;
 
-
   while (file.available() && lineCount < chart_max_data) {
     line = file.readStringUntil('\n');
 
@@ -34,8 +34,7 @@ String generateSGPchart() {
     int i = 0;
     size_t lastCommaIndex = 0;
 
-    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
-    valueArray[0] = timestamp;
+    valueArray[0] = convertLogTimestampForChart(timestampChar);
 
 
     while (i <= log_idx_sgp_nox) {
@@ -104,6 +103,7 @@ String generateTHPchart() {
   LittleFS.begin();
   File file = LittleFS.open(logFilePath.c_str(), "r");
   if (!file) {
+    LittleFS.end();
     return "console.error('Error opening file');";
   }
   String chartData = "<script type='text/javascript'>";
@@ -120,7 +120,6 @@ String generateTHPchart() {
   String line;
   size_t lineCount = 0;
 
-
   while (file.available() && lineCount < chart_max_data) {
     line = file.readStringUntil('\n');
 
@@ -132,9 +131,7 @@ String generateTHPchart() {
     int i = 0;
     size_t lastCommaIndex = 0;
 
-    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
-    valueArray[0] = timestamp;
-
+    valueArray[0] = convertLogTimestampForChart(timestampChar);
 
     while (i <= log_idx_bme1_press) {
       size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
@@ -179,8 +176,8 @@ String generateTHPchart() {
                "      2: {targetAxisIndex: 1}\n"
                "    },\n"
                "    vAxes: {\n"
-               "      0: { viewWindow: { min: -10, max: 90 } },  // Left axis\n"
-               "      1: { viewWindow: { min: maxDataValue - 5000, max: maxDataValue + 5000 } }   // Right axis\n"
+               "      0: { viewWindow: { min: -5, max: 80 } },  // Left axis\n"
+               "      1: { viewWindow: { min: maxDataValue - 3000, max: maxDataValue + 3000 } }   // Right axis\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('thp_chart'));\n"
@@ -200,8 +197,8 @@ String generateTHPchart() {
 String generateBMEchart() {
   LittleFS.begin();
   File file = LittleFS.open(logFilePath.c_str(), "r");
-
   if (!file) {
+    LittleFS.end();
     return "console.error('Error opening file');";
   }
   // size_t fileSize = file.size();
@@ -231,14 +228,12 @@ String generateBMEchart() {
     String timestampChar = line.substring(0, commaIndex);
     String values = line.substring(commaIndex + 1);
 
-    unsigned long timestamp = convertTimestampToMillis(timestampChar) / ONETHOUSAND;
-
-    // Split values into an array
     String valueArray[15];
     int i = 1;
     size_t lastCommaIndex = 0;
 
-    valueArray[0] = timestamp;
+    valueArray[0] = convertLogTimestampForChart(timestampChar);
+
     // Split the values using commas
     while (i < 15) {
       size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
@@ -312,7 +307,6 @@ String generateBMEchart() {
   LittleFS.end();
   return chartData;
 }
-
 
 
 

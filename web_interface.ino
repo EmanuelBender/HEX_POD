@@ -20,8 +20,20 @@ void handleNotFound() {
 }
 
 
+String convertLogTimestampForChart(String input) {
+  String output;
+  int hours, minutes, seconds;
+  sscanf(input.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
 
-#include <TimeLib.h>  // Include the TimeLib library for time functions
+  // Construct the JavaScript Date object with hours and minutes
+  output += "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ")";
+
+  // Get the time string in the format "HH:mm"
+  output += ".toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
+
+  return output;
+}
+
 
 unsigned long convertTimestampToMillis(String timestamp) {
   int hours, minutes, seconds;
@@ -29,7 +41,7 @@ unsigned long convertTimestampToMillis(String timestamp) {
 
   // Ensure hours, minutes, and seconds are within valid ranges
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
-    return 10000000;  // Return 0 if the timestamp is invalid
+    return 0;  // Return 0 if the timestamp is invalid
   }
 
   return (hours * 3600UL + minutes * 60UL + seconds) * 1000UL;

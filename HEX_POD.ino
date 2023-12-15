@@ -49,6 +49,7 @@ uint16_t webServerPollMs = 120;
 #include <inttypes.h>
 
 #include "TaskManagerIO.h"
+#include <TimeLib.h>
 
 esp_chip_info_t chip_info;
 esp_reset_reason_t resetReason;
@@ -300,7 +301,7 @@ int32_t std_initial;
 int32_t gain_factor;
 
 uint8_t conditioning_duration = 30;
-uint16_t sgpInterval;  // handled in preferences
+uint16_t sgpInterval = 1000;  // needs to be 1sec for the Algo
 
 uint16_t sgpError, error;
 char sgpErrorMsg[256];
