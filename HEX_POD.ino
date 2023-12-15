@@ -81,8 +81,9 @@ const char* hostname = "[HEX]POD";
 const int WiFiTimeout = 5000;
 String WiFiIP;
 String webHost, webPw;
-const char* ntpServer1 = "pool.ntp.org";   // NTP Time server
-const char* ntpServer2 = "time.nist.gov";  // fallback
+const char* ntpServer1 = "0.pool.ntp.org";  // NTP Time server
+const char* ntpServer2 = "time.nist.gov";   // fallback
+const char* ntpServer3 = "1.pool.ntp.org";  // fallback
 const byte SECONDS_IN_MINUTE = 60;
 const byte MINUTES_IN_HOUR = 60;
 const byte HOURS_IN_DAY = 24;

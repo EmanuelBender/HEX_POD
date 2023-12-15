@@ -318,13 +318,10 @@ void getNTP() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    configTzTime(time_zone, ntpServer1, ntpServer2);  // gets the time from the NTP server
+    configTzTime(time_zone, ntpServer1, ntpServer2, ntpServer3);  // gets the time from the NTP server
     updateTime();
     lastNTPtime = printTime + " " + printDate;
     WiFiIP = WiFi.localIP().toString();
-
-    // setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
-    //tzset();
   } else {
     ESP_LOGE("NTP", "Update failed.");
     lastNTPtimeFail = printTime + " " + printDate;
