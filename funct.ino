@@ -375,15 +375,13 @@ void pollTemp() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (tempSens.isConversionComplete()) {
-    // for (i = 0; i < DTdevice; i++) {
-    tempValues[0] = tempSens.getTempC(DTprobe_1);
-    // }
-
-    // tempSens.processAlarms();
-    tempSens.requestTemperatures();
-
-    CPUTEMP = temperatureRead();
+    for (byte i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
+      // tempSens.requestTemperaturesByAddress(DTprobe[i].address);
+      DTprobe[i].temperature = tempSens.getTempC(DTprobe[i].address);  // Update the temperature value for each probe
+    }
   }
+  tempSens.requestTemperatures();
+  CPUTEMP = temperatureRead();
 
   debugF(tempTracker);
   tempTracker = (micros() - tempTracker) / double(ONETHOUSAND);

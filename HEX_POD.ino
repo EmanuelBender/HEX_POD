@@ -3,33 +3,33 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include "SPI.h"
-#include "WiFi.h"
-#include "ArduinoBLE.h"
-#include "Preferences.h"
+#include <SPI.h>
+#include <WiFi.h>
+#include <ArduinoBLE.h>
+#include <Preferences.h>
 
-#include "FS.h"
-#include "LittleFS.h"
-#include "SD.h"
+#include <FS.h>
+#include <LittleFS.h>
+#include <SD.h>
 
-#include "TFT_eSPI.h"
-#include "U8g2lib.h"
-#include "PCA95x5.h"
-#include "ESP32Servo.h"
+#include <TFT_eSPI.h>
+#include <U8g2lib.h>
+#include <PCA95x5.h>
+#include <ESP32Servo.h>
 
-#include "Adafruit_Sensor.h"
-#include "INA219.h"
-#include "bme68xLibrary.h"
-#include "SensirionI2CSgp41.h"
-#include "VOCGasIndexAlgorithm.h"
-#include "NOxGasIndexAlgorithm.h"
-#include "DallasTemperature.h"
-#include "OneWire.h"
-#include "Adafruit_LIS3DH.h"
+#include <Adafruit_Sensor.h>
+#include <INA219.h>
+#include <bme68xLibrary.h>
+#include <SensirionI2CSgp41.h>
+#include <VOCGasIndexAlgorithm.h>
+#include <NOxGasIndexAlgorithm.h>
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#include <Adafruit_LIS3DH.h>
 
-#include "WebServer.h"
-#include "ESPmDNS.h"
-#include "esp_sntp.h"
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <esp_sntp.h>
 WebServer server(80);
 uint16_t webServerPollMs = 80;
 
@@ -141,7 +141,7 @@ const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
 multi_heap_info_t deviceInfo;
-uint32_t free_flash_size, flash_size, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free /*out_size*/;
+uint32_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free;
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
@@ -230,15 +230,19 @@ const uint16_t mapRange = 16384;  // accelrange 2 = 16384, 4 = 8096, 8 = 1024, 1
 //DS18B20___________________________________________________________________
 OneWire oneWire(GPIO_NUM_8);
 DallasTemperature tempSens(&oneWire);
-DeviceAddress DTprobe_1 = { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 };
 byte DTdevice;
 
-float tempValues[2];
-const char* tempID[] = {
-  "ESP_prox",
-  ""
+struct probeStruct {
+  const char* name;
+  float temperature;
+  byte index;
+  DeviceAddress address;
 };
 
+probeStruct DTprobe[] = {
+  { "ESP_prox", 0.0, 0, { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
+  // Add more probes
+};
 
 //BME688___________________________________________________________________
 #define NEW_GAS_MEAS (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK | BME68X_NEW_DATA_MSK)
@@ -506,10 +510,9 @@ void setup() {  // ________________ SETUP ___________________
 
   tempSens.begin();
   tempSens.setWaitForConversion(false);
-  tempSens.setResolution(9);                 // set global resolution to 9, 10 (default), 11, or 12 bits
-  tempSens.setHighAlarmTemp(DTprobe_1, 65);  // Dallas tempProbe Alarm Thresholds
-  tempSens.setLowAlarmTemp(DTprobe_1, -1);
-
+  tempSens.setResolution(10);                         // set global resolution to 9, 10 (default), 11, or 12 bits
+  tempSens.setHighAlarmTemp(DTprobe[0].address, 65);  // Dallas tempProbe Alarm Thresholds
+  tempSens.setLowAlarmTemp(DTprobe[0].address, -1);
   DTdevice = tempSens.getDeviceCount();
 
   //___________________________ INITIALIZE INA219 _____________________

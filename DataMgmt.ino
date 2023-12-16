@@ -24,6 +24,7 @@ void getFlashInfo() {
   flash_size = ESP.getFlashChipSize();
   flash_speed = ESP.getFlashChipSpeed();
   free_flash_size = flash_size - program_used - SPIFFS_used;
+  flash_used = flash_size - free_flash_size;
   flash_UsedP = (program_used * 100.0) / flash_size;
   flash_LeftP = 100.0 - flash_UsedP;
 }

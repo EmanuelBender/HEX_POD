@@ -82,7 +82,7 @@ void sensorPage() {
   tft.drawString("Y " + String(Y), 85, (26 * 2), 2);
   tft.drawString("Z " + String(Z), 150, (26 * 2), 2);
   tft.drawString("CPU " + String(temperatureRead()), 20, (26 * 3), 2);
-  tft.drawString("ESP " + String(tempValues[0]), 110, (26 * 3), 2);
+  tft.drawString("ESP " + String(DTprobe[0].temperature), 110, (26 * 3), 2);
   tft.setTextPadding(90);
   tft.drawString("BUS " + String(BUS2_BusVoltage / double(ONETHOUSAND)) + "V", 20, (26 * 4), 2);
   tft.drawString("AMP " + String(BUS2_Current) + "mA", 115, (26 * 4), 2);

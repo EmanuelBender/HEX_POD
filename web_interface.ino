@@ -525,6 +525,7 @@ String generateCSSstyles() {
          "#sidebar { height: 850px; background-color: #353535; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 20px; padding: 2px; margin: 15px; padding-top: 20px; text-align:center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "#blocksFont { font-family: 'DemonCubicBlock NKP Shade', sans-serif; }"
          "#barcodeFont { font-family: 'barcode font', sans-serif; }"
+         "#subhead { padding: 3px 10px; color: #FFFFFF; text-align: center; background-color: #757575; }"
          "</style>";
 }
 
@@ -651,54 +652,11 @@ String generateHomePage() {
 
 
 String generateSensorsPage() {
+
   String page = "<div style='display: flex;'>";  // Use flex container to make tables side by side
-  page += "<table>";
-  // Sensor Settings
-  page += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
-  page += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
-  page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
-  page += generateTimeOptions(loggingInterval);
-  page += "</select></td>";
-  page += "</tr>";
-
-  page += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>";
-  page += "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
-  page += valueOptions(bmeSamples);
-  page += "</select></td>";
-  page += "</tr>";
-
-  page += "<tr><td><label for='bmeFilter'><b>Filter</b></label></td>";
-  page += "<td><select id='bmeFilter' onchange='updateBMEfilter()'>";
-  page += valueOptions(bmeFilter);
-  page += "</select></td>";
-  page += "</tr>";
-
-  page += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>";
-  page += "<td><select id='bmePause' onchange='updateBMEpause()'>";
-  page += valueOptions(bmeProfilePause);
-  page += "</select></td>";
-  page += "</tr>";
-
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr><td><b> Conditioning </td><td>" + String(conditioning_duration) + "s</td></tr>";
-  page += "<tr><td><b> Offst Delta </td><td>" + String(offsetDelta) + "</td></tr>";
-  page += "<tr><td><b> Smpl Delta </td><td>" + String(samplingDelta) + "</td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-
-  page += "<tr style='font-size: 12px;'><td><b> Profile Heater </td>";
-  for (i = 0; i < numProfiles; i += 1) {
-    page += "<td><b>H" + String(i + 1) + "</b></br>" + String(heatProf_1[i]) + "&deg;</td>";
-  }
-  page += "</tr>";
-
-  page += "<tr style='font-size: 12px;'><td><b> Profile Duration </td>";
-  for (i = 0; i < numProfiles; i += 1) {
-    page += "<td><b>D" + String(i + 1) + "</b></br>" + String(durProf_1[i]) + "ms</td>";
-  }
-  page += "</tr>";
-  page += "</table>";
-
+  // Sensor Settings Table
+  page += generateSensorSettingsTable();
 
   // Temp Humidity Press Chart
   page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
@@ -717,14 +675,14 @@ String generateSensorsPage() {
   page += "<tr><td colspan='5'><h2> BME[1] </h2></td></tr>";
   page += "<tr><td>" + String(BME_ERROR) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Duration </b><br>" + String(bmeTracker) + "ms</div></td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Last </b><br> " + String(lastBMEpoll) + "</div></td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Poll Pd </b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</div></td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> GAS_AVG </b><br>" + String(bme_gas_avg) + "</td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Temp </b><br> " + String(data.temperature) + "&deg;C</td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Humid </b><br> " + String(data.humidity) + "%</td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Press </b><br> " + String(data.pressure / ONETHOUSAND) + "mBar</td>";
-  page += "<td><div style='padding: 7px; color: #FFFFFF;'><b> Alt </b><br> " + String(Altitude) + "m</td></tr>";
+  page += "<td id='subhead'><b> Duration </b><br>" + String(bmeTracker) + "ms</td>";
+  page += "<td id='subhead'><b> Last </b><br> " + String(lastBMEpoll) + "</td>";
+  page += "<td id='subhead'><b> Poll Pd </b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</td>";
+  page += "<td id='subhead'><b> GAS_AVG </b><br>" + String(bme_gas_avg) + "</td>";
+  page += "<td id='subhead'><b> Temp </b><br> " + String(data.temperature) + "&deg;C</td>";
+  page += "<td id='subhead'><b> Humid </b><br> " + String(data.humidity) + "%</td>";
+  page += "<td id='subhead'><b> Press </b><br> " + String(data.pressure / ONETHOUSAND) + "mBar</td>";
+  page += "<td id='subhead'><b> Alt </b><br> " + String(Altitude) + "m</td></tr>";
   page += "</tr>";
 
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
@@ -780,13 +738,17 @@ String generateSensorsPage() {
   page += "<tr><td colspan='5'><h2> SGP41 </h2></td></tr>";
   page += "<tr><td>" + String(sgpErrorMsg) + "</td></tr>";
   page += "<tr style='background-color: #707070;'>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Duration</b><br>" + String(sgpTracker) + "ms</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Last</b><br> " + String(lastSGPpoll) + "</div></td>";
-  page += "<td><div style='padding: 5px; color: #FFFFFF;'><b>Poll Pd</b><br>" + String(sgpInterval / double(ONETHOUSAND)) + "s</div></td>";
+  page += "<td id='subhead'><b>Duration</b><br>" + String(sgpTracker) + "ms</td>";
+  page += "<td id='subhead'><b>Last</b><br> " + String(lastSGPpoll) + "</td>";
+  page += "<td id='subhead'><b>Poll Pd</b><br>" + String(sgpInterval / double(ONETHOUSAND)) + "s</td>";
+  page += "<td id='subhead'><b>VOC</b><br>" + String(VOC) + "</td>";
+  page += "<td id='subhead'><b>NOx</b><br>" + String(NOX) + "</td>";
+  page += "<td id='subhead'><b>rVOC</b><br>" + String(srawVoc) + "</td>";
+  page += "<td id='subhead'><b>rNOx</b><br>" + String(srawNox) + "</td>";
   page += "</tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";
-  page += "<tr style='font-size: 14px;'></td><td><td>" + String(VOC) + "</td><td>" + String(NOX) + "</td><td>" + String(srawVoc) + "</td><td>" + String(srawNox) + "</td></tr>";
+  // page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  // page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";
+  // page += "<tr style='font-size: 14px;'></td><td><td>" + String(VOC) + "</td><td>" + String(NOX) + "</td><td>" + String(srawVoc) + "</td><td>" + String(srawNox) + "</td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";  // empty Row
   page += "<tr style='font-size: 14px;'><td></td><td><b> Index Offs </td><td><b> Learn Time_H </td><td><b> learn Time Gain_H </td><td><b> Gate Max Dur_M </td><td><b> Std Initial </td><td><b> Gain Factor </td></tr>";
 

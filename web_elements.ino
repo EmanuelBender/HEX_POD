@@ -308,7 +308,57 @@ String generateSGPchart() {
 }
 
 
+String generateSensorSettingsTable() {
 
+  // Sensor Settings Table
+  String output = "<table>";
+  output += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
+
+  output += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
+  output += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
+  output += generateTimeOptions(loggingInterval);
+  output += "</select></td>";
+  output += "</tr>";
+
+  output += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>";
+  output += "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
+  output += valueOptions(bmeSamples);
+  output += "</select></td>";
+  output += "</tr>";
+
+  output += "<tr><td><label for='bmeFilter'><b>Filter</b></label></td>";
+  output += "<td><select id='bmeFilter' onchange='updateBMEfilter()'>";
+  output += valueOptions(bmeFilter);
+  output += "</select></td>";
+  output += "</tr>";
+
+  output += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>";
+  output += "<td><select id='bmePause' onchange='updateBMEpause()'>";
+  output += valueOptions(bmeProfilePause);
+  output += "</select></td>";
+  output += "</tr>";
+
+  output += "<tr><td>&nbsp;</td></tr>";  // empty Row
+  output += "<tr><td><b> Conditioning </td><td>" + String(conditioning_duration) + "s</td></tr>";
+  output += "<tr><td><b> Offst Delta </td><td>" + String(offsetDelta) + "</td></tr>";
+  output += "<tr><td><b> Smpl Delta </td><td>" + String(samplingDelta) + "</td></tr>";
+  output += "<tr><td>&nbsp;</td></tr>";  // empty Row
+
+  output += "<tr style='font-size: 12px;'><td><b> Profile Heater </td>";
+  for (i = 0; i < numProfiles; i++) {
+    output += "<td><b>H" + String(i) + "</b></br>" + String(heatProf_1[i]) + "&deg;</td>";
+  }
+  output += "</tr>";
+
+  output += "<tr style='font-size: 12px;'><td><b> Profile Duration </td>";
+  for (i = 0; i < numProfiles; i++) {
+    output += "<td><b>D" + String(i) + "</b></br>" + String(durProf_1[i]) + "ms</td>";
+  }
+  output += "</tr>";
+  output += "</table>";
+
+  return output;
+}
 
 
 String generateDeviceControlsTable() {
@@ -331,29 +381,29 @@ String generateDeviceControlsTable() {
 
 String generateDeviceStatsTable() {
   String output = "<table>";
-  output += "<tr><th colspan='2'><h2>Device Stats</h2></th></tr>";
-  output += "<tr><td>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
-  output += "<td><b>Power State</td><td> " + String(powerStateNames[currentPowerState]) + "</td>";
-  output += "<td><b>Reset </td><td>" + resetReasonString + "</td></tr>";
+  output += "<tr><th colspan='2'><h2> Device Stats </h2></th></tr>";
+  output += "<tr><td style='font-size:11px;'>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
+  output += "<td id='subhead' colspan='2'> " + String(powerStateNames[currentPowerState]) + "</td>";
+  output += "<td id='subhead' colspan='2'>" + resetReasonString + "</td></tr>";
   output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td><b>CPU:</td><td>" + String(cpu_freq_mhz) + "MHZ</td><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(chip_info.cores) + "Core</td>";
+  output += "<tr><td id='subhead'><b> CPU </td><td>" + String(cpu_freq_mhz) + "MHz</td><td>" + String(flash_speed / ONEMILLION) + "MHz flash</td><td>" + String(chip_info.cores) + "Core</td>";
   output += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  output += "<tr><td><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> Total: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> Free: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>" + String(flash_speed / ONEMILLION) + "MHz</td><td>" + String(flash_UsedP) + "%</td></tr>";
-  if (program_size > 0) output += "<tr><td><b>Program</td><td> Total: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> Free: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> Used: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
-  if (deviceInfo.total_allocated_bytes > 0) output += "<tr><td><b>PSRAM</td><td> Total: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  Free: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
-  if (SPIFFS_size > 0) output += "<tr><td><b>SPIFFS</td><td> Total: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  Free: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  Used: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
+  output += "<tr><td id='subhead'><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> T: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> F: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>U: " + String(flash_used / ONEMILLIONB) + "Mb</td><td>" + String(flash_UsedP) + "%</td></tr>";
+  if (program_size > 0) output += "<tr><td id='subhead'><b>Program</td><td> T: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> F: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> U: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
+  if (deviceInfo.total_allocated_bytes > 0) output += "<tr><td id='subhead'><b>PSRAM</td><td> T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  F: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
+  if (SPIFFS_size > 0) output += "<tr><td id='subhead'><b>SPIFFS</td><td> T: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  F: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  U: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
 
   output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td><b>RAM</td><td><b> Free Heap </td><td><b> Free Int Heap </td><td><b> Min Free Heap </td><td><b> </td><td><b>  </td>";
+  output += "<tr><td id='subhead'><b> RAM </td><td><b> Free Heap </td><td><b> Free Int Heap </td><td><b> Min Free Heap </td><td><b> </td><td><b>  </td>";
   output += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
   output += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
   output += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
   output += "</tr>";
   output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
+  output += "<tr><td id='subhead'><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
   output += "<tr><td>&nbsp;</td>";
   output += "<td>" + String(WiFi.SSID()) + "</td>";
   output += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
@@ -378,32 +428,30 @@ String generateDeviceStatsTable() {
 String generateSystemSensorsTable() {
 
   String output = "<table>";
-  output += "<tr><th colspan='4'><h2>System Sensors</h2></th></tr>";
-  output += "<tr><td><b>INA2</td><td> " + String(INA2.isConnected() ? "Connected" : "") + "</td><td>" + String(INA2_iscalibrated ? "Calibrated" : "") + "</td><td>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</tr></td>";
-  output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
+  output += "<tr><th colspan='5'><h2>System Sensors</h2></th></tr>";
+  output += "<tr><td id='subhead'><b>INA2</b></br> " + String(INA2.isConnected() ? "&check;" : "&cross;") + " " + String(INA2_iscalibrated ? "&check;" : "&cross;") + "</br>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</td>";
+  // output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td><b>Volt</td><td><b>Amp</td><td><b>Shunt</td><td><b>Power</b></td></tr>";
-  output += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
+  output += "<td id='subhead'><b>Volt </b></br> " + String(BUS2_BusVoltage / (ONETHOUSAND), 2) + "V</td>"
+            + "<td id='subhead'><b>Amp</b></br> " + String(BUS2_Current, 2) + "mA</td><td id='subhead'><b>Shunt</b></br> " + String(BUS2_ShuntVoltage, 2) + "mV</td><td id='subhead'><b>Power</b></br> " + String(BUS2_Power, 2) + "mW</td></tr>";
+  // output += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
   output += "<tr><td>&nbsp;</td></tr>";  // empty Row DTdevice
-  output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
+  output += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
-  output += "<tr><td colspan='4'><b>" + String(DTdevice) + " DS18B20</td></tr>";
-  output += "<tr>";
-
-  for (int i = 0; i < DTdevice; i++) {
-    output += "<td><b>" + String(tempID[i]) + "</td>";
-  }
-  output += "</tr><tr>";
-
-  for (int i = 0; i < DTdevice; i++) {
-    if (tempValues[i] > 0.0) output += "<td>" + String(tempValues[i]) + "&deg;C</td>";
+  for (i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
+    output += "<td id='subhead' style='width:90px;'><b>" + String(DTprobe[i].name) + "</b></br>";
+    output += String(DTprobe[i].temperature) + "&deg;C</td>";
   }
   output += "</tr>";
 
-  output += "<tr><td><b>CPU</td></tr>";
-  output += "<tr><td>" + String(CPUTEMP) + "&deg;C</td></tr>";
+  // output += "<tr><td><b>CPU</td><td><b>BME[1]</td></tr>";
+  // output += "<tr><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(data.temperature) + "&deg;C</td></tr>";
 
-  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+  output += "<tr><td id='subhead'><b>CPU</b></br>" + String(CPUTEMP) + "&deg;C</td>";
+  output += "<td id='subhead'><b>BME[1]</b></br>" + String(data.temperature) + "&deg;C</td>";
+  output += "</tr>";
+
+  output += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
   output += "<tr><td><b>Light Sensors</td></tr>";
 
@@ -415,13 +463,16 @@ String generateSystemSensorsTable() {
 
 
 String generateTaskManagerTable() {
-  String table = "<table>";
-  table += "<tr><th colspan='5'><h2>Task Manager</h2></th></tr>";
-  table += "<tr><td><b>ID</td><td><b>State</td><td><b>Name</td><td><b>Last Dur</td><td><b>Last</td></tr>";
+  String table = "<table style='display: flex;'>";
+  table += "<tr><th colspan='2'><h2>Task Manager</h2></th></tr>";
+  // table += "<tr><td><b>ID\tState\tName\tLast Dur\tLast</td></tr>";
 
   for (const auto& task : tasks) {
     if (taskFreeSlots[*task.taskId] != char('F') && *task.tracker > 0.00 || *task.taskId != 0) {  // don't add free, unscheduled task slots
-      table += "<tr><td>[" + String(*task.taskId) + "]</td><td>" + String(taskFreeSlots[*task.taskId]) + "</td><td>" + task.taskName + " </td><td>" + " " + String(*task.tracker) + "ms</td></tr>";
+      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: left; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10x;'>[" + String(*task.taskId) + "]<b> " + String(task.taskName) + "</b></td>"
+               + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-radius: 0px; '>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
+               + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 0px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;''>" + String(*task.tracker) + "ms</td>"
+               + "</tr>";
     }
   }
 
@@ -443,7 +494,7 @@ String generateFSTable() {
   // table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
   table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr>";
-  table_fs += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
+  table_fs += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
   table_fs += "<tr>";
   table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
