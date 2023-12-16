@@ -46,7 +46,7 @@ void launchUtility() {
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
-  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = 0;
+  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = 0;
 
 
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
@@ -59,10 +59,12 @@ void launchUtility() {
   if (LOGGING) {
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
+    SCDID = taskManager.schedule(repeatMillis(loggingInterval), pollSCD30);
     LOG = taskManager.schedule(repeatMillis(loggingInterval), logging);
     if (LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
       pastLOGGINGstate = LOGGING;
       conditioning_duration = 30;
+      pollSCD30();  // crude conditioning
       taskManager.schedule(onceSeconds(5), pollBME);
       taskManager.schedule(onceSeconds(10), pollBME);
       taskManager.schedule(onceSeconds(15), pollBME);
@@ -140,7 +142,6 @@ void PowerStates() {
   debugF(powerStTracker);
   powerStTracker = (micros() - powerStTracker) / double(ONETHOUSAND);
 }
-
 
 
 
@@ -267,53 +268,6 @@ void pollButtons() {
 
 
 
-void pollMultiplexer() {
-  PCABITS = io.read();
-
-  for (int i = 0; i <= 17; i++) {
-    P0[i] = isBitSet(PCABITS, i);  // Now you can access individual values using P0[0], P0[1], ..., P0[17]
-  }
-}
-
-
-inline bool isBitSet(uint16_t value, uint8_t mask) {
-  return !(value & (1 << mask));
-}
-
-
-
-
-void printToOLED(String oledString) {
-  if (OLEDon) {
-    u8g2.clearBuffer();
-    u8g2.drawStr(0, 32, oledString.c_str());
-    u8g2.sendBuffer();
-  }
-}
-
-void toggleOLED() {
-
-  preferences.begin("my - app", false);
-  preferences.putBool("oled", OLEDon);
-  preferences.end();
-
-  io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
-  if (OLEDon) {
-    u8g2.begin();
-    u8g2.setFontDirection(0);
-    u8g2.setFontMode(0);
-    u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
-  } else {
-    u8g2.setPowerSave(1);
-  }
-}
-
-void statusLED(bool LEDon) {
-  io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
-  io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
-}
-
-
 
 void updateTime() {
   TAG = "updateTime() ";
@@ -364,26 +318,6 @@ void getNTP() {
   ntpTracker = (micros() - ntpTracker) / double(ONETHOUSAND);
 }
 
-
-
-
-void pollTemp() {
-  TAG = "pollTemp()   ";
-  tempTracker = micros();
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-
-  if (tempSens.isConversionComplete()) {
-    for (byte i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
-      // tempSens.requestTemperaturesByAddress(DTprobe[i].address);
-      DTprobe[i].temperature = tempSens.getTempC(DTprobe[i].address);  // Update the temperature value for each probe
-    }
-  }
-  tempSens.requestTemperatures();
-  CPUTEMP = temperatureRead();
-
-  debugF(tempTracker);
-  tempTracker = (micros() - tempTracker) / double(ONETHOUSAND);
-}
 
 
 
@@ -439,20 +373,21 @@ void pollBME() {
   lastBMEpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (bme.checkStatus() == BME68X_ERROR) {
-    BME_ERROR = "[E] " + bme.statusString();
+  if (bme1.checkStatus() == BME68X_ERROR) {
+    BME_ERROR = "[E] " + bme1.statusString();
     return;
-  } else if (bme.checkStatus() == BME68X_WARNING) {
-    BME_ERROR = "[W] " + bme.statusString();
+  } else if (bme1.checkStatus() == BME68X_WARNING) {
+    BME_ERROR = "[W] " + bme1.statusString();
   }
 
-  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
+  bme1.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
+  bme1.setFilter(bmeFilter);
+  bme1.fetchData();
+  bme1.getData(data);
+  bme1.setAmbientTemp(data.temperature);
 
-  bme.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
-  bme.setFilter(bmeFilter);
-  bme.fetchData();
-  bme.getData(data);
-  bme.setAmbientTemp(data.temperature);
+  dewPoint = calcDewPoint(data.temperature, data.humidity);
+  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
 
   repeater++;
 
@@ -461,14 +396,14 @@ void pollBME() {
     heaterTemp = heatProf_1[bmeProfile];
 
     delay(bmeProfilePause);
-    bme.setAmbientTemp(data.temperature);
-    bme.setHeaterProf(heaterTemp, duration);
-    bme.setOpMode(BME68X_FORCED_MODE);
+    bme1.setAmbientTemp(data.temperature);
+    bme1.setHeaterProf(heaterTemp, duration);
+    bme1.setOpMode(BME68X_FORCED_MODE);
 
-    while (!bme.fetchData()) {
+    while (!bme1.fetchData()) {
       delay(3);
     }
-    bme.getData(data);
+    bme1.getData(data);
     if (!conditioning_duration) bme_resistance[bmeProfile] += data.gas_resistance;
   }
 
@@ -503,7 +438,7 @@ void pollBME() {
     repeater = 0;
   }
 
-  bme.setOpMode(BME68X_SLEEP_MODE);
+  bme1.setOpMode(BME68X_SLEEP_MODE);
 
   debugF(bmeTracker);
   bmeTracker = (micros() - bmeTracker) / double(ONETHOUSAND);
@@ -566,9 +501,62 @@ void configSGP() {
 
 
 
-void debugF(uint32_t tracker) {
+void pollTemp() {
+  TAG = "pollTemp()   ";
+  tempTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+  if (DEBUG) oneWireSearch(GPIO_NUM_8);
 
-  // updateTaskArray();
+  if (tempSens.isConversionComplete()) {
+    for (byte i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
+      // tempSens.requestTemperaturesByAddress(DTprobe[i].address);
+      DTprobe[i].temperature = tempSens.getTempC(DTprobe[i].address);  // Update the temperature value for each probe
+    }
+  }
+  tempSens.requestTemperatures();
+  CPUTEMP = temperatureRead();
+
+  debugF(tempTracker);
+  tempTracker = (micros() - tempTracker) / double(ONETHOUSAND);
+}
+
+
+
+
+void pollSCD30() {
+  lastSCDpoll = printTime;
+  scdTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+  if (scd30.dataAvailable()) {
+    scd30.readMeasurement();
+    humidSCD = scd30.getHumidity();
+    tempSCD = scd30.getTemperature();
+    co2SCD = scd30.getCO2();
+
+    scd30.setAltitudeCompensation(int(Altitude));          // meters
+    scd30.setAmbientPressure(int(data.pressure / 100.0));  // mBar
+    scdInterval = loggingInterval / ONETHOUSAND;
+    scd30.setMeasurementInterval(scdInterval);
+
+    float scdTempOffset = tempSCD - data.temperature;
+    if (scdTempOffset > 0.0) scd30.setTemperatureOffset(scdTempOffset);
+  }
+
+  debugF(scdTracker);
+  scdTracker = (micros() - scdTracker) / double(ONETHOUSAND);
+}
+
+
+float calcDewPoint(double celsius, double humidity) {
+  float temp = (Da * celsius) / (Db + celsius) + log(humidity * 0.01);
+  return (Db * temp) / (Da - temp);
+}
+
+
+
+
+void debugF(uint32_t tracker) {
 
   if (DEBUG) {
     elapsedTime = (micros() - tracker) / double(ONETHOUSAND);
@@ -593,34 +581,51 @@ void debugF(uint32_t tracker) {
 }
 
 
+void pollMultiplexer() {
+  PCABITS = io.read();
 
-/*
-void updateTaskArray() {
-
-  for (i = 0; i < slotsSize; i++) {
-    switch (taskFreeSlots[i]) {
-      case 'R':
-        taskArray[i] = "[ ]";
-        break;  // Repeating
-      case 'r':
-        taskArray[i] = "[>]";
-        break;  // Repeating running
-      case 'U':
-        taskArray[i] = "[o]";
-        break;  // OneShot
-      case 'u':
-        taskArray[i] = "[O]";
-        break;  // OneShot running
-      case 'F':
-        taskArray[i] = "";
-        break;  // free
-      case 'f':
-        taskArray[i] = "[Err]";
-        break;  // error
-    }
+  for (int i = 0; i <= 17; i++) {
+    P0[i] = isBitSet(PCABITS, i);  // Now you can access individual values using P0[0], P0[1], ..., P0[17]
   }
 }
-*/
+
+
+inline bool isBitSet(uint16_t value, uint8_t mask) {
+  return !(value & (1 << mask));
+}
+
+
+
+
+void printToOLED(String oledString) {
+  if (OLEDon) {
+    u8g2.clearBuffer();
+    u8g2.drawStr(0, 32, oledString.c_str());
+    u8g2.sendBuffer();
+  }
+}
+
+void toggleOLED() {
+
+  preferences.begin("my - app", false);
+  preferences.putBool("oled", OLEDon);
+  preferences.end();
+
+  io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
+  if (OLEDon) {
+    u8g2.begin();
+    u8g2.setFontDirection(0);
+    u8g2.setFontMode(0);
+    u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
+  } else {
+    u8g2.setPowerSave(1);
+  }
+}
+
+void statusLED(bool LEDon) {
+  io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
+  io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
+}
 
 
 void addLOGmarker(String lead, String markerText) {
@@ -630,6 +635,36 @@ void addLOGmarker(String lead, String markerText) {
   LittleFS.end();
 }
 
+
+
+uint8_t oneWireSearch(int pin) {
+  Serial.begin(115200);
+  OneWire ow(pin);
+
+  uint8_t address[8];
+  uint8_t count = 0;
+
+  if (ow.search(address)) {
+    Serial.print("DT pin: ");
+    Serial.println(pin, DEC);
+    do {
+      count++;
+      Serial.print("   { ");
+      for (uint8_t i = 0; i < 8; i++) {
+        Serial.print("0x");
+        if (address[i] < 0x10) Serial.print("0");
+        Serial.print(address[i], HEX);
+        if (i < 7) Serial.print(", ");
+      }
+      Serial.println(" }");
+    } while (ow.search(address));
+
+    Serial.print("Nr DT devices found: ");
+    Serial.println(count);
+  }
+  Serial.end();
+  return count;
+}
 
 String getResetReason() {
   resetReason = esp_reset_reason();

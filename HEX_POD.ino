@@ -18,14 +18,15 @@
 #include <ESP32Servo.h>
 
 #include <Adafruit_Sensor.h>
-#include <INA219.h>
-#include <bme68xLibrary.h>
-#include <SensirionI2CSgp41.h>
-#include <VOCGasIndexAlgorithm.h>
-#include <NOxGasIndexAlgorithm.h>
+#include "INA219.h"
+#include "bme68xLibrary.h"
+#include "SensirionI2CSgp41.h"
+#include "VOCGasIndexAlgorithm.h"
+#include "NOxGasIndexAlgorithm.h"
 #include <DallasTemperature.h>
 #include <OneWire.h>
-#include <Adafruit_LIS3DH.h>
+#include "Adafruit_LIS3DH.h"
+#include "SparkFun_SCD30_Arduino_Library.h"
 
 #include <WebServer.h>
 #include <ESPmDNS.h>
@@ -50,11 +51,6 @@ uint16_t webServerPollMs = 80;
 #include "TaskManagerIO.h"
 #include <TimeLib.h>
 #include <time.h>
-
-esp_chip_info_t chip_info;
-esp_reset_reason_t resetReason;
-String resetReasonString;
-String wakeupReasonString;
 
 BLEDevice peripheral;
 struct BLEData {
@@ -121,10 +117,10 @@ SPIClass sdSPI = SPIClass(HSPI);
 
 #define sda GPIO_NUM_18
 #define scl GPIO_NUM_17
-#define I2C_SPEED 400000  // 800000   tested ok
+#define I2C_SPEED 200000  // 800k tested ok, max 200k(100k) with SCD30
 
-uint32_t loggingInterval;        // stored in Prefs
-uint16_t getNTPInterval = 1800;  // 600 = 10 mins, 1800 = 30 mins
+uint32_t loggingInterval = 60000;  // stored in Prefs
+uint16_t getNTPInterval = 1800;    // 600 = 10 mins, 1800 = 30 mins
 
 const byte consoleColumns = 20;
 const byte consoleRows = 54;
@@ -132,32 +128,40 @@ const byte menuRowM = 26;
 
 uint8_t consoleLine;
 String console[consoleRows][consoleColumns];
-// String SDarray[consoleRows][consoleColumns];
 
 const uint32_t ONEMILLION = 1000000;
 const uint16_t ONETHOUSAND = 1000;
 const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
+// LOG & Chart & Data
 multi_heap_info_t deviceInfo;
+esp_chip_info_t chip_info;
+esp_reset_reason_t resetReason;
+String resetReasonString;
+String wakeupReasonString;
+
+String TAG = "ESP";
 uint32_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free;
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
-bool LEDon, FANon, isFading, OLEDon, SDinserted;
+bool LEDon, FANon, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
 String logFilePath, rootHexPath = "/.sys";
 
-String TAG = "ESP";
-
-const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX\n";
-const String logColumns[22] = { "Time", "BME_0", "BME_1", "BME_2", "BME_3", "BME_4", "BME_5", "BME_6", "BME_7", "BME_8", "BME_9", "BME_10", "BME_11", "BME_12", "BME_13", "BME_T", "BME_H", "BME_P", "SGP_VOC", "SGP_NOX", "SGP_rVOC", "SGP_rNOX" };
+const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX, SCD_CO2, SCD_T, SCD_H\n";
+const String logColumns[] = { "Time", "BME_0", "BME_1", "BME_2", "BME_3", "BME_4", "BME_5", "BME_6", "BME_7", "BME_8", "BME_9", "BME_10", "BME_11", "BME_12", "BME_13", "BME_T", "BME_H", "BME_P", "SGP_VOC", "SGP_NOX", "SGP_rVOC", "SGP_rNOX", "SCD_CO2", "SCD_T", "SCD_H" };
 const byte log_idx_bme1_temp = 15;   // index in log file
 const byte log_idx_bme1_humid = 16;  // index in log file
 const byte log_idx_bme1_press = 17;  // index in log file
 const byte log_idx_sgp_voc = 18;
 const byte log_idx_sgp_nox = 19;
-uint16_t chart_max_lines = 120;
+const byte log_idx_scd_co2 = 22;
+const byte log_idx_scd_temp = 23;
+const byte log_idx_scd_humid = 24;
+
+uint16_t chart_data_range = 5400;  // in seconds from now
 String restartHeader;
 
 enum PowerState { NORMAL,
@@ -220,7 +224,6 @@ const byte oledDatum_Y = 32;
 //LIS3______________________________________________________________________
 Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 int16_t X, Y, Z;  // 16bit
-// #define CLICKTHRESHHOLD 80
 uint16_t imuInterval;
 uint8_t imuSampleCount;
 const uint8_t imuAvg = 55;        // for cube demo
@@ -233,20 +236,21 @@ byte DTdevice;
 
 struct probeStruct {
   const char* name;
-  float temperature;
   const byte index;
+  float temperature;
   DeviceAddress address;
 };
 
 probeStruct DTprobe[] = {
-  { "ESP_prox", 0.0, 0, { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
-  // Add more probes
+  { "ESP_prox", 0, float(), { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
+  { "PCB#1", 1, float(), { 0x28, 0x30, 0x14, 0x75, 0xD0, 0x01, 0x3C, 0x79 } }
 };
+
 
 //BME688___________________________________________________________________
 #define NEW_GAS_MEAS (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK | BME68X_NEW_DATA_MSK)
 bme68xData data;
-Bme68x bme;
+Bme68x bme1;
 
 String BME_ERROR, lastBMEpoll;
 const byte numProfiles = 14;
@@ -275,20 +279,20 @@ const uint16_t heatProf_1[numProfiles] = {
 };
 
 const uint16_t durProf_1[numProfiles] = {
-  10,  // 0
-  10,  // 1
-  10,  // 2
-  10,  // 3
-  10,  // 4
-  10,  // 5
-  10,  // 6
-  10,  // 7
-  10,  // 8
-  10,  // 9
-  10,  // 10
-  10,  // 11
-  10,  // 12
-  10,  // 13
+  8,  // 0
+  8,  // 1
+  8,  // 2
+  8,  // 3
+  8,  // 4
+  8,  // 5
+  8,  // 6
+  8,  // 7
+  8,  // 8
+  8,  // 9
+  8,  // 10
+  8,  // 11
+  8,  // 12
+  8,  // 13
 };
 
 
@@ -317,6 +321,15 @@ constexpr uint16_t defaultT = 0x6666;
 uint16_t srawVoc, srawNox;
 int32_t VOC, NOX;
 
+// SCD30 _______________________________
+SCD30 scd30;
+
+String lastSCDpoll;
+float tempSCD, humidSCD, dewPoint;
+int scdInterval = 60;  // in ms
+int co2SCD;
+const float Da = 17.271, Db = 237.7;
+
 
 // INA219B   __________________________________________________________________________
 INA219 INA2(0x40);
@@ -329,8 +342,8 @@ bool BUS2_CNVR;
 bool INA2_iscalibrated;
 
 // Task Manager _______________________________________________________________________
-taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID;  // task IDs
-double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker;
+taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID, SCDID;  // task IDs
+double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker;
 uint32_t tmTracker;
 
 const byte slotsSize = 24;
@@ -350,9 +363,10 @@ TaskData tasks[] = {
   { "pollServer", &clientTracker, &WEB },
   { "getNTP", &ntpTracker, &NTPID },
   { "pollTemp", &tempTracker, &TEMPID },
-  { "pollINA", &ina2Tracker, &INA2ID },
-  { "pollBME", &bmeTracker, &BMEID },  // &lastBMEpoll
-  { "pollSGP", &sgpTracker, &SGPID },  // &lastSGPpoll
+  { "pollINA_2", &ina2Tracker, &INA2ID },
+  { "pollBME", &bmeTracker, &BMEID },    // &lastBMEpoll
+  { "pollSGP41", &sgpTracker, &SGPID },  // &lastSGPpoll
+  { "pollSCD30", &scdTracker, &SCDID },  // &lastSGPpoll
   { "pollIMU", &imuTracker, &IMUID },
   { "logging", &loggingTracker, &LOG },
   { "systemPage", &systemPageTracker, &SYSID },
@@ -367,13 +381,14 @@ void setup() {  // ________________ SETUP ___________________
 
   //___________________________ INITIALIZE COMMS __________________________
 
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  /*
   if (DEBUG) {
-    Serial.begin(115200);
-    Serial.setDebugOutput(true);
     delay(50);  //relax...
     ESP_LOGI(TAG, "Serial bus Initialized.");
   }
-
+*/
 
   if (Wire.begin(sda, scl, I2C_SPEED)) {  // sda= , scl= in pins_arduino.h
     delay(20);
@@ -394,7 +409,7 @@ void setup() {  // ________________ SETUP ___________________
 
   // Sensor Prefs
   preferences.begin("my - app", false);                        // read-only bool
-  loggingInterval = preferences.getUInt("logItvl", 30000);     // in microsec
+  loggingInterval = preferences.getUInt("logItvl", 30000);     // in millis
   conditioning_duration = (loggingInterval / ONEMILLION) * 3;  // in sec
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
@@ -410,9 +425,6 @@ void setup() {  // ________________ SETUP ___________________
   restarts++;
   preferences.putUInt("restarts", restarts);
   preferences.end();
-
-  esp_chip_info(&chip_info);
-  getDeviceInfo();
 
   getNTP();
 
@@ -437,11 +449,9 @@ void setup() {  // ________________ SETUP ___________________
 
   pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
   attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
-
   pinMode(GPIO_NUM_1, OUTPUT);                 // FAN_CTL
   pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 12);  // BLK, 1KHz, 12 bit
   pwm.writeScaled(TFTbrightness = 1.0);
-
   // pinMode(GPIO_NUM_3, INPUT);
   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
   // attachInterrupt(GPIO_NUM_7, CTR_ISR, RISING);
@@ -458,13 +468,13 @@ void setup() {  // ________________ SETUP ___________________
 
 
   //___________________________ INITIALIZE SD _________________________
-
+  SDinserted = !digitalRead(GPIO_NUM_47);
   if (SDinserted) {  // DOES NOT WORK - suspect wiring or incompatibility with something else
-    sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+    // sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
     // sdSPI.setHwCs(true);
     // sdSPI.setFrequency(40000000);
     // sdSPI.setDataMode(SPI_MODE0);
-    mountSD();  // --> DataMgmt
+    // mountSD();  // --> DataMgmt
   }
 
   //_______________________ INITIALIZE MULTIPLEXER ______________________
@@ -512,6 +522,8 @@ void setup() {  // ________________ SETUP ___________________
   tempSens.setResolution(10);                         // set global resolution to 9, 10 (default), 11, or 12 bits
   tempSens.setHighAlarmTemp(DTprobe[0].address, 65);  // Dallas tempProbe Alarm Thresholds
   tempSens.setLowAlarmTemp(DTprobe[0].address, -1);
+  tempSens.setHighAlarmTemp(DTprobe[1].address, 65);  // Dallas tempProbe Alarm Thresholds
+  tempSens.setLowAlarmTemp(DTprobe[1].address, -1);
   DTdevice = tempSens.getDeviceCount();
 
   //___________________________ INITIALIZE INA219 _____________________
@@ -532,27 +544,39 @@ void setup() {  // ________________ SETUP ___________________
 
   //___________________________ INITIALIZE BME688 _____________________
 
-  bme.begin(0x77, Wire);
+  bme1.begin(0x77, Wire);
 
-  if (bme.checkStatus()) {
-    if (bme.checkStatus() == BME68X_ERROR) {
-      BME_ERROR = "Error: " + bme.statusString();
+  if (bme1.checkStatus()) {
+    if (bme1.checkStatus() == BME68X_ERROR) {
+      BME_ERROR = "Error: " + bme1.statusString();
       return;
-    } else if (bme.checkStatus() == BME68X_WARNING) {
-      BME_ERROR = "Warning: " + bme.statusString();
+    } else if (bme1.checkStatus() == BME68X_WARNING) {
+      BME_ERROR = "Warning: " + bme1.statusString();
     }
   }
 
   bmeInterval = loggingInterval;
-  bme.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
-  bme.fetchData();
-  bme.getData(data);
-  bme.setOpMode(BME68X_SLEEP_MODE);
+  bme1.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
+  bme1.fetchData();
+  bme1.getData(data);
+  bme1.setOpMode(BME68X_SLEEP_MODE);
 
   //___________________________ INITIALIZE SGP41 _____________________
 
   sgp41.begin(Wire);
   configSGP();  //  /funct.ino -> bottom
+
+
+  //___________________________ INITIALIZE SCD30 _____________________
+
+  if (scd30.begin(Wire, false, true)) {
+    scdInterval = loggingInterval / ONETHOUSAND;
+    if (DEBUG) scd30.enableDebugging(Serial);
+    scd30.setMeasurementInterval(5);
+    scd30.readMeasurement();
+  } else {
+    Serial.println("Air sensor not detected. Please check wiring.");
+  }
 
   //___________________________ INITIALIZE OLED ________________________
 
@@ -573,6 +597,8 @@ void setup() {  // ________________ SETUP ___________________
   }
   //___________________________ TASK MANAGER ________________________
 
+  esp_chip_info(&chip_info);
+  getDeviceInfo();
   launchUtility();  // setup tasks, launch utility Menu
 
   lastInputTime = micros();

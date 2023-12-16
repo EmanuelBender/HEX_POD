@@ -24,24 +24,33 @@ String convertLogTimestampForChart(String input) {
   int hours, minutes, seconds;
   sscanf(input.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
 
-  // String output;
-  // Construct the JavaScript Date object with hours and minutes
-  //  output += "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ").toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
-  // Get the time string in the format "HH:mm"
-  // output += ".toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })";
-
-  return "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes)
+  return "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ", " + String(seconds)
          + ").toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })";
 }
 
 
 unsigned long convertTimestampToMillis(String timestamp) {
-
   int hours, minutes, seconds;
   sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
   return (hours * 3600UL + minutes * 60UL + seconds) * 1000UL;
 }
 
+
+time_t convertTimestampToTime(const String& timestamp) {
+  struct tm info;
+  int hours, minutes, seconds, day, month, year;
+
+  sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
+  sscanf(printDate.c_str(), "%d.%d.%d", &day, &month, &year);
+  info.tm_hour = hours;
+  info.tm_min = minutes;
+  info.tm_sec = seconds;
+  info.tm_year = year;  // Year is not provided, set it to 0
+  info.tm_mon = month;  // Month is not provided, set it to 0
+  info.tm_mday = day;   // Day is not provided, set it to 0
+  info.tm_isdst = -1;   // DST information is not available
+  return mktime(&info);
+}
 
 
 void streamToServer(String filePath) {
@@ -784,6 +793,37 @@ String generateSensorsPage() {
   page += generateSGPchart();
   page += "</div>";
   page += "</td></tr></table> ";
+
+  page += "</div>";
+  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
+
+  // SGP41 Table
+  page += "<table>";
+  page += "<tr><td colspan='3'><h2> SCD30 </h2></td></tr>";
+  page += "<tr style='background-color: #707070;'>";
+  page += "<td id='subhead'><b>Duration</b><br>" + String(scdTracker) + "ms</td>";
+  page += "<td id='subhead'><b>Last</b><br> " + String(lastSCDpoll) + "</td>";
+  page += "<td id='subhead'><b>Poll Pd</b><br>" + String(scdInterval) + "s</td>";
+  page += "<td id='subhead'><b>CO2</b><br>" + String(co2SCD) + "ppm</td>";
+  page += "<td id='subhead'><b>Temp</b><br>" + String(tempSCD) + "&deg;C</td>";
+  page += "<td id='subhead'><b>Humid</b><br>" + String(humidSCD) + "%</td>";
+  page += "<td id='subhead'><b>DewPoint</b><br>" + String(dewPoint) + "&deg;C</td>";
+  page += "</tr>";
+  page += "</table>";
+
+
+  // SCD41 log chart
+  page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
+  page += "<div id='scd_chart' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
+  page += generateSCDchart();
+  page += "</div>";
+  page += "</td></tr></table> ";
+
+  page += "</div>";
+  page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
+
+
 
   page += "</div>";
 

@@ -30,6 +30,8 @@ void getFlashInfo() {
 }
 
 
+
+
 void getDeviceInfo() {
 
   SDinserted = !digitalRead(GPIO_NUM_47);
@@ -65,42 +67,48 @@ void getDeviceInfo() {
   // esp_get_free_internal_heap_size();
 }
 
+
+
+
 void logging() {
   TAG = "logging()    ";
   loggingTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (conditioning_duration == 0) {
-    LittleFS.begin();
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
     std::ostringstream airLog;
 
     airLog << printTime.c_str() << ", ";
 
-    for (int i = 0; i < numProfiles; ++i) {
-      airLog << bme_resistance_avg[i] << ", ";
+    for (auto &resistance : bme_resistance_avg) {
+      airLog << resistance << ", ";
     }
 
-    airLog.precision(3);                               // Set precision for temperature and pressure
-    airLog << std::fixed << data.temperature << ", ";  // Fixed precision for temperature
+    airLog.precision(2);                               // Set precision
+    airLog << std::fixed << data.temperature << ", ";  // set precision for temperature
     airLog << std::fixed << data.humidity << ", ";
     airLog << std::fixed << data.pressure << ", ";
     airLog << VOC << ", ";
     airLog << NOX << ", ";
     airLog << srawVoc << ", ";
-    airLog << srawNox << "\n";
+    airLog << srawNox << ", ";
+    airLog << co2SCD << ", ";
+    airLog << std::fixed << tempSCD << ", ";
+    airLog << std::fixed << humidSCD << "\n";
 
-    // Using c_str() to get the const char* for LittleFS
+    LittleFS.begin();
     appendFile(LittleFS, logFilePath.c_str(), airLog.str().c_str());
-    // getSPIFFSsizes();
-
     LittleFS.end();
   }
 
   debugF(loggingTracker);
   loggingTracker = (micros() - loggingTracker) / double(ONETHOUSAND);
 }
+
+
+
 
 
 void mountSD() {

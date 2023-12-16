@@ -26,49 +26,51 @@ String generateTHPchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_lines) {
+  while (file.available()) {
     line = file.readStringUntil('\n');
 
     int commaIndex = line.indexOf(',');
     String timestampChar = line.substring(0, commaIndex);
-    String values = line.substring(commaIndex + 1);
+    time_t logTimestamp = convertTimestampToTime(timestampChar);
+    time_t currentTime = convertTimestampToTime(printTime);
+    unsigned long timeDifference = difftime(currentTime, logTimestamp);
 
-    String valueArray[4];
-    int i = 0;
-    size_t lastCommaIndex = 0;
+    if (timeDifference <= chart_data_range) {  // Ensure the log timestamp is within the past hour
+      String values = line.substring(commaIndex + 1);
+      String valueArray[4];
+      int i = 1;
+      size_t lastCommaIndex = 0;
 
-    valueArray[0] = convertLogTimestampForChart(timestampChar);
+      valueArray[0] = convertLogTimestampForChart(timestampChar);
 
-    while (i <= log_idx_bme1_press) {
-      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+      while (i <= log_idx_bme1_press) {
+        size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
 
-      if (currentCommaIndex == std::string::npos) {
-        currentCommaIndex = values.length();
+        if (currentCommaIndex == std::string::npos) {
+          currentCommaIndex = values.length();
+        }
+
+        String value = values.substring(lastCommaIndex, currentCommaIndex);
+
+        if (value.length() == 0) break;
+        if (i == log_idx_bme1_temp || i == log_idx_bme1_humid || i == log_idx_bme1_press) valueArray[i - (log_idx_bme1_temp - 1)] = value;
+        lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+        i++;
       }
 
-      String value = values.substring(lastCommaIndex, currentCommaIndex);
-      if (value.length() == 0) {
-        break;
-      } else {
-        if (i == log_idx_bme1_temp - 1 || i == log_idx_bme1_humid - 1 || i == log_idx_bme1_press - 1) valueArray[i - (log_idx_bme1_temp - 2)] = value;
+      lineCount++;
+      if (i < log_idx_bme1_temp) {  // skip the line if empty
+        continue;
       }
-      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
-      i++;
-    }
 
-    lineCount++;
-    if (i < log_idx_bme1_temp) {  // skip the line if empty
-      continue;
+      chartData += "["
+                   + valueArray[0] + ", "
+                   + valueArray[1] + ", "
+                   + valueArray[2] + ", "
+                   + valueArray[3]
+                   + "],\n";
     }
-
-    chartData += "["
-                 + valueArray[0] + ", "
-                 + valueArray[1] + ", "
-                 + valueArray[2] + ", "
-                 + valueArray[3]
-                 + "],\n";
   }
-
   chartData += "  ]);\n\n"
                "  var maxDataValue = calculateMaxValue(data_thp);\n"
                "  var options_tph = {\n"
@@ -82,8 +84,8 @@ String generateTHPchart() {
                "      2: {targetAxisIndex: 1}\n"
                "    },\n"
                "    vAxes: {\n"
-               "      0: { viewWindow: { min: -5, max: 80 } },  // Left axis\n"
-               "      1: { viewWindow: { min: maxDataValue - 3000, max: maxDataValue + 3000 } }   // Right axis\n"
+               "      0: { viewWindow: { min: -5, max: 65 } },  // Left axis\n"
+               "      1: { viewWindow: { min: maxDataValue - 300, max: maxDataValue + 300 } }   // Right axis\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('thp_chart'));\n"
@@ -127,61 +129,67 @@ String generateBMEchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_lines) {
+  while (file.available()) {
     line = file.readStringUntil('\n');
 
     // Split the line into timestamp and values
     int commaIndex = line.indexOf(',');
     String timestampChar = line.substring(0, commaIndex);
-    String values = line.substring(commaIndex + 1);
 
-    String valueArray[15];
-    int i = 1;
-    size_t lastCommaIndex = 0;
+    time_t logTimestamp = convertTimestampToTime(timestampChar);
+    time_t currentTime = convertTimestampToTime(printTime);
+    unsigned long timeDifference = difftime(currentTime, logTimestamp);
 
-    valueArray[0] = convertLogTimestampForChart(timestampChar);
+    if (timeDifference <= chart_data_range) {  // Ensure the log timestamp is within the past hour
 
-    // Split the values using commas
-    while (i < 15) {
-      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+      String values = line.substring(commaIndex + 1);
+      String valueArray[15];
+      int i = 1;
+      size_t lastCommaIndex = 0;
 
-      if (currentCommaIndex == std::string::npos) {
-        currentCommaIndex = values.length();
+      valueArray[0] = convertLogTimestampForChart(timestampChar);
+
+      // Split the values using commas
+      while (i < 15) {
+        size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+        if (currentCommaIndex == std::string::npos) {
+          currentCommaIndex = values.length();
+        }
+
+        String value = values.substring(lastCommaIndex, currentCommaIndex);
+
+        if (value.length() == 0) {
+          break;
+        } else {
+          valueArray[i] = value;
+        }
+
+        lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+        i++;
       }
 
-      String value = values.substring(lastCommaIndex, currentCommaIndex);
+      lineCount++;
 
-      if (value.length() == 0) {
-        break;
-      } else {
-        valueArray[i] = value;
+      if (i < 14) {
+        continue;
       }
 
-      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
-      i++;
+      chartData += "["
+                   + valueArray[0] + ", "
+                   + valueArray[1] + ", " + valueArray[2] + ", "
+                   + valueArray[3] + ", " + valueArray[4] + ", "
+                   + valueArray[5] + ", " + valueArray[6] + ", "
+                   + valueArray[7] + ", " + valueArray[8] + ", "
+                   + valueArray[9] + ", " + valueArray[10] + ", "
+                   + valueArray[11] + ", " + valueArray[12] + ", "
+                   + valueArray[13] + ", " + valueArray[14] + ", "
+                   //  + valueArray[15] + ", " + valueArray[16] + ", "
+                   //  + valueArray[17] + ", " + valueArray[18] + ", "
+                   //  + valueArray[19] + ", " + valueArray[20] + ", " + valueArray[21]
+                   + "],\n";
     }
-
-    lineCount++;
-
-    if (i < 14) {
-      continue;
-    }
-
-    chartData += "["
-                 + valueArray[0] + ", "
-                 + valueArray[1] + ", " + valueArray[2] + ", "
-                 + valueArray[3] + ", " + valueArray[4] + ", "
-                 + valueArray[5] + ", " + valueArray[6] + ", "
-                 + valueArray[7] + ", " + valueArray[8] + ", "
-                 + valueArray[9] + ", " + valueArray[10] + ", "
-                 + valueArray[11] + ", " + valueArray[12] + ", "
-                 + valueArray[13] + ", " + valueArray[14] + ", "
-                 //  + valueArray[15] + ", " + valueArray[16] + ", "
-                 //  + valueArray[17] + ", " + valueArray[18] + ", "
-                 //  + valueArray[19] + ", " + valueArray[20] + ", " + valueArray[21]
-                 + "],\n";
   }
-
 
 
   chartData += "  ]);\n\n"
@@ -238,49 +246,53 @@ String generateSGPchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_lines) {
+  while (file.available()) {
     line = file.readStringUntil('\n');
 
     int commaIndex = line.indexOf(',');
     String timestampChar = line.substring(0, commaIndex);
     String values = line.substring(commaIndex + 1);
 
-    String valueArray[3];
-    int i = 0;
-    size_t lastCommaIndex = 0;
+    time_t logTimestamp = convertTimestampToTime(timestampChar);
+    time_t currentTime = convertTimestampToTime(printTime);
+    unsigned long timeDifference = difftime(currentTime, logTimestamp);
 
-    valueArray[0] = convertLogTimestampForChart(timestampChar);
+    if (timeDifference <= chart_data_range) {  // Ensure the log timestamp is within the past hour and not in the future
 
+      String valueArray[3];
+      int i = 1;
+      size_t lastCommaIndex = 0;
+      valueArray[0] = convertLogTimestampForChart(timestampChar);
 
-    while (i <= log_idx_sgp_nox) {
-      size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+      while (i <= log_idx_sgp_nox) {
+        size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
 
-      if (currentCommaIndex == std::string::npos) {
-        currentCommaIndex = values.length();
+        if (currentCommaIndex == std::string::npos) {
+          currentCommaIndex = values.length();
+        }
+
+        String value = values.substring(lastCommaIndex, currentCommaIndex);
+        if (value.length() == 0) {
+          break;
+        } else {
+          if (i == log_idx_sgp_voc || i == log_idx_sgp_nox) valueArray[i - (log_idx_sgp_voc - 1)] = value;
+        }
+        lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+        i++;
       }
 
-      String value = values.substring(lastCommaIndex, currentCommaIndex);
-      if (value.length() == 0) {
-        break;
-      } else {
-        if (i == log_idx_sgp_voc - 1 || i == log_idx_sgp_nox - 1) valueArray[i - (log_idx_sgp_voc - 2)] = value;
+      lineCount++;
+      if (i < log_idx_sgp_voc) {  // skip the line if empty
+        continue;
       }
-      lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
-      i++;
-    }
 
-    lineCount++;
-    if (i < log_idx_sgp_voc) {  // skip the line if empty
-      continue;
+      chartData += "["
+                   + valueArray[0] + ", "
+                   + valueArray[1] + ", "
+                   + valueArray[2]
+                   + "],\n";
     }
-
-    chartData += "["
-                 + valueArray[0] + ", "
-                 + valueArray[1] + ", "
-                 + valueArray[2]
-                 + "],\n";
   }
-
   chartData += "  ]);\n\n"
                "  var maxDataValue = calculateMaxValue(data_sgp);\n"
                "  var options_sgp = {\n"
@@ -307,6 +319,107 @@ String generateSGPchart() {
   LittleFS.end();
   return chartData;
 }
+
+
+
+
+
+String generateSCDchart() {
+  LittleFS.begin();
+  File file = LittleFS.open(logFilePath.c_str(), "r");
+  if (!file) {
+    LittleFS.end();
+    return "console.error('Error opening file');";
+  }
+  String chartData = "<script type='text/javascript'>";
+  chartData += "function drawSCDchart() {\n"
+               "  var data_scd = google.visualization.arrayToDataTable([\n"
+               "    [";
+
+  chartData += "'" + logColumns[0] + "', ";  // time
+  chartData += "'" + logColumns[log_idx_scd_co2] + "', ";
+  chartData += "'" + logColumns[log_idx_scd_temp] + "', ";
+  chartData += "'" + logColumns[log_idx_scd_humid] + "'";
+  chartData += "],\n";
+
+  String line;
+  size_t lineCount = 0;
+
+  while (file.available()) {
+    line = file.readStringUntil('\n');
+
+    int commaIndex = line.indexOf(',');
+    String timestampChar = line.substring(0, commaIndex);
+    time_t logTimestamp = convertTimestampToTime(timestampChar);
+    time_t currentTime = convertTimestampToTime(printTime);
+    unsigned long timeDifference = difftime(currentTime, logTimestamp);
+
+    if (timeDifference <= chart_data_range) {  // Ensure the log timestamp is within the past hour
+      String values = line.substring(commaIndex + 1);
+      String valueArray[4];
+      int i = 1;
+      size_t lastCommaIndex = 0;
+
+      valueArray[0] = convertLogTimestampForChart(timestampChar);
+
+      while (i <= log_idx_scd_humid) {
+        size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
+
+        if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
+        String value = values.substring(lastCommaIndex, currentCommaIndex);
+
+        if (value.length() == 0) break;
+
+        if (i == log_idx_scd_co2 || i == log_idx_scd_temp || i == log_idx_scd_humid) valueArray[i - (log_idx_scd_co2 - 1)] = value;
+
+        lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
+        i++;
+      }
+
+      lineCount++;
+      if (i < log_idx_scd_co2) {  // skip the line if empty
+        continue;
+      }
+
+      chartData += "["
+                   + valueArray[0] + ", "
+                   + valueArray[1] + ", "
+                   + valueArray[2] + ", "
+                   + valueArray[3]
+                   + "],\n";
+    }
+  }
+  chartData += "  ]);\n\n"
+               "  var maxDataValue = calculateMaxValue(data_scd);\n"
+               "  var options_scd = {\n"
+               "    title: 'CO2, Temp, Humid',\n"
+               "    curveType: 'function',\n"
+               "    legend: { position: 'bottom' },\n"
+               "    backgroundColor: 'transparent',\n"
+               "    series: {\n"
+               // "      16: {targetAxisIndex: 1},\n"
+               // "      2: {targetAxisIndex: 1},\n"
+               "      0: {targetAxisIndex: 1}\n"
+               "    },\n"
+               "    vAxes: {\n"
+               "      0: { viewWindow: { min: -5, max: 65 } },\n"
+               "      1: { viewWindow: { min: 400, max: maxDataValue } }\n"
+               "    }\n"
+               "  };\n\n"
+               "  var chart = new google.visualization.LineChart(document.getElementById('scd_chart'));\n"
+               "  chart.draw(data_scd, options_scd);\n"
+               "}\n";
+  chartData += "google.charts.load('current', {'packages':['corechart']});"
+               "google.charts.setOnLoadCallback(drawSCDchart);"
+               "</script>";
+
+  file.close();
+  LittleFS.end();
+  return chartData;
+}
+
+
+
 
 
 String generateSensorSettingsTable() {
@@ -450,6 +563,8 @@ String generateSystemSensorsTable() {
 
   output += "<tr><td id='subhead'><b>CPU</b></br>" + String(CPUTEMP) + "&deg;C</td>";
   output += "<td id='subhead'><b>BME[1]</b></br>" + String(data.temperature) + "&deg;C</td>";
+  output += "<td id='subhead'><b>SCD</b></br>" + String(tempSCD) + "&deg;C</td>";
+
   output += "</tr>";
 
   output += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
@@ -469,7 +584,7 @@ String generateTaskManagerTable() {
 
   for (const auto& task : tasks) {
     if (taskFreeSlots[*task.taskId] != 'F' && *task.tracker > 0.00 && *task.taskId != 0) {
-      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: right; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'><b>" + String(task.taskName) + " </b>[" +  String(*task.taskId) + "]</td>"
+      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: right; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'><b>" + String(task.taskName) + " </b>[" + String(*task.taskId) + "]</td>"
                + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 1px; border-bottom-right-radius: 10px;'>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
                + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;'>" + String(*task.tracker) + "ms</td>"
                + "</tr>";
@@ -498,10 +613,10 @@ String generateFSTable() {
   table_fs += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
   table_fs += "<tr>";
-  table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
-  table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
-  table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
-  table_fs += "<td><button onclick='download()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download</button></td>";
+  table_fs += "<td colspan='2'><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
+  table_fs += "<td colspan='2'><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
+  table_fs += "<td colspan='2'><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
+  table_fs += "<td colspan='2'><button onclick='download()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download</button></td>";
   table_fs += "<td><input type='file' id='fileInput' accept='.csv, .txt' onchange='uploadFile()' style='display: none;'><button onclick='document.getElementById(\"fileInput\").click();' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080; '>Upload</button></td>";
   table_fs += "</tr>";
 
