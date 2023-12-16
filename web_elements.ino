@@ -469,9 +469,9 @@ String generateTaskManagerTable() {
 
   for (const auto& task : tasks) {
     if (taskFreeSlots[*task.taskId] != 'F' && *task.tracker > 0.00 && *task.taskId != 0) {
-      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: left; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'>[" + String(*task.taskId) + "]<b> " + String(task.taskName) + "</b></td>"
-               + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-radius: 0px; '>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
-               + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 0px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;'>" + String(*task.tracker) + "ms</td>"
+      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: right; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'><b>" + String(task.taskName) + " </b>[" +  String(*task.taskId) + "]</td>"
+               + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 1px; border-bottom-right-radius: 10px;'>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
+               + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;'>" + String(*task.tracker) + "ms</td>"
                + "</tr>";
     }
   }
