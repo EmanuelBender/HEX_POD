@@ -47,10 +47,9 @@ uint16_t webServerPollMs = 80;
 #include <inttypes.h>
 #include <sstream>
 
-
 #include "TaskManagerIO.h"
 #include <TimeLib.h>
-#include "time.h"
+#include <time.h>
 
 esp_chip_info_t chip_info;
 esp_reset_reason_t resetReason;
@@ -158,7 +157,7 @@ const byte log_idx_bme1_humid = 16;  // index in log file
 const byte log_idx_bme1_press = 17;  // index in log file
 const byte log_idx_sgp_voc = 18;
 const byte log_idx_sgp_nox = 19;
-uint16_t chart_max_data = 180;
+uint16_t chart_max_lines = 120;
 String restartHeader;
 
 enum PowerState { NORMAL,
@@ -235,7 +234,7 @@ byte DTdevice;
 struct probeStruct {
   const char* name;
   float temperature;
-  byte index;
+  const byte index;
   DeviceAddress address;
 };
 

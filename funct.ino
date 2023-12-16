@@ -115,16 +115,14 @@ void PowerStates() {
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.0) {
-        TFTbrightness -= 0.01;
-        pwm.writeScaled(TFTbrightness);
+        pwm.writeScaled(TFTbrightness -= 0.01);
         delay(3);
       }
 
     } else if (currentPowerState == IDLE) {
       setCpuFrequencyMhz(160);
       while (TFTbrightness > 0.3) {
-        TFTbrightness -= 0.01;
-        pwm.writeScaled(TFTbrightness);
+        pwm.writeScaled(TFTbrightness -= 0.01);
         delay(1);
       }
 
@@ -132,6 +130,7 @@ void PowerStates() {
       setCpuFrequencyMhz(240);
       webServerPollMs = 80;
       taskManager.cancelTask(WEB);
+      pwm.writeScaled(TFTbrightness = 1.0);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
     }
   }
@@ -169,7 +168,6 @@ void pollButtons() {
     menuTrigger = true;
     lastInputTime = micros();
     taskManager.schedule(onceMicros(500), statusBar);
-
 
     if (LEFT) {
       LEFT = false;

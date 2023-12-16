@@ -26,7 +26,7 @@ String generateTHPchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_data) {
+  while (file.available() && lineCount < chart_max_lines) {
     line = file.readStringUntil('\n');
 
     int commaIndex = line.indexOf(',');
@@ -100,6 +100,7 @@ String generateTHPchart() {
 
 
 
+
 String generateBMEchart() {
   LittleFS.begin();
   File file = LittleFS.open(logFilePath.c_str(), "r");
@@ -126,7 +127,7 @@ String generateBMEchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_data) {
+  while (file.available() && lineCount < chart_max_lines) {
     line = file.readStringUntil('\n');
 
     // Split the line into timestamp and values
@@ -198,8 +199,8 @@ String generateBMEchart() {
                // "      20: {targetAxisIndex: 1},\n"
                // "    },\n"
                "    vAxes: {\n"
-               "      0: { viewWindow: { min: 0, max: maxDataValue } },  // Left axis\n"
-               "      1: { viewWindow: { min: 0, max: maxDataValue } }   // Right axis\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue } },\n"
+               "      1: { viewWindow: { min: 0, max: maxDataValue } }\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));\n"
@@ -237,7 +238,7 @@ String generateSGPchart() {
   String line;
   size_t lineCount = 0;
 
-  while (file.available() && lineCount < chart_max_data) {
+  while (file.available() && lineCount < chart_max_lines) {
     line = file.readStringUntil('\n');
 
     int commaIndex = line.indexOf(',');
@@ -291,8 +292,8 @@ String generateSGPchart() {
                "      1: {targetAxisIndex: 1}\n"
                "    },\n"
                "    vAxes: {\n"
-               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },  // Left axis\n"
-               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }   // Right axis\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },\n"
+               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
@@ -465,13 +466,12 @@ String generateSystemSensorsTable() {
 String generateTaskManagerTable() {
   String table = "<table style='display: flex;'>";
   table += "<tr><th colspan='2'><h2>Task Manager</h2></th></tr>";
-  // table += "<tr><td><b>ID\tState\tName\tLast Dur\tLast</td></tr>";
 
   for (const auto& task : tasks) {
-    if (taskFreeSlots[*task.taskId] != char('F') && *task.tracker > 0.00 || *task.taskId != 0) {  // don't add free, unscheduled task slots
-      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: left; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10x;'>[" + String(*task.taskId) + "]<b> " + String(task.taskName) + "</b></td>"
+    if (taskFreeSlots[*task.taskId] != 'F' && *task.tracker > 0.00 && *task.taskId != 0) {
+      table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: left; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'>[" + String(*task.taskId) + "]<b> " + String(task.taskName) + "</b></td>"
                + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-radius: 0px; '>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
-               + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 0px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;''>" + String(*task.tracker) + "ms</td>"
+               + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 0px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;'>" + String(*task.tracker) + "ms</td>"
                + "</tr>";
     }
   }
@@ -479,6 +479,7 @@ String generateTaskManagerTable() {
   table += "</table>";
   return table;
 }
+
 
 
 
