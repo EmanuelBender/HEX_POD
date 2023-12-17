@@ -414,25 +414,14 @@ void pollBME() {
       for (i = 0; i < numProfiles; ++i) {
         bme_resistance[i] /= bmeSamples;
         bme_gas_avg += bme_resistance[i];
-        // offsetDelta = 5684;  // min(offsetDelta, bme_resistance[i]);
       }
 
       bme_gas_avg /= numProfiles;
 
       for (i = 0; i < numProfiles; ++i) {
         bme_resistance_avg[i] = bme_resistance[i] - offsetDelta;
-
-        if (serialPrintBME1) {
-          console[consoleLine][i] = String(bme_resistance_avg[i]);
-          Serial.print("BME" + String(i) + ":" + String(bme_resistance_avg[i]) + "\t");
-        }
       }
-
-      if (serialPrintBME1) {
-        consoleLine = (consoleLine + 1) % 55;
-        Serial.println();
-      }
-
+      // offsetDelta = findSmallestValue(bme_resistance_avg);
       std::fill_n(bme_resistance, numProfiles, 0);  // empty resistance array
     }
     repeater = 0;
@@ -505,14 +494,13 @@ void pollTemp() {
   TAG = "pollTemp()   ";
   tempTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  if (DEBUG) oneWireSearch(GPIO_NUM_8);
 
   if (tempSens.isConversionComplete()) {
-    for (byte i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
-      // tempSens.requestTemperaturesByAddress(DTprobe[i].address);
-      DTprobe[i].temperature = tempSens.getTempC(DTprobe[i].address);  // Update the temperature value for each probe
+    for (auto &probe : DTprobe) {
+      probe.temperature = tempSens.getTempC(probe.address);
     }
   }
+  if (DEBUG) oneWireSearch(GPIO_NUM_8);
   tempSens.requestTemperatures();
   CPUTEMP = temperatureRead();
 
@@ -539,8 +527,8 @@ void pollSCD30() {
     scdInterval = loggingInterval / ONETHOUSAND;
     scd30.setMeasurementInterval(scdInterval);
 
-    float scdTempOffset = tempSCD - data.temperature;
-    if (scdTempOffset > 0.0) scd30.setTemperatureOffset(scdTempOffset);
+    double scdTempOffset = tempSCD - data.temperature;
+    if (scdTempOffset) scd30.setTemperatureOffset(scdTempOffset);
   }
 
   debugF(scdTracker);
@@ -581,19 +569,17 @@ void debugF(uint32_t tracker) {
 }
 
 
+
 void pollMultiplexer() {
   PCABITS = io.read();
-
   for (int i = 0; i <= 17; i++) {
-    P0[i] = isBitSet(PCABITS, i);  // Now you can access individual values using P0[0], P0[1], ..., P0[17]
+    P0[i] = isBitSet(PCABITS, i);
   }
 }
-
 
 inline bool isBitSet(uint16_t value, uint8_t mask) {
   return !(value & (1 << mask));
 }
-
 
 
 
@@ -666,41 +652,46 @@ uint8_t oneWireSearch(int pin) {
   return count;
 }
 
+
+
+
+
 String getResetReason() {
-  resetReason = esp_reset_reason();
+  esp_reset_reason_t resetReason = esp_reset_reason();
+
   switch (resetReason) {
     case ESP_RST_UNKNOWN:
-      resetReasonString = "Unknown reset reason";
+      resetReasonString = "Unknown reset reason.";
       break;
     case ESP_RST_POWERON:
-      resetReasonString = "Power-on reset";
+      resetReasonString = "Power-on reset.";
       break;
     case ESP_RST_EXT:
-      resetReasonString = "External reset";
+      resetReasonString = "External reset.";
       break;
     case ESP_RST_SW:
-      resetReasonString = "Software reset";
+      resetReasonString = "Software reset.";
       break;
     case ESP_RST_PANIC:
-      resetReasonString = "Exception/Panic reset";
+      resetReasonString = "Exception/Panic reset.";
       break;
     case ESP_RST_INT_WDT:
-      resetReasonString = "Watchdog timer reset (software or hardware)";
+      resetReasonString = "Watchdog timer reset.\n (soft or hardware)";
       break;
     case ESP_RST_TASK_WDT:
-      resetReasonString = "Task watchdog timer reset";
+      resetReasonString = "Task watchdog timer reset.";
       break;
     case ESP_RST_WDT:
-      resetReasonString = "Other watchdog reset";
+      resetReasonString = "Other watchdog reset.";
       break;
     case ESP_RST_DEEPSLEEP:
-      resetReasonString = "Deep sleep reset";
+      resetReasonString = "Deep sleep reset.";
       break;
     case ESP_RST_BROWNOUT:
-      resetReasonString = "Brownout reset";
+      resetReasonString = "Brownout reset. Check Power.";
       break;
     case ESP_RST_SDIO:
-      resetReasonString = "SDIO reset";
+      resetReasonString = "SDIO reset.";
       break;
     default:
       resetReasonString = "";
@@ -711,7 +702,6 @@ String getResetReason() {
 
 String print_wakeup_reason() {
   esp_sleep_wakeup_cause_t wake_up_source;
-
 
   switch (esp_sleep_get_wakeup_cause()) {
     case ESP_SLEEP_WAKEUP_EXT0: wakeupReasonString = "Wake-up from external signal with RTC_IO"; break;

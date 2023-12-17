@@ -40,26 +40,23 @@ String generateTHPchart() {
       String valueArray[4];
       int i = 1;
       size_t lastCommaIndex = 0;
-
       valueArray[0] = convertLogTimestampForChart(timestampChar);
 
       while (i <= log_idx_bme1_press) {
         size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
 
-        if (currentCommaIndex == std::string::npos) {
-          currentCommaIndex = values.length();
-        }
-
+        if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
         if (value.length() == 0) break;
+
         if (i == log_idx_bme1_temp || i == log_idx_bme1_humid || i == log_idx_bme1_press) valueArray[i - (log_idx_bme1_temp - 1)] = value;
         lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
         i++;
       }
 
       lineCount++;
-      if (i < log_idx_bme1_temp) {  // skip the line if empty
+      if (i < log_idx_bme1_temp - 1) {  // skip the line if empty
         continue;
       }
 
@@ -78,19 +75,21 @@ String generateTHPchart() {
                "    curveType: 'function',\n"
                "    legend: { position: 'bottom' },\n"
                "    backgroundColor: 'transparent',\n"
-               "    series: {\n"
-               // "      16: {targetAxisIndex: 1},\n"
-               // "      2: {targetAxisIndex: 1},\n"
-               "      2: {targetAxisIndex: 1}\n"
-               "    },\n"
-               "    vAxes: {\n"
-               "      0: { viewWindow: { min: -5, max: 65 } },  // Left axis\n"
-               "      1: { viewWindow: { min: maxDataValue - 300, max: maxDataValue + 300 } }   // Right axis\n"
-               "    }\n"
-               "  };\n\n"
-               "  var chart = new google.visualization.LineChart(document.getElementById('thp_chart'));\n"
-               "  chart.draw(data_thp, options_tph);\n"
-               "}\n";
+               "    series: {\n";
+  chartData += "      0: { color: '" + String(COLOR_BLUE, HEX) + "' },  // Temp\n";
+  chartData += "      1: { color: '" + String(COLOR_ORANGE, HEX) + "' }    },  // Humid\n";
+  chartData += "    series: {\n";
+  chartData += "      2: { targetAxisIndex: 1, color: '" + String(COLOR_TEAL, HEX)
+               + "' }  // Press\n"
+                 "    },\n"
+                 "    vAxes: {\n"
+                 "      0: { viewWindow: { min: -5, max: 65 } },\n"
+                 "      1: { viewWindow: { min: maxDataValue - 300, max: maxDataValue + 300 } }\n"
+                 "    }\n"
+                 "  };\n\n"
+                 "  var chart = new google.visualization.LineChart(document.getElementById('thp_chart'));\n"
+                 "  chart.draw(data_thp, options_tph);\n"
+                 "}\n";
   chartData += "google.charts.load('current', {'packages':['corechart']});"
                "google.charts.setOnLoadCallback(drawTPHchart);"
                "</script>";
@@ -110,9 +109,6 @@ String generateBMEchart() {
     LittleFS.end();
     return "console.error('Error opening file');";
   }
-  // size_t fileSize = file.size();
-  // size_t startPosition = fileSize > 8000 ? fileSize - 8000 : 0;
-  // file.seek(startPosition);
 
   String chartData = "<script type='text/javascript'>";
   chartData += "function drawBMEchart() {\n"
@@ -153,10 +149,7 @@ String generateBMEchart() {
       while (i < 15) {
         size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
 
-        if (currentCommaIndex == std::string::npos) {
-          currentCommaIndex = values.length();
-        }
-
+        if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
         if (value.length() == 0) {
@@ -171,7 +164,7 @@ String generateBMEchart() {
 
       lineCount++;
 
-      if (i < 14) {
+      if (i < 13) {
         continue;
       }
 
@@ -199,16 +192,8 @@ String generateBMEchart() {
                "    curveType: 'function',\n"
                "    legend: { position: 'bottom' },\n"
                "    backgroundColor: 'transparent',\n"
-               // "    width: '100%',\n"   // Set width to 100% for responsiveness
-               // "    height: '100%',\n"  // Set height to 100% for responsiveness
-               // "    series: {\n"
-               // "      16: {targetAxisIndex: 1},\n"
-               // "      19: {targetAxisIndex: 1},\n"
-               // "      20: {targetAxisIndex: 1},\n"
-               // "    },\n"
                "    vAxes: {\n"
-               "      0: { viewWindow: { min: 0, max: maxDataValue } },\n"
-               "      1: { viewWindow: { min: 0, max: maxDataValue } }\n"
+               "      0: { viewWindow: { min: 0, max: maxDataValue } }\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));\n"
@@ -267,11 +252,9 @@ String generateSGPchart() {
       while (i <= log_idx_sgp_nox) {
         size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
 
-        if (currentCommaIndex == std::string::npos) {
-          currentCommaIndex = values.length();
-        }
-
+        if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
+        
         if (value.length() == 0) {
           break;
         } else {
@@ -282,7 +265,7 @@ String generateSGPchart() {
       }
 
       lineCount++;
-      if (i < log_idx_sgp_voc) {  // skip the line if empty
+      if (i < log_idx_sgp_voc - 1) {  // skip the line if empty
         continue;
       }
 
@@ -300,17 +283,20 @@ String generateSGPchart() {
                "    curveType: 'function',\n"
                "    legend: { position: 'bottom' },\n"
                "    backgroundColor: 'transparent',\n"
-               "    series: {\n"
-               "      1: {targetAxisIndex: 1}\n"
-               "    },\n"
-               "    vAxes: {\n"
-               "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },\n"
-               "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }\n"
-               "    }\n"
-               "  };\n\n"
-               "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
-               "  chart.draw(data_sgp, options_sgp);\n"
-               "}\n";
+               "    series: {\n";
+  chartData += "      0: { targetAxisIndex: 0, color: '" + String(COLOR_TEAL, HEX) + "' }    },\n ";
+  chartData += "    series: {\n";
+  chartData += "      1: { targetAxisIndex: 1, color: '" + String(COLOR_ORANGE, HEX)
+               + "' }  \n"
+                 "    },\n"
+                 "    vAxes: {\n"
+                 "      0: { viewWindow: { min: 0, max: maxDataValue + 20 } },\n"
+                 "      1: { viewWindow: { min: 0, max: maxDataValue + 20 } }\n"
+                 "    }\n"
+                 "  };\n\n"
+                 "  var chart = new google.visualization.LineChart(document.getElementById('sgp_chart'));\n"
+                 "  chart.draw(data_sgp, options_sgp);\n"
+                 "}\n";
   chartData += "google.charts.load('current', {'packages':['corechart']});"
                "google.charts.setOnLoadCallback(drawSGPchart);"
                "</script>";
@@ -357,7 +343,7 @@ String generateSCDchart() {
     if (timeDifference <= chart_data_range) {  // Ensure the log timestamp is within the past hour
       String values = line.substring(commaIndex + 1);
       String valueArray[4];
-      int i = 1;
+      i = 1;
       size_t lastCommaIndex = 0;
 
       valueArray[0] = convertLogTimestampForChart(timestampChar);
@@ -377,7 +363,7 @@ String generateSCDchart() {
       }
 
       lineCount++;
-      if (i < log_idx_scd_co2) {  // skip the line if empty
+      if (i < 10) {  // skip the line if empty
         continue;
       }
 
@@ -397,8 +383,6 @@ String generateSCDchart() {
                "    legend: { position: 'bottom' },\n"
                "    backgroundColor: 'transparent',\n"
                "    series: {\n"
-               // "      16: {targetAxisIndex: 1},\n"
-               // "      2: {targetAxisIndex: 1},\n"
                "      0: {targetAxisIndex: 1}\n"
                "    },\n"
                "    vAxes: {\n"
@@ -425,32 +409,32 @@ String generateSCDchart() {
 String generateSensorSettingsTable() {
 
   // Sensor Settings Table
-  String output = "<table>";
-  output += "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
+  String output = "<table>"
+                  "<tr><td colspan='5'><h2> Sensor Settings </h2></td></tr>";
 
-  output += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>";
-  output += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
+  output += "<tr><td><label for='loggingInterval'><b> Interval</b></label></td>"
+            "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   output += generateTimeOptions(loggingInterval);
-  output += "</select></td>";
-  output += "</tr>";
+  output += "</select></td>"
+            "</tr>";
 
-  output += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>";
-  output += "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
+  output += "<tr><td><label for='bmeSamples'><b>Samples</b></label></td>"
+            "<td><select id='bmeSamples' onchange='updateBMEsamples()'>";
   output += valueOptions(bmeSamples);
-  output += "</select></td>";
-  output += "</tr>";
+  output += "</select></td>"
+            "</tr>";
 
-  output += "<tr><td><label for='bmeFilter'><b>Filter</b></label></td>";
-  output += "<td><select id='bmeFilter' onchange='updateBMEfilter()'>";
+  output += "<tr><td><label for='bmeFilter'><b>Filter</b></label></td>"
+            "<td><select id='bmeFilter' onchange='updateBMEfilter()'>";
   output += valueOptions(bmeFilter);
-  output += "</select></td>";
-  output += "</tr>";
+  output += "</select></td>"
+            "</tr>";
 
-  output += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>";
-  output += "<td><select id='bmePause' onchange='updateBMEpause()'>";
+  output += "<tr><td><label for='bmePause'><b> Pause</b>[ms]</label></td>"
+            "<td><select id='bmePause' onchange='updateBMEpause()'>";
   output += valueOptions(bmeProfilePause);
-  output += "</select></td>";
-  output += "</tr>";
+  output += "</select></td>"
+            "</tr>";
 
   output += "<tr><td>&nbsp;</td></tr>";  // empty Row
   output += "<tr><td><b> Conditioning </td><td>" + String(conditioning_duration) + "s</td></tr>";
@@ -477,8 +461,8 @@ String generateSensorSettingsTable() {
 
 String generateDeviceControlsTable() {
 
-  String output = "<table>";
-  output += "<tr><th colspan='6'><h2>Device Controls</h2></th></tr>";
+  String output = "<table>"
+                  "<tr><th colspan='6'><h2>Device Controls</h2></th></tr>";
 
   output += "<tr>";
   output += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>LED</button></td>";
@@ -494,8 +478,8 @@ String generateDeviceControlsTable() {
 
 
 String generateDeviceStatsTable() {
-  String output = "<table>";
-  output += "<tr><th colspan='2'><h2> Device Stats </h2></th></tr>";
+  String output = "<table>"
+                  "<tr><th colspan='2'><h2> Device Stats </h2></th></tr>";
   output += "<tr><td style='font-size:11px;'>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
   output += "<td id='subhead' colspan='2'> " + String(powerStateNames[currentPowerState]) + "</td>";
   output += "<td id='subhead' colspan='2'>" + resetReasonString + "</td></tr>";
@@ -549,7 +533,7 @@ String generateSystemSensorsTable() {
   output += "<td id='subhead'><b>Volt </b></br> " + String(BUS2_BusVoltage / (ONETHOUSAND), 2) + "V</td>"
             + "<td id='subhead'><b>Amp</b></br> " + String(BUS2_Current, 2) + "mA</td><td id='subhead'><b>Shunt</b></br> " + String(BUS2_ShuntVoltage, 2) + "mV</td><td id='subhead'><b>Power</b></br> " + String(BUS2_Power, 2) + "mW</td></tr>";
   // output += "<tr><td>" + String(BUS2_BusVoltage / (ONETHOUSAND)) + "V</td><td>" + String(BUS2_Current) + "mA</td><td>" + String(BUS2_ShuntVoltage) + "mV</td><td>" + String(BUS2_Power) + "mW</td></tr>";
-  output += "<tr><td>&nbsp;</td></tr>";  // empty Row DTdevice
+  output += "<tr><td>&nbsp;</td></tr>";  // empty Row
   output += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
   for (i = 0; i < sizeof(DTprobe) / sizeof(DTprobe[0]); i++) {
@@ -613,10 +597,10 @@ String generateFSTable() {
   table_fs += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";
 
   table_fs += "<tr>";
-  table_fs += "<td colspan='2'><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
-  table_fs += "<td colspan='2'><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
-  table_fs += "<td colspan='2'><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
-  table_fs += "<td colspan='2'><button onclick='download()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download</button></td>";
+  table_fs += "<td><button onclick='createFile()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New File</button></td>";
+  table_fs += "<td><button onclick='createDir()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>New Folder</button></td>";
+  table_fs += "<td><button onclick='deletePath()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Delete</button></td>";
+  table_fs += "<td><button onclick='download()' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080;')>Download</button></td>";
   table_fs += "<td><input type='file' id='fileInput' accept='.csv, .txt' onchange='uploadFile()' style='display: none;'><button onclick='document.getElementById(\"fileInput\").click();' style='padding: 10px 15px; font-size: 14px; background-color: #505050; border: solid 1px #808080; '>Upload</button></td>";
   table_fs += "</tr>";
 

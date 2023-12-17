@@ -135,13 +135,12 @@ const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
 
 // LOG & Chart & Data
+String TAG = "ESP";
 multi_heap_info_t deviceInfo;
 esp_chip_info_t chip_info;
-esp_reset_reason_t resetReason;
 String resetReasonString;
 String wakeupReasonString;
 
-String TAG = "ESP";
 uint32_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free;
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
 long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
@@ -161,7 +160,11 @@ const byte log_idx_scd_co2 = 22;
 const byte log_idx_scd_temp = 23;
 const byte log_idx_scd_humid = 24;
 
-uint16_t chart_data_range = 5400;  // in seconds from now
+uint16_t chart_data_range = 3600;  // in seconds from now
+const int COLOR_TEAL = 0x66cce8;
+const int COLOR_ORANGE = 0xff7f17;
+const int COLOR_BLUE = 0x5496ff;
+
 String restartHeader;
 
 enum PowerState { NORMAL,
@@ -235,15 +238,15 @@ DallasTemperature tempSens(&oneWire);
 byte DTdevice;
 
 struct probeStruct {
-  const char* name;
   const byte index;
+  const char* name;
   float temperature;
   DeviceAddress address;
 };
 
 probeStruct DTprobe[] = {
-  { "ESP_prox", 0, float(), { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
-  { "PCB#1", 1, float(), { 0x28, 0x30, 0x14, 0x75, 0xD0, 0x01, 0x3C, 0x79 } }
+  { 0, "ESP32_prox", float(), { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
+  { 1, "PCB#1_prox", float(), { 0x28, 0x30, 0x14, 0x75, 0xD0, 0x01, 0x3C, 0x79 } }
 };
 
 
@@ -519,12 +522,9 @@ void setup() {  // ________________ SETUP ___________________
 
   tempSens.begin();
   tempSens.setWaitForConversion(false);
-  tempSens.setResolution(10);                         // set global resolution to 9, 10 (default), 11, or 12 bits
-  tempSens.setHighAlarmTemp(DTprobe[0].address, 65);  // Dallas tempProbe Alarm Thresholds
-  tempSens.setLowAlarmTemp(DTprobe[0].address, -1);
-  tempSens.setHighAlarmTemp(DTprobe[1].address, 65);  // Dallas tempProbe Alarm Thresholds
-  tempSens.setLowAlarmTemp(DTprobe[1].address, -1);
-  DTdevice = tempSens.getDeviceCount();
+  tempSens.setResolution(10);  // set global resolution to 9, 10 (default), 11, or 12 bits
+  // tempSens.setHighAlarmTemp(DTprobe[0].address, 65);  // Dallas tempProbe Alarm Thresholds
+  // tempSens.setLowAlarmTemp(DTprobe[0].address, -1);
 
   //___________________________ INITIALIZE INA219 _____________________
 

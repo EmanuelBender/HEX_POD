@@ -20,8 +20,9 @@ void handleNotFound() {
 }
 
 
+
 String convertLogTimestampForChart(String input) {
-  int hours, minutes, seconds;
+  uint8_t hours, minutes, seconds;
   sscanf(input.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
 
   return "new Date(0, 0, 0, " + String(hours) + ", " + String(minutes) + ", " + String(seconds)
@@ -30,7 +31,7 @@ String convertLogTimestampForChart(String input) {
 
 
 unsigned long convertTimestampToMillis(String timestamp) {
-  int hours, minutes, seconds;
+  uint8_t hours, minutes, seconds;
   sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
   return (hours * 3600UL + minutes * 60UL + seconds) * 1000UL;
 }
@@ -38,7 +39,7 @@ unsigned long convertTimestampToMillis(String timestamp) {
 
 time_t convertTimestampToTime(const String& timestamp) {
   struct tm info;
-  int hours, minutes, seconds, day, month, year;
+  uint16_t hours, minutes, seconds, day, month, year;
 
   sscanf(timestamp.c_str(), "%d:%d:%d", &hours, &minutes, &seconds);
   sscanf(printDate.c_str(), "%d.%d.%d", &day, &month, &year);
@@ -342,7 +343,7 @@ void setupWebInterface() {  // in setup()
     empty2DArray(console);
     server.send(200, "text/plain", "DEBUG mode enabled");
   });
-  server.on("/toggleLOGBME", []() {
+  /*server.on("/toggleLOGBME", []() {
     serialPrintBME1 = !serialPrintBME1;
     consoleLine = 0;
     preferences.begin("my - app", false);
@@ -350,7 +351,7 @@ void setupWebInterface() {  // in setup()
     preferences.end();
     empty2DArray(console);
     server.send(200, "text/plain", "BME LOG enabled");
-  });
+  });*/
   server.on("/triggerUP", []() {
     UP = true;
     pwm.writeScaled(TFTbrightness = 1.0);
@@ -465,7 +466,7 @@ String generateJavaScriptFunctions() {  // JavaScript functions "<script src='ht
          "}"
 
          "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
-         "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
+         // "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
          "function toggleOLED() { fetch('/toggleOLED'); }"
          "function triggerUP() { fetch('/triggerUP'); }"
          "function triggerDOWN() { fetch('/triggerDOWN'); }"
@@ -568,18 +569,17 @@ String generateNavBar() {
   // HTML for the navigation bar
   // String page = "<div style='text-align:center; margin-bottom: 5px; margin-top: 10px;  '>";
 
-  String page = "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>";
+  String page = "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>"
+                "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>"
+                "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
 
-  page += "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>";
-  // page += "<p>" + String(codeRevision) + "<br><br></p>";
-  page += "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
+  page += "<div style='text-align:center; '>"
+          "<a class='button' href='/'>MAIN</a> <br>"
+          "<a class='button' href='/sensors'>AIR</a> <br>"
+          "<a class='button' href='/utility'>SYS</a> <br>"
+          "<a class='button' href='/filesystem'>LOG</a></div><br>";
 
-  page += "<div style='text-align:center; '>";
-  page += "<a class='button' href='/'>MAIN</a> <br>";
-  page += "<a class='button' href='/sensors'>AIR</a> <br>";
-  page += "<a class='button' href='/utility'>SYS</a> <br>";
-  page += "<a class='button' href='/filesystem'>LOG</a></div><br>";
-
+  // Info text
   page += "<div style='text-align:center; color: #808080; font-size:11px; '>";
   page += printTime + "<br>";
   page += String(restarts) + " Restarts<br>";
@@ -587,14 +587,14 @@ String generateNavBar() {
   page += WiFiIP + "</div>";
 
   // Controls
-  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
-  page += "<div style='text-align:center; '>";
-  page += "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; background-color: transparent; box-shadow: none;'>";
-  page += "<tr><td></td><td><button onclick='triggerUP()' style='background-color:#008080;'>&#8593;</button></td><td></td></tr>";
-  page += "<tr><td><button onclick='triggerLEFT()' style='background-color:#008080;' >&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()' style='background-color:#008080' ;>&#8594;</button></td></tr>";
-  page += "<tr><td><button onclick='restartESP()' style='background-color:#008080;' >&#8634;</button></td><td><button onclick='triggerDOWN()' style='background-color:#008080' ;>&#8595;</button></td><td></td></tr>";
-  page += "</table></div>";
-  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
+  page += "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>"
+          "<div style='text-align:center; '>"
+          "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; background-color: transparent; box-shadow: none;'>"
+          "<tr><td></td><td><button onclick='triggerUP()' style='background-color:#008080;'>&#8593;</button></td><td></td></tr>"
+          "<tr><td><button onclick='triggerLEFT()' style='background-color:#008080;' >&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()' style='background-color:#008080' ;>&#8594;</button></td></tr>"
+          "<tr><td><button onclick='restartESP()' style='background-color:#008080;' >&#8634;</button></td><td><button onclick='triggerDOWN()' style='background-color:#008080' ;>&#8595;</button></td><td></td></tr>"
+          "</table></div>"
+          "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
 
   // Toggles
   page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
@@ -611,14 +611,12 @@ String generateNavBar() {
 
 String generateConsole() {
   String consoleOutput;
-  // Update circular buffer with the current sensor data
   // Display the last 55 entries in reverse order
   for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
     for (i = 0; i < consoleColumns; i++) {
 
-      // console[line][i] = SDarray[SDIndex][i];
       consoleOutput += console[line][i];
 
       if (i < consoleColumns - 1) {
@@ -639,14 +637,14 @@ String generateHomePage() {
   String page = "<table min-width: 70%; '>";
 
   page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
-  page += "<tr><td>TFT Brightness: </td><td><input style='cursor:pointer;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
+  page += "<tr><td>TFT Brightness: </td><td><input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td></tr>";
   page += "<tr><td><b>Log Period</td>";
   page += "<td><label for='loggingInterval'>Interval</label></td>";
   page += "<td><select id='loggingInterval' onchange='updateLoggingInterval()'>";
   page += generateTimeOptions(loggingInterval);
   page += "</select></td></tr>";
   page += "<tr><td>&nbsp;</td></tr>";
-  page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
+  // page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
 
   page += "</table>";
 
@@ -686,7 +684,7 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td id='subhead'><b> Duration </b><br>" + String(bmeTracker) + "ms</td>";
   page += "<td id='subhead'><b> Last </b><br> " + String(lastBMEpoll) + "</td>";
-  page += "<td id='subhead'><b> Poll Pd </b><br>" + String((bmeInterval / double(ONETHOUSAND)) / bmeSamples) + "s</td>";
+  page += "<td id='subhead'><b> Poll Pd </b><br>" + String((bmeInterval / ONETHOUSAND) / bmeSamples) + "s</td>";
   page += "<td id='subhead'><b> GAS_AVG </b><br>" + String(bme_gas_avg) + "</td>";
   page += "<td id='subhead'><b> Temp </b><br> " + String(data.temperature) + "&deg;C</td>";
   page += "<td id='subhead'><b> Humid </b><br> " + String(data.humidity) + "%</td>";
@@ -749,18 +747,16 @@ String generateSensorsPage() {
   page += "<tr style='background-color: #707070;'>";
   page += "<td id='subhead'><b>Duration</b><br>" + String(sgpTracker) + "ms</td>";
   page += "<td id='subhead'><b>Last</b><br> " + String(lastSGPpoll) + "</td>";
-  page += "<td id='subhead'><b>Poll Pd</b><br>" + String(sgpInterval / double(ONETHOUSAND)) + "s</td>";
+  page += "<td id='subhead'><b>Poll Pd</b><br>" + String(sgpInterval / ONETHOUSAND) + "s</td>";
   page += "<td id='subhead'><b>VOC</b><br>" + String(VOC) + "</td>";
   page += "<td id='subhead'><b>NOx</b><br>" + String(NOX) + "</td>";
   page += "<td id='subhead'><b>rVOC</b><br>" + String(srawVoc) + "</td>";
   page += "<td id='subhead'><b>rNOx</b><br>" + String(srawNox) + "</td>";
   page += "</tr>";
-  // page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  // page += "<tr style='font-size: 14px;'></td><td><td><b> VOC </td><td><b> NOx </td><td><b> rawVOC </td><td><b> rawNOx </td></tr>";
-  // page += "<tr style='font-size: 14px;'></td><td><td>" + String(VOC) + "</td><td>" + String(NOX) + "</td><td>" + String(srawVoc) + "</td><td>" + String(srawNox) + "</td></tr>";
-  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
-  page += "<tr style='font-size: 14px;'><td></td><td><b> Index Offs </td><td><b> Learn Time_H </td><td><b> learn Time Gain_H </td><td><b> Gate Max Dur_M </td><td><b> Std Initial </td><td><b> Gain Factor </td></tr>";
 
+  page += "<tr><td>&nbsp;</td></tr>";  // empty Row
+
+  page += "<tr style='font-size: 14px;'><td></td><td><b> Index Offs </td><td><b> Learn Time_H </td><td><b> learn Time Gain_H </td><td><b> Gate Max Dur_M </td><td><b> Std Initial </td><td><b> Gain Factor </td></tr>";
   page += "<tr style='font-size: 14px;'>";
   voc_algorithm.get_tuning_parameters(
     index_offset, learning_time_offset_hours, learning_time_gain_hours,
@@ -787,7 +783,7 @@ String generateSensorsPage() {
   page += "</tr>";
   page += "</table>";
 
-  // SCD41 log chart
+  // SGP41 chart
   page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
   page += "<div id='sgp_chart' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
   page += generateSGPchart();
@@ -798,7 +794,7 @@ String generateSensorsPage() {
   page += "<div style='display: flex;'>";  // Use flex container to make tables side by side
 
 
-  // SGP41 Table
+  // SCD30 Table
   page += "<table>";
   page += "<tr><td colspan='3'><h2> SCD30 </h2></td></tr>";
   page += "<tr style='background-color: #707070;'>";
@@ -813,7 +809,7 @@ String generateSensorsPage() {
   page += "</table>";
 
 
-  // SCD41 log chart
+  // SCD30 log chart
   page += "<table style='padding:0px;'><tr><td style='padding: 0px; margin: 0px; '>";
   page += "<div id='scd_chart' style='margin:0px; padding: 0px; height: 370px; width: 750px; '>";
   page += generateSCDchart();

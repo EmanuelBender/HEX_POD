@@ -25,7 +25,7 @@ void getFlashInfo() {
   flash_speed = ESP.getFlashChipSpeed();
   free_flash_size = flash_size - program_used - SPIFFS_used;
   flash_used = flash_size - free_flash_size;
-  flash_UsedP = (program_used * 100.0) / flash_size;
+  flash_UsedP = (flash_used * 100.0) / flash_size;
   flash_LeftP = 100.0 - flash_UsedP;
 }
 
@@ -79,10 +79,9 @@ void logging() {
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
     std::ostringstream airLog;
-
     airLog << printTime.c_str() << ", ";
 
-    for (auto &resistance : bme_resistance_avg) {
+    for (const auto &resistance : bme_resistance_avg) {
       airLog << resistance << ", ";
     }
 
@@ -98,7 +97,7 @@ void logging() {
     airLog << std::fixed << tempSCD << ", ";
     airLog << std::fixed << humidSCD << "\n";
 
-    LittleFS.begin();
+    if (!LittleFS.begin()) return;  // Ensure file system initialization succeeds
     appendFile(LittleFS, logFilePath.c_str(), airLog.str().c_str());
     LittleFS.end();
   }
