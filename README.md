@@ -34,6 +34,8 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
 
+![Cam7_2](https://github.com/EmanuelBender/HEX_POD/assets/46021872/4b5eb750-45d1-436b-9c5a-3fbf9086c3b0)
+
 ![Cam11 logo](https://github.com/EmanuelBender/HEX_POD/assets/46021872/310d5f9c-fdd4-4721-8e1b-323015d13cb5)
 
 ![Cam5](https://github.com/EmanuelBender/HEX_POD/assets/46021872/64019561-32b2-45c3-9704-376f508abd8e)
