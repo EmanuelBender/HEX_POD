@@ -105,13 +105,14 @@ VSCs (Volatile Sulfuric Compounds) <br>
 Ethanol, Benzine, Alcohol <br>
 Formaldehyde (CH2O) <br>
 Ammonia (NH3) <br>
-UV <br>
+UV </br>
 
 
 
 <hr style='height:1px'></hr>
-<!-- <p><h2>Summary of hazardous air compounds</h2></p>  -->
-![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/assets/46021872/74b01bd2-ef0c-40ef-958d-b35394120a31)
+<!-- <p><h2>Summary of hazardous air compounds</h2></p> -->
+
+![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview%20Environmental%20Threats.jpg)
 
 <hr style='height:1px'></hr>
 <h2>Local Web Interface [wip]</h2>
