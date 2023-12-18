@@ -17,7 +17,7 @@
   </b></p>
 
 <p>
-  THE GOAL
+A portable multi-purpose, intelligent, environmental multi-sensor platform.
 
 Technology has advanced significantly, with sensors being ubiquitous  in our devices and gathering a wealth of data. One thing we had to learn from Covid, there is a critical aspect of our quality of life that remains relatively neglected in the public sector:  <br>
 
@@ -30,6 +30,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
  <br><br> 
  <hr style='height:1px'></hr>
 <p align=center></b>
+<h3>DEV KIT version</h3>
   The [HEX]POD dev Kit is a dense little cube. For now, the MVP version houses 4 Air quality sensors, 2 screens, a battery, 
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile 
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
