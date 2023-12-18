@@ -48,6 +48,8 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 
 ![SIDE 1](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%201.png)
 
+![SIDE 2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%202.png)
+
 <hr style='height:1px'></hr>
 <p><h2>Dev Kit version [wip]</h2></p>
 <table>
