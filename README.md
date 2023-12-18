@@ -18,7 +18,7 @@
 
 <p>
 
-<h4 align=center>A portable multi-purpose, intelligent, environmental multi-sensor platform.</h4>
+<h4 align=center>A portable multi-purpose, intelligent, environmental multi-sensor platform and programmable 'Digital Nose'.</h4>
 
 Technology has advanced significantly, with sensors being ubiquitous  in our devices and gathering a wealth of data. One thing we had to learn from Covid, there is a critical aspect of our quality of life that remains relatively neglected in the public sector:  <br>
 
