@@ -110,8 +110,7 @@ UV <br>
 
 
 <hr style='height:1px'></hr>
-<p><h2>Summary of hazardous air compounds</h2></p> 
-
+<!-- <p><h2>Summary of hazardous air compounds</h2></p>  -->
 ![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/assets/46021872/74b01bd2-ef0c-40ef-958d-b35394120a31)
 
 <hr style='height:1px'></hr>
