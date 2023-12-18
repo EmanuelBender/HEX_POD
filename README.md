@@ -1,8 +1,8 @@
 
 <!-- HTML comment -->
 
-<h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1>
-<p align=center></p>
+<h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1><br>
+
 <p align=center font-size=10px > by eBender <br>
 ⚠️ This project is in development.<br>
   Watch this space.</p>
@@ -17,7 +17,8 @@
   </b></p>
 
 <p>
-A portable multi-purpose, intelligent, environmental multi-sensor platform.
+
+<h4 align=center>A portable multi-purpose, intelligent, environmental multi-sensor platform.</h4>
 
 Technology has advanced significantly, with sensors being ubiquitous  in our devices and gathering a wealth of data. One thing we had to learn from Covid, there is a critical aspect of our quality of life that remains relatively neglected in the public sector:  <br>
 
