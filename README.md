@@ -30,7 +30,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
  <br><br> 
  <hr style='height:1px'></hr>
 <p align=center></b>
-  The [HEX]POD dev Kit is a dense little cube. For now, the MVP version houses 4 Air quality sensors, 2 screens, a battery, <br>
+  The [HEX]POD dev Kit is a dense little cube. For now, the MVP version houses 4 Air quality sensors, 2 screens, a battery, 
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
