@@ -36,19 +36,21 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile 
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
+
 <hr style='height:1px'></hr>
 
-![Cam7_2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam7_2.png)
+![SIDE 2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%202.png)
+
+![SIDE 1](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%201.png)
+<br>
+<hr style='height:1px'></hr>
+
+<!-- ![Cam7_2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam7_2.png) -->
 
 ![Cam11](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam11.jpeg)
 
 ![Cam5](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam5.jpeg)
-
-<hr style='height:1px'></hr>
-
-![SIDE 1](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%201.png)
-
-![SIDE 2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%202.png)
+<br>
 
 <hr style='height:1px'></hr>
 <p><h2>Dev Kit version [wip]</h2></p>
