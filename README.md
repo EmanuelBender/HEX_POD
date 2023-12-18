@@ -101,6 +101,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 Carbon Monoxide (CO) <br>
 Oxygen (O2) <br>
 Ozone (O3) <br>
+VSCs (Volatile Sulfuric Compounds) <br>
 Ethanol, Benzine, Alcohol <br>
 Formaldehyde (CH2O) <br>
 Ammonia (NH3) <br>
