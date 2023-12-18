@@ -36,11 +36,15 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 </p>
 <hr style='height:1px'></hr>
 
-![Cam7_2](https://github.com/EmanuelBender/HEX_POD/assets/46021872/4b5eb750-45d1-436b-9c5a-3fbf9086c3b0)
+![Cam7_2](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam7_2.png)
 
-![Cam11 logo](https://github.com/EmanuelBender/HEX_POD/assets/46021872/310d5f9c-fdd4-4721-8e1b-323015d13cb5)
+![Cam11](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam11.jpeg)
 
-![Cam5](https://github.com/EmanuelBender/HEX_POD/assets/46021872/64019561-32b2-45c3-9704-376f508abd8e)
+![Cam5](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Renders/Cam5.jpeg)
+
+<hr style='height:1px'></hr>
+
+![SIDE 1](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/SIDE%201.png)
 
 <hr style='height:1px'></hr>
 <p><h2>Dev Kit version [wip]</h2></p>
@@ -88,6 +92,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
     </tr>
     </tbody>
 </table>
+</br>
 <hr style='height:1px'></hr>
 <p><h2>Current Sensors</h2></p> 
 <a href="https://www.bosch-sensortec.com/news-and-stories/stories/like-a-sniffer-dog.html">BME688:</a> Wide range of trained gases, Temperature, Humidity, Pressure <br>
@@ -106,25 +111,26 @@ Ethanol, Benzine, Alcohol <br>
 Formaldehyde (CH2O) <br>
 Ammonia (NH3) <br>
 UV </br>
-
+</br>
 
 
 <hr style='height:1px'></hr>
 <!-- <p><h2>Summary of hazardous air compounds</h2></p> -->
 
-![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview%20Environmental%20Threats.jpg)
+![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/blob/main/images/Overview/Overview%20Environmental%20Threats.jpg)
 
+</br>
 <hr style='height:1px'></hr>
 <h2>Local Web Interface [wip]</h2>
 
 <h3>MAIN</h3>
-<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/MAIN.jpg"></img> 
+<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/Web%20Interface/MAIN.jpg"></img> 
 <h3>AIR</h3>
-<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/AIR.jpg"></img> 
+<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/Web%20Interface/AIR.jpg"></img> 
 <h3>SYS</h3>
-<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/SYS.jpg"></img> 
+<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/Web%20Interface/SYS.jpg"></img> 
 <h3>LOG</h3>
-<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/LOG.jpg"></img> 
+<img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/Web%20Interface/LOG.jpg"></img> 
 <br>
 <br>
 
