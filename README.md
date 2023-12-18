@@ -88,6 +88,25 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
     </tr>
     </tbody>
 </table>
+<hr style='height:1px'></hr>
+<p><h2>Current Sensors</h2></p> 
+<a href="https://www.bosch-sensortec.com/news-and-stories/stories/like-a-sniffer-dog.html">BME688:</a> Wide range of trained gases, Temperature, Humidity, Pressure <br>
+<a href="https://sensirion.com/products/catalog/SCD41/">SCD41:</a> CO2 (Carbon Dioxide), Temperature, Humidity  <br>
+<a href="https://sensirion.com/products/catalog/SGP41/">SGP41:</a> VOC (Volatile Organic Compounds), NOx (Nitrous Oxides) <br>
+
+<p><h2>Potential future sensors and detections</h2></p> 
+<a href="https://www.mouser.de/ProductDetail/Infineon-Technologies/PASCO2V01BUMA1?qs=tlsG%2FOw5FFi%2F2GzH4aKc4g%3D%3D">PASCO2:</a> CO2 <br>
+<a href="https://www.sciosense.com/products/environmental-sensors/ens16x-digital-metal-oxide-multi-gas-sensor/">ENS161:</a> Various AQIs <br>
+<a href="https://smart-nanotubes.com">Smart NanoTubes:</a> (cutting edge sensor) <br>
+Carbon Monoxide (CO) <br>
+Oxygen (O2) <br>
+Ozone (O3) <br>
+Ethanol, Benzine, Alcohol <br>
+Formaldehyde (CH2O) <br>
+Ammonia (NH3) <br>
+UV <br>
+
+
 
 <hr style='height:1px'></hr>
 <p><h2>Summary of hazardous air compounds</h2></p> 
