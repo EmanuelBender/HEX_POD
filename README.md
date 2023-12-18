@@ -28,11 +28,13 @@ My mission is to empower people by raising awareness about airborne hazards, fro
 The [HEX]POD is a private development platform with focus on being a 'Digital Nose' with relatively cheap components, using Sensor fusion and Neural Networks to discern different chemicals and smells in the air.
 </p>
  <br><br> 
+ <hr style='height:1px'></hr>
 <p align=center></b>
-  The [HEX]POD dev Kit is a dense little cube. For now, it houses 4 Air quality sensors, 2 screens, a battery, <br>
+  The [HEX]POD dev Kit is a dense little cube. For now, the MVP version houses 4 Air quality sensors, 2 screens, a battery, <br>
   a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile <br>
   platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
+<hr style='height:1px'></hr>
 
 ![Cam7_2](https://github.com/EmanuelBender/HEX_POD/assets/46021872/4b5eb750-45d1-436b-9c5a-3fbf9086c3b0)
 
@@ -40,7 +42,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 
 ![Cam5](https://github.com/EmanuelBender/HEX_POD/assets/46021872/64019561-32b2-45c3-9704-376f508abd8e)
 
-
+<hr style='height:1px'></hr>
 <p><h2>Dev Kit version [wip]</h2></p>
 <table>
     <thead>
@@ -87,11 +89,12 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
     </tbody>
 </table>
 
-<br>
+<hr style='height:1px'></hr>
 <p><h2>Summary of hazardous air compounds</h2></p> 
 
 ![Overview Environmental Threats](https://github.com/EmanuelBender/HEX_POD/assets/46021872/74b01bd2-ef0c-40ef-958d-b35394120a31)
 
+<hr style='height:1px'></hr>
 <h2>Local Web Interface [wip]</h2>
 
 <h3>MAIN</h3>
@@ -104,7 +107,9 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
 <img src="https://github.com/EmanuelBender/HEX_POD/blob/main/images/LOG.jpg"></img> 
 <br>
 <br>
-  
+
+<hr style='height:1px'></hr>
+
 <p><h2>Where it came from</h2></p><br/>
 <p>
 In 2019 i went to India where i travelled on Foot, Train and ultimately Motorbike from Kolkata to Kerala back up to Dharamshala and everywhere in between. So across the whole country twice.
