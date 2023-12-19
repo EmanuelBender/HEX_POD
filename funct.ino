@@ -88,15 +88,15 @@ void PowerStates() {
   timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  /* if (powerStTracker - lastInputTime > deepsleepDelay) {
+  /* if (timeTracker - lastInputTime > deepsleepDelay) {
     currentPowerState = DEEP_SLEEP;
   } else */
-  /* if (powerStTracker - lastInputTime > lightsleepDelay) {
+  /* if (timeTracker - lastInputTime > lightsleepDelay) {
     currentPowerState = LIGHT_SLEEP;
   } else */
-  if (powerStTracker - lastInputTime > powersaveDelay) {
+  if (timeTracker - lastInputTime > powersaveDelay) {
     currentPowerState = POWER_SAVE;
-  } else if (powerStTracker - lastInputTime > idleDelay) {
+  } else if (timeTracker - lastInputTime > idleDelay) {
     currentPowerState = IDLE;
   } else {
     currentPowerState = NORMAL;
@@ -120,8 +120,7 @@ void PowerStates() {
 
     } else if (currentPowerState == POWER_SAVE) {
       setCpuFrequencyMhz(80);
-      webServerPollMs = 500;
-      // taskManager.cancelTask(STATID);
+      webServerPollMs = 600;
       taskManager.cancelTask(WEB);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
       while (TFTbrightness > 0.0) {
@@ -138,7 +137,7 @@ void PowerStates() {
 
     } else if (currentPowerState == NORMAL) {
       setCpuFrequencyMhz(240);
-      webServerPollMs = 80;
+      webServerPollMs = 100;
       taskManager.cancelTask(WEB);
       pwm.writeScaled(TFTbrightness = 1.0);
       WEB = taskManager.schedule(repeatMillis(webServerPollMs), pollServer);
