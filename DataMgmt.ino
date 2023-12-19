@@ -75,7 +75,7 @@ void logging() {
   loggingTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (conditioning_duration == 0) {
+  if (!conditioning_duration) {
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
     std::ostringstream airLog;
@@ -86,9 +86,9 @@ void logging() {
     }
 
     airLog.precision(2);                               // Set precision
-    airLog << std::fixed << data.temperature << ", ";  // set precision for temperature
-    airLog << std::fixed << data.humidity << ", ";
-    airLog << std::fixed << data.pressure << ", ";
+    airLog << std::fixed << bme1_data.temperature << ", ";  // set precision for temperature
+    airLog << std::fixed << bme1_data.humidity << ", ";
+    airLog << std::fixed << bme1_data.pressure << ", ";
     airLog << VOC << ", ";
     airLog << NOX << ", ";
     airLog << srawVoc << ", ";

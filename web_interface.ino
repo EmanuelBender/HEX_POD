@@ -260,7 +260,7 @@ void setupWebInterface() {  // in setup()
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-    launchUtility();
+    initAirSensorTasks();
     server.send(200, "text/plain", "Logging interval updated");
   });
 
@@ -277,8 +277,18 @@ void setupWebInterface() {  // in setup()
     for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-    launchUtility();
+    initAirSensorTasks();
     server.send(200, "text/plain", "BME samples updated");
+  });
+
+  server.on("/toggleLOGGING", []() {
+    LOGGING = !LOGGING;
+    preferences.begin("my - app", false);
+    preferences.putBool("logging", LOGGING);
+    preferences.end();
+
+    initAirSensorTasks();
+    server.send(200, "text/plain", "LOGGING toggled");
   });
 
   server.on("/updateBMEfilter", HTTP_GET, []() {
@@ -318,20 +328,6 @@ void setupWebInterface() {  // in setup()
   });
 
 
-  server.on("/toggleLOGGING", []() {
-    LOGGING = !LOGGING;
-    preferences.begin("my - app", false);
-    preferences.putBool("logging", LOGGING);
-    preferences.end();
-
-    if (LOGGING) {
-      launchUtility();
-      server.send(200, "text/plain", "LOGGING enabled");
-    } else {
-      launchUtility();
-      server.send(200, "text/plain", "LOGGING disabled");
-    }
-  });
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
     if (DEBUG) Serial.begin(115200);
@@ -394,7 +390,7 @@ void setupWebInterface() {  // in setup()
 
 
 
-String generateJavaScriptFunctions() {  // JavaScript functions "<script src='https://cdn.jsdelivr.net/npm/chart.js'>"
+String generateJavaScriptFunctions() {
   return "<script>\n"
          "function updateLoggingInterval() { \n"
          "var intervalSelect = document.getElementById('loggingInterval');\n"
@@ -547,6 +543,7 @@ String generateCommonPageStructure(String content) {
   pageC += "<meta charset='UTF-8' http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
   pageC += "<title>[HEX]POD Center</title>";
   pageC += "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>";
+  pageC += generateJavaScriptFunctions();
   pageC += generateCSSstyles();
   pageC += "</head>";
   pageC += "<body>";
@@ -558,7 +555,6 @@ String generateCommonPageStructure(String content) {
   pageC += content;
   pageC += "</div>";
   pageC += "</div>";
-  pageC += generateJavaScriptFunctions();
   pageC += "</body></html>";
   return pageC;
 }
@@ -567,7 +563,6 @@ String generateCommonPageStructure(String content) {
 
 String generateNavBar() {
   // HTML for the navigation bar
-  // String page = "<div style='text-align:center; margin-bottom: 5px; margin-top: 10px;  '>";
 
   String page = "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>"
                 "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>"
@@ -616,7 +611,6 @@ String generateConsole() {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
     for (i = 0; i < consoleColumns; i++) {
-
       consoleOutput += console[line][i];
 
       if (i < consoleColumns - 1) {
@@ -686,9 +680,9 @@ String generateSensorsPage() {
   page += "<td id='subhead'><b> Last </b><br> " + String(lastBMEpoll) + "</td>";
   page += "<td id='subhead'><b> Poll Pd </b><br>" + String((bmeInterval / ONETHOUSAND) / bmeSamples) + "s</td>";
   page += "<td id='subhead'><b> GAS_AVG </b><br>" + String(bme_gas_avg) + "</td>";
-  page += "<td id='subhead'><b> Temp </b><br> " + String(data.temperature) + "&deg;C</td>";
-  page += "<td id='subhead'><b> Humid </b><br> " + String(data.humidity) + "%</td>";
-  page += "<td id='subhead'><b> Press </b><br> " + String(data.pressure / ONETHOUSAND) + "mBar</td>";
+  page += "<td id='subhead'><b> Temp </b><br> " + String(bme1_data.temperature) + "&deg;C</td>";
+  page += "<td id='subhead'><b> Humid </b><br> " + String(bme1_data.humidity) + "%</td>";
+  page += "<td id='subhead'><b> Press </b><br> " + String(bme1_data.pressure / ONETHOUSAND) + "mBar</td>";
   page += "<td id='subhead'><b> Alt </b><br> " + String(Altitude) + "m</td></tr>";
   page += "</tr>";
 
@@ -758,9 +752,6 @@ String generateSensorsPage() {
 
   page += "<tr style='font-size: 14px;'><td></td><td><b> Index Offs </td><td><b> Learn Time_H </td><td><b> learn Time Gain_H </td><td><b> Gate Max Dur_M </td><td><b> Std Initial </td><td><b> Gain Factor </td></tr>";
   page += "<tr style='font-size: 14px;'>";
-  voc_algorithm.get_tuning_parameters(
-    index_offset, learning_time_offset_hours, learning_time_gain_hours,
-    gating_max_duration_minutes, std_initial, gain_factor);
   page += "<td><b>VOC</td>";
   page += "<td>" + String(index_offset) + "</td>";
   page += "<td>" + String(learning_time_offset_hours) + "</td>";
@@ -770,9 +761,6 @@ String generateSensorsPage() {
   page += "<td>" + String(gain_factor) + "</td>";
   page += "</tr>";
   page += "<tr style='font-size: 14px;'>";
-  nox_algorithm.get_tuning_parameters(
-    index_offset, learning_time_offset_hours, learning_time_gain_hours,
-    gating_max_duration_minutes, std_initial, gain_factor);
   page += "<td><b>NOX</td>";
   page += "<td>" + String(index_offset) + "</td>";
   page += "<td>" + String(learning_time_offset_hours) + "</td>";
@@ -892,37 +880,25 @@ String generateFSPage() {
 
 
 String generateTimeOptions(int selectedValue) {
-  String pageS = "";
+  String pageS;
+
+  auto addOption = [&](int value, int interval, const String& unit) {
+    pageS += "<option value='" + String(value) + unit + "'" + (value == selectedValue ? " selected" : "") + ">" + String(interval) + unit + "</option>";
+  };
 
   // Seconds
-  for (int i = 2; i <= 59; i += 5) {
-    if (i == 7) i -= 2;
-    int value = i * 1000;
-    pageS += "<option value='" + String(value) + "s'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "s</option>";
+  for (int i = 2; i < 60; i += (i == 7 ? 3 : 5)) {
+    addOption(i * ONETHOUSAND, i, "s");
   }
+
   // Minutes
-  for (int i = 1; i <= 59; i += 5) {
-    if (i > 4 && i < 7) i -= 1;
-    if (i > 30) i += 10;
-    int value = i * MINUTES_IN_HOUR * 1000;
-    pageS += "<option value='" + String(value) + "m'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "m</option>";
+  for (int i = 1; i < 60; i += (i > 4 && i < 7 ? 4 : (i > 30 ? 10 : 5))) {
+    addOption(i * MINUTES_IN_HOUR * ONETHOUSAND, i, "m");
   }
+
   // Hours
   for (int i = 1; i <= 24; i++) {
-    int value = i * HOURS_IN_DAY * 1000;
-    pageS += "<option value='" + String(value) + "h'";
-    if (value == selectedValue) {
-      pageS += " selected";
-    }
-    pageS += ">" + String(i) + "h</option>";
+    addOption(i * HOURS_IN_DAY * ONETHOUSAND, i, "h");
   }
 
   return pageS;

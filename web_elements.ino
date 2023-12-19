@@ -112,7 +112,7 @@ String generateBMEchart() {
 
   String chartData = "<script type='text/javascript'>";
   chartData += "function drawBMEchart() {\n"
-               "  var data = google.visualization.arrayToDataTable([\n"
+               "  var data_bme = google.visualization.arrayToDataTable([\n"
                "    [";
 
 
@@ -186,7 +186,7 @@ String generateBMEchart() {
 
 
   chartData += "  ]);\n\n"
-               "  var maxDataValue = calculateMaxValue(data);\n"
+               "  var maxDataValue = calculateMaxValue(data_bme);\n"
                "  var options = {\n"
                "    title: 'BME[1] log',\n"
                "    curveType: 'function',\n"
@@ -197,7 +197,7 @@ String generateBMEchart() {
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));\n"
-               "  chart.draw(data, options);\n"
+               "  chart.draw(data_bme, options);\n"
                "}\n";
   chartData += "google.charts.load('current', {'packages':['corechart']});"
                "google.charts.setOnLoadCallback(drawBMEchart);"
@@ -254,7 +254,7 @@ String generateSGPchart() {
 
         if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
-        
+
         if (value.length() == 0) {
           break;
         } else {
@@ -387,7 +387,7 @@ String generateSCDchart() {
                "    },\n"
                "    vAxes: {\n"
                "      0: { viewWindow: { min: -5, max: 65 } },\n"
-               "      1: { viewWindow: { min: 400, max: maxDataValue } }\n"
+               "      1: { viewWindow: { min: 350, max: maxDataValue + 20} }\n"
                "    }\n"
                "  };\n\n"
                "  var chart = new google.visualization.LineChart(document.getElementById('scd_chart'));\n"
@@ -542,12 +542,9 @@ String generateSystemSensorsTable() {
   }
   output += "</tr>";
 
-  // output += "<tr><td><b>CPU</td><td><b>BME[1]</td></tr>";
-  // output += "<tr><td>" + String(CPUTEMP) + "&deg;C</td><td>" + String(data.temperature) + "&deg;C</td></tr>";
-
   output += "<tr><td id='subhead'><b>CPU</b></br>" + String(CPUTEMP) + "&deg;C</td>";
-  output += "<td id='subhead'><b>BME[1]</b></br>" + String(data.temperature) + "&deg;C</td>";
-  output += "<td id='subhead'><b>SCD</b></br>" + String(tempSCD) + "&deg;C</td>";
+  if (BMEID) output += "<td id='subhead'><b>BME[1]</b></br>" + String(bme1_data.temperature) + "&deg;C</td>";
+  if (SCDID) output += "<td id='subhead'><b>SCD</b></br>" + String(tempSCD) + "&deg;C</td>";
 
   output += "</tr>";
 
@@ -591,7 +588,6 @@ String generateFSTable() {
   table_fs += "<tr><th><h2>FS</h2></th></tr>";
 
   table_fs += "<tr><td><b>Size</td><td>" + String(SPIFFS_size / ONEMILLIONB, 3) + "Mb</td></tr>";
-  // table_fs += "<tr><td><b>Used</td><td>" + String(SPIFFS_used / ONEMILLIONB, 3) + "Mb</td></tr>";
   table_fs += "<tr><td><b>Sp Left</td><td>" + String(percentLeftLFS, 2) + "% </td></tr>";
   table_fs += "<tr><td><b>Log Path </td><td>" + String(logFilePath) + "</td></tr>";
   table_fs += "<tr><td colspan='5'><hr style='border: 1px solid #808080;'></td></tr>";

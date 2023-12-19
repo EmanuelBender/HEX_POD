@@ -9,6 +9,8 @@ void pollServer() {
 
   server.handleClient();
 
+  taskManager.yieldForMicros(ONETHOUSAND);
+
   debugF(timeTracker);
   clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
@@ -32,22 +34,14 @@ void IRAM_ATTR SD_ISR() {
 
 
 
-void launchUtility() {
-  TAG = "launchUtility()";
-  // timeTracker = micros();
+void initTM() {
+  TAG = "initTM()    ";
   taskManager.reset();
   if (DEBUG) ESP_LOGI(TAG, "%s", "taskManager Reset");
-
-  /*
-  for (byte i = 0; i < slotsSize; ++i) {
-    memset(&taskFreeSlots[i], 0, sizeof(char));  // Clear the char array using memset
-    taskArray[i].clear();                        // Clear the String array
-  } */
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
   LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = 0;
-
 
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
   STATID = taskManager.schedule(repeatMillis(996), statusBar);
@@ -56,6 +50,16 @@ void launchUtility() {
   NTPID = taskManager.schedule(repeatSeconds(getNTPInterval), getNTP);
   TEMPID = taskManager.schedule(repeatMillis(984), pollTemp);
   INA2ID = taskManager.schedule(repeatMillis(500), pollINA2);
+
+  initAirSensorTasks();
+
+  if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
+}
+
+
+
+void initAirSensorTasks() {
+
   if (LOGGING) {
     BMEID = taskManager.schedule(repeatMillis(bmeInterval / bmeSamples), pollBME);
     SGPID = taskManager.schedule(repeatMillis(sgpInterval), pollSGP);
@@ -64,20 +68,24 @@ void launchUtility() {
     if (LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
       pastLOGGINGstate = LOGGING;
       conditioning_duration = 30;
-      pollSCD30();  // crude conditioning
-      taskManager.schedule(onceSeconds(5), pollBME);
-      taskManager.schedule(onceSeconds(10), pollBME);
-      taskManager.schedule(onceSeconds(15), pollBME);
+      taskManager.schedule(onceSeconds(1), pollBME);  // conditioning testing
+      // taskManager.schedule(onceSeconds(5), pollBME);
+      // taskManager.schedule(onceSeconds(10), pollBME);
+      // taskManager.schedule(onceSeconds(20), pollBME);
+      taskManager.schedule(onceSeconds(35), pollBME);
+      // taskManager.schedule(onceSeconds(50), pollBME);
+      taskManager.schedule(onceSeconds(10), pollSCD30);
+      taskManager.schedule(onceSeconds(20), pollSCD30);
+      taskManager.schedule(onceSeconds(30), pollSCD30);
+      taskManager.schedule(onceSeconds(50), pollSCD30);
     }
   }
-  if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
-  // debugF(timeTracker);
 }
 
 
 void PowerStates() {
   TAG = "PowerStates()";
-  powerStTracker = micros();
+  timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   /* if (powerStTracker - lastInputTime > deepsleepDelay) {
@@ -139,8 +147,8 @@ void PowerStates() {
 
   previousPowerState = currentPowerState;
 
-  debugF(powerStTracker);
-  powerStTracker = (micros() - powerStTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  powerStTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -260,7 +268,6 @@ void pollButtons() {
       if (carousel == 3) UTILID = taskManager.schedule(onceMicros(10), utilPage);
       if (carousel == 5) SYSID = taskManager.schedule(onceMicros(10), systemPage);
     }
-    // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
   }
   debugF(timeTracker);
 }
@@ -272,20 +279,20 @@ void pollButtons() {
 void updateTime() {
   TAG = "updateTime() ";
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-  uTimeTracker = micros();
+  timeTracker = micros();
 
   if (getLocalTime(&timeinfo)) {
     printTime = formatTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':');
     printDate = formatTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.');
     uptimeString = convertSecToTimestamp<String>(millis() / ONETHOUSAND);
+
+    printToOLED(printTime);
   }
 
-  printToOLED(printTime);
-  // if (currentPowerState == IDLE || currentPowerState == NORMAL) STATID = taskManager.schedule(onceMillis(1), statusBar);
-
-  debugF(uTimeTracker);
-  uTimeTracker = (micros() - uTimeTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  uTimeTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
+
 
 
 
@@ -293,13 +300,14 @@ void getNTP() {
   TAG = "getNTP()  ";
   ntpTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-
-  if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
+  // if (WiFi.status() != WL_CONNECTED) WiFi.reconnect();
 
   while (WiFi.status() != WL_CONNECTED) {
+    yield();
     delay(500);
     if (micros() - ntpTracker > (WiFiTimeout * ONETHOUSAND)) {
-      ESP_LOGE("NTP", "WiFi Connect Timeout. Check settings.");
+      // ESP_LOGE("NTP", "WiFi Connect Timeout. Check settings.");
+      WiFi.reconnect();
       break;
     }
   }
@@ -324,7 +332,7 @@ void getNTP() {
 
 void pollIMU() {
   TAG = "pollIMU()   ";
-  imuTracker = micros();
+  timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   lis.read();
@@ -339,21 +347,21 @@ void pollIMU() {
   Y = event.acceleration.y;
   Z = event.acceleration.z;
 */
-  debugF(imuTracker);
-  imuTracker = (micros() - imuTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  imuTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
 
+
+
 void pollINA2() {
-
-
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   // if (INA2.getConversionFlag()) {
   // BUS2_CNVR = true;
   TAG = "pollINA2()   ";
-  ina2Tracker = micros();
+  timeTracker = micros();
 
   BUS2_BusVoltage = INA2.getBusVoltage_mV();
   BUS2_ShuntVoltage = INA2.getShuntVoltage_mV();
@@ -362,14 +370,17 @@ void pollINA2() {
   // BUS2_OVF = INA2.getMathOverflowFlag();
 
   debugF(timeTracker);
-  ina2Tracker = (micros() - ina2Tracker) / double(ONETHOUSAND);
+  ina2Tracker = (micros() - timeTracker) / double(ONETHOUSAND);
   //  }
 }
 
 
+
+
+
 void pollBME() {
   TAG = "pollBME2()   ";
-  bmeTracker = micros();
+  timeTracker = micros();
   lastBMEpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
@@ -382,12 +393,10 @@ void pollBME() {
 
   bme1.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
   bme1.setFilter(bmeFilter);
-  bme1.fetchData();
-  bme1.getData(data);
-  bme1.setAmbientTemp(data.temperature);
+  bme1.setAmbientTemp(DTprobe[1].temperature);
 
-  dewPoint = calcDewPoint(data.temperature, data.humidity);
-  Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
+  dewPoint = calcDewPoint(bme1_data.temperature, bme1_data.humidity);
+  // Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
 
   repeater++;
 
@@ -396,32 +405,29 @@ void pollBME() {
     heaterTemp = heatProf_1[bmeProfile];
 
     delay(bmeProfilePause);
-    bme1.setAmbientTemp(data.temperature);
     bme1.setHeaterProf(heaterTemp, duration);
     bme1.setOpMode(BME68X_FORCED_MODE);
 
     while (!bme1.fetchData()) {
+      taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
       delay(3);
     }
-    bme1.getData(data);
-    if (!conditioning_duration) bme_resistance[bmeProfile] += data.gas_resistance;
+    bme1.getData(bme1_data);
+    if (!conditioning_duration) bme_resistance[bmeProfile] += bme1_data.gas_resistance;
   }
+
 
   if (repeater == bmeSamples) {
     bme_gas_avg = 0;
-
     if (!conditioning_duration) {
-      for (i = 0; i < numProfiles; ++i) {
-        bme_resistance[i] /= bmeSamples;
-        bme_gas_avg += bme_resistance[i];
-      }
-
-      bme_gas_avg /= numProfiles;
-
-      for (i = 0; i < numProfiles; ++i) {
-        bme_resistance_avg[i] = bme_resistance[i] - offsetDelta;
-      }
       // offsetDelta = findSmallestValue(bme_resistance_avg);
+      for (i = 0; i < numProfiles; ++i) {
+        bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - offsetDelta;
+        bme_gas_avg += bme_resistance_avg[i];
+      }
+      bme_gas_avg = (bme_gas_avg / numProfiles);
+
+
       std::fill_n(bme_resistance, numProfiles, 0);  // empty resistance array
     }
     repeater = 0;
@@ -429,9 +435,10 @@ void pollBME() {
 
   bme1.setOpMode(BME68X_SLEEP_MODE);
 
-  debugF(bmeTracker);
-  bmeTracker = (micros() - bmeTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  bmeTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
+
 
 
 
@@ -439,27 +446,32 @@ void pollBME() {
 
 void pollSGP() {
   TAG = "pollSGP()    ";
-  sgpTracker = micros();
+  timeTracker = micros();
   lastSGPpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  auto compensationT = static_cast<uint16_t>((data.temperature + 45) * 65535 / 175);
-  auto compensationRh = static_cast<uint16_t>(data.humidity * 65535 / 100);
+  auto compensationT = static_cast<uint16_t>((DTprobe[1].temperature + 45) * 65535 / 175);
+  auto compensationRh = static_cast<uint16_t>(bme1_data.humidity * 65535 / 100);
 
-  if (conditioning_duration > 0) {
-    error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
-    conditioning_duration--;
-  } else {
-    sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
-    delay(140);
+  if (conditioning_duration) conditioning_duration--;
+
+  if (!conditioning_duration) {
+    sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);  // throw away conditioning
+    yield();
+    delay(142);
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
-    VOC = voc_algorithm.process(srawVoc);
-    NOX = nox_algorithm.process(srawNox);
+    if (srawVoc) VOC = voc_algorithm.process(srawVoc);
+    if (srawNox) NOX = nox_algorithm.process(srawNox);
     sgp41.turnHeaterOff();
+  } else if (conditioning_duration > conditioning_duration / 3) {
+    error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
+    voc_algorithm.process(srawVoc);
+    nox_algorithm.process(srawNox = 16500);
   }
+
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
-  debugF(sgpTracker);
-  sgpTracker = (micros() - sgpTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  sgpTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -468,21 +480,18 @@ void configSGP() {
   error = sgp41.executeSelfTest(sgpError);
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
 
+  index_offset = 100;
+  learning_time_offset_hours = 12;
+  learning_time_gain_hours = 12;
+  gating_max_duration_minutes = 180;
+  std_initial = 50;
+  gain_factor = 230;
 
   voc_algorithm.set_tuning_parameters(
-    100, 12, 12,    // 100, 12, 12
-    180, 50, 230);  // 180, 50!, 230
-
-  voc_algorithm.get_tuning_parameters(
     index_offset, learning_time_offset_hours, learning_time_gain_hours,
     gating_max_duration_minutes, std_initial, gain_factor);
 
-
   nox_algorithm.set_tuning_parameters(
-    100, 12, 12,    // 100, 12, 12
-    180, 50, 230);  // 180, 50!, 230
-
-  nox_algorithm.get_tuning_parameters(
     index_offset, learning_time_offset_hours, learning_time_gain_hours,
     gating_max_duration_minutes, std_initial, gain_factor);
 }
@@ -490,22 +499,26 @@ void configSGP() {
 
 
 
+
+
 void pollTemp() {
   TAG = "pollTemp()   ";
-  tempTracker = micros();
+  timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (tempSens.isConversionComplete()) {
     for (auto &probe : DTprobe) {
       probe.temperature = tempSens.getTempC(probe.address);
+      yield();
     }
+    tempSens.requestTemperatures();
   }
+
   if (DEBUG) oneWireSearch(GPIO_NUM_8);
-  tempSens.requestTemperatures();
   CPUTEMP = temperatureRead();
 
-  debugF(tempTracker);
-  tempTracker = (micros() - tempTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  tempTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 
@@ -513,7 +526,7 @@ void pollTemp() {
 
 void pollSCD30() {
   lastSCDpoll = printTime;
-  scdTracker = micros();
+  timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (scd30.dataAvailable()) {
@@ -522,17 +535,17 @@ void pollSCD30() {
     tempSCD = scd30.getTemperature();
     co2SCD = scd30.getCO2();
 
-    scd30.setAltitudeCompensation(int(Altitude));          // meters
-    scd30.setAmbientPressure(int(data.pressure / 100.0));  // mBar
+    scd30.setAltitudeCompensation(int(Altitude));               // meters
+    scd30.setAmbientPressure(int(bme1_data.pressure / 100.0));  // mBar
     scdInterval = loggingInterval / ONETHOUSAND;
     scd30.setMeasurementInterval(scdInterval);
 
-    double scdTempOffset = tempSCD - data.temperature;
+    double scdTempOffset = tempSCD - ((bme1_data.temperature + DTprobe[1].temperature) / 2);
     if (scdTempOffset) scd30.setTemperatureOffset(scdTempOffset);
   }
 
-  debugF(scdTracker);
-  scdTracker = (micros() - scdTracker) / double(ONETHOUSAND);
+  debugF(timeTracker);
+  scdTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
 
 

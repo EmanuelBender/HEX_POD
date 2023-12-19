@@ -91,9 +91,9 @@ void sensorPage() {
 
   tft.setTextPadding(45);
   tft.drawString("BME[1]", 20, (26 * 6), 2);
-  tft.drawString("T" + String(data.temperature), 75, (26 * 6), 2);
-  tft.drawString("H" + String(data.humidity), 128, (26 * 6), 2);
-  tft.drawString("P" + String(data.pressure / 10000.0), 182, (26 * 6), 2);
+  tft.drawString("T" + String(bme1_data.temperature), 75, (26 * 6), 2);
+  tft.drawString("H" + String(bme1_data.humidity), 128, (26 * 6), 2);
+  tft.drawString("P" + String(bme1_data.pressure / 10000.0), 182, (26 * 6), 2);
   tft.setTextPadding(70);
   tft.drawString("A" + String(bme_resistance_avg[0]), 20, (26 * 7), 2);  // bme1_resistance, gas_index, meas_index, bme1_idac
   tft.drawString("B" + String(bme_resistance_avg[1]), 90, (26 * 7), 2);

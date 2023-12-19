@@ -252,7 +252,7 @@ probeStruct DTprobe[] = {
 
 //BME688___________________________________________________________________
 #define NEW_GAS_MEAS (BME68X_GASM_VALID_MSK | BME68X_HEAT_STAB_MSK | BME68X_NEW_DATA_MSK)
-bme68xData data;
+bme68xData bme1_data;
 Bme68x bme1;
 
 String BME_ERROR, lastBMEpoll;
@@ -367,9 +367,9 @@ TaskData tasks[] = {
   { "getNTP", &ntpTracker, &NTPID },
   { "pollTemp", &tempTracker, &TEMPID },
   { "pollINA_2", &ina2Tracker, &INA2ID },
-  { "pollBME", &bmeTracker, &BMEID },    // &lastBMEpoll
-  { "pollSGP41", &sgpTracker, &SGPID },  // &lastSGPpoll
-  { "pollSCD30", &scdTracker, &SCDID },  // &lastSGPpoll
+  { "pollBME", &bmeTracker, &BMEID },
+  { "pollSGP41", &sgpTracker, &SGPID },
+  { "pollSCD30", &scdTracker, &SCDID },
   { "pollIMU", &imuTracker, &IMUID },
   { "logging", &loggingTracker, &LOG },
   { "systemPage", &systemPageTracker, &SYSID },
@@ -558,7 +558,7 @@ void setup() {  // ________________ SETUP ___________________
   bmeInterval = loggingInterval;
   bme1.setTPH(BME68X_OS_2X, BME68X_OS_8X, BME68X_OS_4X);
   bme1.fetchData();
-  bme1.getData(data);
+  bme1.getData(bme1_data);
   bme1.setOpMode(BME68X_SLEEP_MODE);
 
   //___________________________ INITIALIZE SGP41 _____________________
@@ -599,7 +599,7 @@ void setup() {  // ________________ SETUP ___________________
 
   esp_chip_info(&chip_info);
   getDeviceInfo();
-  launchUtility();  // setup tasks, launch utility Menu
+  initTM();  // setup task Manager Tasks
 
   lastInputTime = micros();
   lastRestart = printTime + " " + printDate;
@@ -621,7 +621,6 @@ void setup() {  // ________________ SETUP ___________________
 
 
 void loop() {
-
   taskManager.runLoop();
 }
 
