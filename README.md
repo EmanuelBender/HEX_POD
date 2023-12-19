@@ -32,7 +32,7 @@ The [HEX]POD is a private development platform with focus on being a 'Digital No
  <hr style='height:1px'></hr>
 <p align=center></b>
 <h3>DEV KIT version</h3>
-I scaled down the original plan to the essential features to be able to move ahead faster with development. I call it the DevKit. For now, the DevKit version houses 4 Air quality sensors, 2 screens, a battery, a blower fan and 16 I/O pins to hook up other modules and things and much more. It is a versatile platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
+I scaled down the original plan to the essential features to be able to move ahead faster with development. I call it the DevKit. For now, the DevKit version houses 4 Air quality sensors, 2 screens, a battery, a blower fan and 16(+4) I/O pins to hook up other modules and things and much more. It is a versatile platform to play with Sensor Fusion, ML, NN and any other externally connected modules.
 </p>
 
 <hr style='height:1px'></hr>
