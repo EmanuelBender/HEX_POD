@@ -461,7 +461,7 @@ void pollSGP() {
     sgp41.turnHeaterOff();
   } else if (conditioning_duration > conditioning_duration / 3) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
-    voc_algorithm.process(srawVoc); 
+    voc_algorithm.process(srawVoc);
   }
 
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
@@ -578,16 +578,15 @@ void debugF(uint32_t tracker) {
 
 
 
+
+
+
+
 void pollMultiplexer() {
   PCABITS = io.read();
-  for (int mp = ZERO; mp <= 17; i++) {
-    P0[mp] = (PCABITS & (1 << mp)) != ZERO;
+  for (int m = 0; m <= 17; m++) {
+    P0[m] = !(PCABITS & (1 << m));
   }
-}
-
-
-inline bool isBitSet(uint16_t value, uint8_t mask) {
-  return !(value & (1 << mask));
 }
 
 

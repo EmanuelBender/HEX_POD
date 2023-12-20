@@ -255,11 +255,9 @@ void setupWebInterface() {  // in setup()
     bmeInterval = loggingInterval;
 
     offsetDelta = consoleLine = repeater = ZERO;
-
-    for (i = ZERO; i < numProfiles; ++i) {  // empty resistance array
-      bme_resistance[i] = 0;
-    }
     initTM();
+    std::fill_n(bme_resistance, numProfiles, 0);
+
     server.send(200, "text/plain", "Logging interval updated");
   });
 
@@ -271,10 +269,9 @@ void setupWebInterface() {  // in setup()
     preferences.end();
 
     offsetDelta = consoleLine = repeater = ZERO;
-    for (i = ZERO; i < numProfiles; ++i) {  // empty resistance array
-      bme_resistance[i] = ZERO;
-    }
     initTM();
+    std::fill_n(bme_resistance, numProfiles, 0);
+
     server.send(200, "text/plain", "BME samples updated");
   });
 
@@ -285,6 +282,8 @@ void setupWebInterface() {  // in setup()
     preferences.end();
 
     initTM();
+    std::fill_n(bme_resistance, numProfiles, 0);
+
     server.send(200, "text/plain", "LOGGING toggled");
   });
 
@@ -608,7 +607,7 @@ String generateConsole() {
   for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
-    for (i = ZERO; i < consoleColumns; i++) {
+    for (int i = ZERO; i < consoleColumns; i++) {
       consoleOutput += console[line][i];
 
       if (i < consoleColumns - 1) {

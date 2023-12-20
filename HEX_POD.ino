@@ -484,6 +484,7 @@ void setup() {  // ________________ SETUP ___________________
   //_______________________ INITIALIZE MULTIPLEXER ______________________
 
   io.attach(Wire, 0x20);
+#define PCF8575_DEBUG
   io.polarity(PCA95x5::Polarity::ORIGINAL_ALL);
   //io.direction(PCA95x5::Port::P00, PCA95x5::Direction::IN); // free, ALS_1 INT solder bridge
   //io.direction(PCA95x5::Port::P01, PCA95x5::Direction::IN); // free
@@ -624,6 +625,3 @@ void setup() {  // ________________ SETUP ___________________
 void loop() {
   taskManager.runLoop();
 }
-
-
-
