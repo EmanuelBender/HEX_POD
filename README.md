@@ -24,7 +24,7 @@ Technology has advanced significantly, with sensors being ubiquitous  in our dev
 
 The air we breathe. <br>
 
-My mission is to empower people by raising awareness about airborne hazards, from aiding those with chronic respiratory conditions to detecting spoiled milk. While the concept of a 'Digital Nose' has been explored before, [HEX]POD is positioned as a user-friendly solution that seamlessly integrates cutting-edge technology into a compact and portable platform.
+My goal is to empower people by raising awareness about airborne hazards, from aiding those with chronic respiratory conditions to detecting spoiled milk. While the concept of a 'Digital Nose' has been explored before, [HEX]POD is positioned as a user-friendly solution that seamlessly integrates cutting-edge technology into a compact and portable platform.
 
 The [HEX]POD is a private development platform with focus on being a 'Digital Nose' with relatively cheap components, using Sensor fusion and Neural Networks to discern different chemicals and smells in the air.
 </p>
