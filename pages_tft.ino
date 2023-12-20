@@ -139,12 +139,12 @@ void utilPage() {
       if (utilIndex == 1) {
         taskManager.cancelTask(IMUID);
         taskManager.cancelTask(CUBEID);
-        imuTracker = 0;
-        IMUID = 0;
-        CUBEID = 0;
+        imuTracker = ZERO;
+        IMUID = CUBEID = ZERO;
+
       } else if (utilIndex == 3) {
         taskManager.cancelTask(BLEID);
-        BLEID = 0;
+        BLEID = ZERO;
       }
       tft.fillScreen(TFT_BLACK);
       taskManager.schedule(onceMicros(2), reloadMenu);
@@ -216,7 +216,7 @@ void utilPage() {
     if (utilIndex != 1 || utilIndex != 6) {  // draw Menu
       tft.setTextColor(TFT_WHITE);
 
-      for (int i = 1; i <= 9; i++) {
+      for (i = 1; i <= 9; i++) {
         tft.fillRoundRect(17, menuRowM + (i * menuRowM), TFT_WIDTH - 34, 22, radius + 1, TFT_BLACK);
       }
       tft.fillRoundRect(17, menuRowM + (utilIndex * menuRowM), TFT_WIDTH - 34, 22, radius + 1, TFT_ORANGE);
@@ -274,7 +274,7 @@ void colorTest() {
     colors[i + 0] = tft.alphaBlend(128 + i * 127, TFT_ORANGE, TFT_RED);
   }
 
-  for (int i = 0; i < 7; i++) {
+  for (int i = ZERO; i < 7; i++) {
     for (uint16_t angle = 0; angle <= 345; angle += 15) {
       if (angle < 180) {
         smooth = false;
@@ -289,7 +289,7 @@ void colorTest() {
   }
 
   Delta = (TFT_WIDTH - 1) / 38;
-  for (int i = 0; i < 7; i++) {
+  for (int i = ZERO; i < 7; i++) {
     for (uint16_t angle = 0; angle <= 330; angle += 30) {
       uint16_t colorRadius = i * Delta;
       uint16_t wheelColor = tft.alphaBlend((i * 255.0) / 7.0, colors[angle / 30], TFT_WHITE);
@@ -330,7 +330,7 @@ void taskM() {
     String taskData = assembleTaskData();
     std::istringstream taskStream(taskData.c_str());
 
-    for (i = 0; i < slotsSize; i++) {
+    for (i = ZERO; i < slotsSize; i++) {
       std::string line;  // Change the type to std::string
       getline(taskStream, line);
 
@@ -533,13 +533,13 @@ void WiFiScan() {
   if (DEBUG) {
     ESP_LOGI(TAG, "Scan done.");
   }
-  if (n == 0) {
+  if (n == ZERO) {
 
     if (DEBUG) ESP_LOGI(TAG, "no networks found");
 
     tft.drawString("no networks found", TFT_WIDTH / 2, TFT_HEIGHT / 2, 4);
   } else {
-    if (n < 0) {
+    if (n < ZERO) {
 
       if (DEBUG) ESP_LOGI(TAG, "Wi-Fi scan error.");
 
@@ -553,7 +553,7 @@ void WiFiScan() {
     }
     tft.drawString(String(n) + " Networks Found", 15, 13, 2);
 
-    for (int x = 0; x < n; ++x) {  // Print SSID and RSSI for each network found
+    for (int x = ZERO; x < n; ++x) {  // Print SSID and RSSI for each network found
       encType = "";
 
       switch (WiFi.encryptionType(x)) {
@@ -606,10 +606,10 @@ void BLEscan() {
   tft.setTextPadding(200);
   tft.setTextDatum(TL_DATUM);
   BLE.scan();
-  int W = 0;
+  int W = ZERO;
   scanData[30];
 
-  for (i = 0; i < BLEresults; i++) {
+  for (i = ZERO; i < BLEresults; i++) {
     peripheral = BLE.available();
 
     if (peripheral) {
@@ -622,9 +622,9 @@ void BLEscan() {
     }
   }
   // Bubble Sort implementation for sorting based on RSSI values
-  for (W = 0; i < BLEresults; W++) {
-    for (i = 0; i < BLEresults - 1; i++) {
-      for (int j = 0; j < BLEresults - i - 1; j++) {
+  for (W = ZERO; i < BLEresults; W++) {
+    for (i = ZERO; i < BLEresults - 1; i++) {
+      for (int j = ZERO; j < BLEresults - i - 1; j++) {
         if (scanData[j].rssi < scanData[j + 1].rssi) {
           // swap the elements
           BLEData temp = scanData[j];
@@ -638,8 +638,8 @@ void BLEscan() {
 
   tft.fillScreen(TFT_BLACK);
 
-  W = 0;
-  for (i = 0; i < BLEresults; i++) {
+  W = ZERO;
+  for (i = ZERO; i < BLEresults; i++) {
     if (scanData[i].result != "") {
       W++;
       tft.drawString(scanData[i].result + " | " + String(scanData[i].rssi) + "db", 15, 20 + (17 * W), 2);

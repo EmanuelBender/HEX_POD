@@ -24,7 +24,7 @@ String generateTHPchart() {
   chartData += "],\n";
 
   String line;
-  size_t lineCount = 0;
+  size_t lineCount = ZERO;
 
   while (file.available()) {
     line = file.readStringUntil('\n');
@@ -39,8 +39,8 @@ String generateTHPchart() {
       String values = line.substring(commaIndex + 1);
       String valueArray[4];
       int i = 1;
-      size_t lastCommaIndex = 0;
-      valueArray[0] = convertLogTimestampForChart(timestampChar);
+      size_t lastCommaIndex = ZERO;
+      valueArray[ZERO] = convertLogTimestampForChart(timestampChar);
 
       while (i <= log_idx_bme1_press) {
         size_t currentCommaIndex = values.indexOf(',', lastCommaIndex);
@@ -48,7 +48,7 @@ String generateTHPchart() {
         if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
-        if (value.length() == 0) break;
+        if (value.length() == ZERO) break;
 
         if (i == log_idx_bme1_temp || i == log_idx_bme1_humid || i == log_idx_bme1_press) valueArray[i - (log_idx_bme1_temp - 1)] = value;
         lastCommaIndex = currentCommaIndex + 1;  // Move to the next character after the comma
@@ -116,14 +116,14 @@ String generateBMEchart() {
                "    [";
 
 
-  for (int i = 0; i < 15; ++i) {
+  for (int i = ZERO; i < 15; ++i) {
     chartData += "'" + logColumns[i] + "'";
     if (i < 14) chartData += ", ";
   }
 
   chartData += "],\n";
   String line;
-  size_t lineCount = 0;
+  size_t lineCount = ZERO;
 
   while (file.available()) {
     line = file.readStringUntil('\n');
@@ -141,7 +141,7 @@ String generateBMEchart() {
       String values = line.substring(commaIndex + 1);
       String valueArray[15];
       int i = 1;
-      size_t lastCommaIndex = 0;
+      size_t lastCommaIndex = ZERO;
 
       valueArray[0] = convertLogTimestampForChart(timestampChar);
 
@@ -152,7 +152,7 @@ String generateBMEchart() {
         if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
-        if (value.length() == 0) {
+        if (value.length() == ZERO) {
           break;
         } else {
           valueArray[i] = value;
@@ -229,7 +229,7 @@ String generateSGPchart() {
   chartData += "],\n";
 
   String line;
-  size_t lineCount = 0;
+  size_t lineCount = ZERO;
 
   while (file.available()) {
     line = file.readStringUntil('\n');
@@ -246,7 +246,7 @@ String generateSGPchart() {
 
       String valueArray[3];
       int i = 1;
-      size_t lastCommaIndex = 0;
+      size_t lastCommaIndex = ZERO;
       valueArray[0] = convertLogTimestampForChart(timestampChar);
 
       while (i <= log_idx_sgp_nox) {
@@ -255,7 +255,7 @@ String generateSGPchart() {
         if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
-        if (value.length() == 0) {
+        if (value.length() == ZERO) {
           break;
         } else {
           if (i == log_idx_sgp_voc || i == log_idx_sgp_nox) valueArray[i - (log_idx_sgp_voc - 1)] = value;
@@ -329,7 +329,7 @@ String generateSCDchart() {
   chartData += "],\n";
 
   String line;
-  size_t lineCount = 0;
+  size_t lineCount = ZERO;
 
   while (file.available()) {
     line = file.readStringUntil('\n');
@@ -344,7 +344,7 @@ String generateSCDchart() {
       String values = line.substring(commaIndex + 1);
       String valueArray[4];
       i = 1;
-      size_t lastCommaIndex = 0;
+      size_t lastCommaIndex = ZERO;
 
       valueArray[0] = convertLogTimestampForChart(timestampChar);
 
@@ -354,7 +354,7 @@ String generateSCDchart() {
         if (currentCommaIndex == std::string::npos) currentCommaIndex = values.length();
         String value = values.substring(lastCommaIndex, currentCommaIndex);
 
-        if (value.length() == 0) break;
+        if (value.length() == ZERO) break;
 
         if (i == log_idx_scd_co2 || i == log_idx_scd_temp || i == log_idx_scd_humid) valueArray[i - (log_idx_scd_co2 - 1)] = value;
 
@@ -581,8 +581,7 @@ String generateTaskManagerTable() {
 
 String generateFSTable() {
 
-  filesCount = 0;
-  directoryCount = 0;
+  filesCount = directoryCount = ZERO;
 
   String table_fs = "<table>";
   table_fs += "<tr><th><h2>FS</h2></th></tr>";
@@ -638,7 +637,7 @@ String generateLogFileContent() {
     while (file.available()) {
       uint8_t buffer[1024];
       size_t bytesRead = file.read(buffer, sizeof(buffer));
-      if (bytesRead > 0) {
+      if (bytesRead > ZERO) {
         output += String(reinterpret_cast<const char*>(buffer), bytesRead);
         yield();  // Allow the server to handle other tasks
         // taskManager.delayMicroseconds(500);

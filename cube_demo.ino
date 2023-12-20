@@ -103,7 +103,7 @@ void ProcessLine(struct Line2d* ret, struct Line3d vec) {
   y2 = vec.p1.y;
   z2 = vec.p1.z;
 
-  Ok = 0;  // defaults to not OK
+  Ok = ZERO;  // defaults to not OK
 
   xv1 = (x1 * xx) + (y1 * xy) + (z1 * xz);
   yv1 = (x1 * yx) + (y1 * yy) + (z1 * yz);
@@ -127,7 +127,7 @@ void ProcessLine(struct Line2d* ret, struct Line3d vec) {
     rx2 = 256 * (xv2 / zvt2) + Xoff;
     ry2 = 256 * (yv2 / zvt2) + Yoff;
   } else {
-    Ok = 0;
+    Ok = ZERO;
   }
 
   if (Ok == 1) {
@@ -145,16 +145,16 @@ void ProcessLine(struct Line2d* ret, struct Line3d vec) {
 void RenderImage() {
   int cubecolors[] = { TFT_CYAN, TFT_DARKGREY, TFT_DARKCYAN };  // front, back, middle
 
-  for (i = 0; i < LinestoRender; i++) {
+  for (i = ZERO; i < LinestoRender; i++) {
     ORender[i] = Render[i];
     ProcessLine(&Render[i], Lines[i]);
   }
 
-  for (i = 0; i < OldLinestoRender; i++) {
+  for (i = ZERO; i < OldLinestoRender; i++) {
     tft.drawLine(ORender[i].p0.x, ORender[i].p0.y, ORender[i].p1.x, ORender[i].p1.y, TFT_BLACK);
   }
 
-  for (i = LinestoRender - 1; i >= 0; i--) {
+  for (i = LinestoRender - 1; i >= ZERO; i--) {
     int colorIndex = i < 8 ? (i < 4 ? 0 : 1) : 2;
     tft.drawLine(Render[i].p0.x, Render[i].p0.y, Render[i].p1.x, Render[i].p1.y, cubecolors[colorIndex]);
   }
@@ -173,10 +173,9 @@ void calcCube() {
     AcX = colAcX / imuAvg;
     AcY = colAcY / imuAvg;
     AcZ = colAcZ / imuAvg;
-    imuSampleCount = 0;
-    colAcX = 0;
-    colAcY = 0;
-    colAcZ = 0;
+    
+    colAcX = colAcY = colAcZ = imuSampleCount = ZERO;
+
     taskManager.schedule(onceMicros(1), SetVars);
     taskManager.schedule(onceMicros(500), RenderImage);
   }

@@ -133,6 +133,7 @@ const uint32_t ONEMILLION = 1000000;
 const uint16_t ONETHOUSAND = 1000;
 const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
+const int ZERO = 0;  // compiler help
 
 // LOG & Chart & Data
 String TAG = "ESP";
@@ -626,76 +627,3 @@ void loop() {
 
 
 
-
-// Templates
-
-String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
-
-  char buffer[9];
-  sprintf(buffer, "%02d%c%02d%c%02d", value1, seperator, value2, seperator, value3);
-
-  return buffer;
-}
-
-
-template<typename T>
-T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
-  if (pass_sec == 0) {
-    throw std::invalid_argument("Invalid seconds value");
-  }
-  char buffer[9];
-  int hours = pass_sec / 3600;
-  int minutes = (pass_sec % 3600) / MINUTES_IN_HOUR;
-  int seconds = pass_sec % SECONDS_IN_MINUTE;
-
-  sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
-
-  return T(buffer);
-}
-
-
-template<typename T, size_t N>
-T findSmallestValue(const T (&array)[N]) {  // find smalles value in a 1D Array
-  if (N <= 0) {
-    throw std::out_of_range("Array index out of bounds");
-  }
-
-  T smallestValue = array[0];  // Initialize with the first element
-
-  for (size_t i = 1; i < N; ++i) {
-    if (array[i] < smallestValue) {
-      smallestValue = array[i];
-    }
-  }
-
-  return smallestValue;
-}
-
-
-
-template<typename T, size_t Rows, size_t Columns>
-void empty2DArray(T (&array)[Rows][Columns]) {
-  if (Rows == 0 || Columns == 0) {
-    throw std::invalid_argument("Invalid array dimensions");
-  }
-
-  for (size_t row = 0; row < Rows; ++row) {
-    for (size_t column = 0; column < Columns; ++column) {
-      array[row][column] = T();  // Use default constructor if available
-    }
-  }
-}
-
-
-template<size_t Rows, size_t Columns>
-void empty2DArray(String (&array)[Rows][Columns]) {
-  if (Rows == 0 || Columns == 0) {
-    throw std::invalid_argument("Invalid array dimensions");
-  }
-
-  for (size_t row = 0; row < Rows; ++row) {
-    for (size_t column = 0; column < Columns; ++column) {
-      array[row][column] = String();  // Use String's default constructor
-    }
-  }
-}

@@ -254,13 +254,12 @@ void setupWebInterface() {  // in setup()
     preferences.end();
     bmeInterval = loggingInterval;
 
-    repeater = 0;
-    consoleLine = 0;
-    offsetDelta = 0;
-    for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
+    offsetDelta = consoleLine = repeater = ZERO;
+
+    for (i = ZERO; i < numProfiles; ++i) {  // empty resistance array
       bme_resistance[i] = 0;
     }
-    initAirSensorTasks();
+    initTM();
     server.send(200, "text/plain", "Logging interval updated");
   });
 
@@ -271,13 +270,11 @@ void setupWebInterface() {  // in setup()
     preferences.putUInt("bmeSpls", bmeSamples);
     preferences.end();
 
-    repeater = 0;
-    consoleLine = 0;
-    offsetDelta = 0;
-    for (int i = 0; i < numProfiles; ++i) {  // empty resistance array
-      bme_resistance[i] = 0;
+    offsetDelta = consoleLine = repeater = ZERO;
+    for (i = ZERO; i < numProfiles; ++i) {  // empty resistance array
+      bme_resistance[i] = ZERO;
     }
-    initAirSensorTasks();
+    initTM();
     server.send(200, "text/plain", "BME samples updated");
   });
 
@@ -287,7 +284,7 @@ void setupWebInterface() {  // in setup()
     preferences.putBool("logging", LOGGING);
     preferences.end();
 
-    initAirSensorTasks();
+    initTM();
     server.send(200, "text/plain", "LOGGING toggled");
   });
 
@@ -308,6 +305,7 @@ void setupWebInterface() {  // in setup()
 
     server.send(200, "text/plain", "BME pause updated");
   });
+
   server.on("/restart", []() {
     ESP.restart();
     server.send(200, "text/plain", "Restart");
@@ -332,7 +330,7 @@ void setupWebInterface() {  // in setup()
     DEBUG = !DEBUG;
     if (DEBUG) Serial.begin(115200);
     else Serial.end();
-    consoleLine = 0;
+    consoleLine = ZERO;
     preferences.begin("my - app", false);
     preferences.putBool("debug", DEBUG);
     preferences.end();
@@ -610,7 +608,7 @@ String generateConsole() {
   for (int line = consoleLine; line < consoleRows; line++) {
     // int index = (consoleLine + line) % 55;  // Calculate the circular index
 
-    for (i = 0; i < consoleColumns; i++) {
+    for (i = ZERO; i < consoleColumns; i++) {
       consoleOutput += console[line][i];
 
       if (i < consoleColumns - 1) {
@@ -887,17 +885,15 @@ String generateTimeOptions(int selectedValue) {
   };
 
   // Seconds
-  for (int i = 2; i < 60; i += (i == 7 ? 3 : 5)) {
+  for (i = 2; i < 60; i += (i == 7 ? 3 : 5)) {
     addOption(i * ONETHOUSAND, i, "s");
   }
-
   // Minutes
-  for (int i = 1; i < 60; i += (i > 4 && i < 7 ? 4 : (i > 30 ? 10 : 5))) {
+  for (i = 1; i < 60; i += (i > 4 && i < 7 ? 4 : (i > 30 ? 10 : 5))) {
     addOption(i * MINUTES_IN_HOUR * ONETHOUSAND, i, "m");
   }
-
   // Hours
-  for (int i = 1; i <= 24; i++) {
+  for (i = 1; i <= 24; i++) {
     addOption(i * HOURS_IN_DAY * ONETHOUSAND, i, "h");
   }
 
@@ -907,9 +903,8 @@ String generateTimeOptions(int selectedValue) {
 
 String valueOptions(int selectedValue) {
   String pageS = "";
-  int i;
 
-  for (i = 0; i <= 100; i += 1) {
+  for (i = ZERO; i <= 100; i += 1) {
     int value = i;
     pageS += "<option value='" + String(value) + "'";
     if (value == selectedValue) {

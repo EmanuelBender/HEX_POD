@@ -41,7 +41,8 @@ void initTM() {
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
-  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = 0;
+  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = ZERO;
+  bmeTracker = sgpTracker = ina2Tracker = tempTracker = uTimeTracker = powerStTracker = loggingTracker = ntpTracker = clientTracker = statBaTracker = imuTracker = systemPageTracker = homePageTracker = sensorPageTracker = scdTracker = ZERO;
 
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
   STATID = taskManager.schedule(repeatMillis(996), statusBar);
@@ -69,8 +70,8 @@ void initAirSensorTasks() {
       pastLOGGINGstate = LOGGING;
       conditioning_duration = 30;
       taskManager.schedule(onceSeconds(1), pollBME);  // conditioning testing
-      // taskManager.schedule(onceSeconds(5), pollBME);
-      // taskManager.schedule(onceSeconds(10), pollBME);
+                                                      // taskManager.schedule(onceSeconds(5), pollBME);
+      taskManager.schedule(onceSeconds(10), pollBME);
       // taskManager.schedule(onceSeconds(20), pollBME);
       taskManager.schedule(onceSeconds(35), pollBME);
       // taskManager.schedule(onceSeconds(50), pollBME);
@@ -178,8 +179,7 @@ void pollButtons() {
     taskManager.schedule(onceMicros(500), statusBar);
 
     if (LEFT) {
-      LEFT = false;
-      CLICK_LEFT = false;
+      LEFT = CLICK_LEFT = false;
       lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
       if (blockMenu) {
         switch (carousel) {
@@ -209,8 +209,7 @@ void pollButtons() {
 
     if (!blockMenu) {
       if (DOWN || CLICK_DOWN) {
-        DOWN = false;
-        CLICK_DOWN = false;
+        DOWN = CLICK_DOWN = false;
         lastCarousel = carousel;
         carousel = (carousel % menuItems) + 1;
         taskManager.schedule(onceMicros(2), reloadMenu);
@@ -224,9 +223,7 @@ void pollButtons() {
         return;
       }
       if (RIGHT || BUTTON || CLICK) {
-        RIGHT = false;
-        BUTTON = false;
-        CLICK = false;
+        RIGHT = BUTTON = CLICK = false;
         blockMenu = true;
         tft.fillScreen(TFT_BLACK);
         tft.setTextDatum(TL_DATUM);
@@ -417,10 +414,10 @@ void pollBME() {
 
 
   if (repeater == bmeSamples) {
-    bme_gas_avg = 0;
+    bme_gas_avg = ZERO;
     if (!conditioning_duration) {
       // offsetDelta = findSmallestValue(bme_resistance_avg);
-      for (i = 0; i < numProfiles; ++i) {
+      for (i = ZERO; i < numProfiles; ++i) {
         bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - offsetDelta;
         bme_gas_avg += bme_resistance_avg[i];
       }
@@ -429,7 +426,7 @@ void pollBME() {
 
       std::fill_n(bme_resistance, numProfiles, 0);  // empty resistance array
     }
-    repeater = 0;
+    repeater = ZERO;
   }
 
   bme1.setOpMode(BME68X_SLEEP_MODE);
@@ -584,10 +581,11 @@ void debugF(uint32_t tracker) {
 
 void pollMultiplexer() {
   PCABITS = io.read();
-  for (int i = 0; i <= 17; i++) {
-    P0[i] = isBitSet(PCABITS, i);
+  for (int mp = ZERO; mp <= 17; i++) {
+    P0[mp] = (PCABITS & (1 << mp)) != ZERO;
   }
 }
+
 
 inline bool isBitSet(uint16_t value, uint8_t mask) {
   return !(value & (1 << mask));
@@ -598,7 +596,7 @@ inline bool isBitSet(uint16_t value, uint8_t mask) {
 void printToOLED(String oledString) {
   if (OLEDon) {
     u8g2.clearBuffer();
-    u8g2.drawStr(0, 32, oledString.c_str());
+    u8g2.drawStr(ZERO, 32, oledString.c_str());
     u8g2.sendBuffer();
   }
 }
@@ -612,8 +610,8 @@ void toggleOLED() {
   io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);
   if (OLEDon) {
     u8g2.begin();
-    u8g2.setFontDirection(0);
-    u8g2.setFontMode(0);
+    u8g2.setFontDirection(ZERO);
+    u8g2.setFontMode(ZERO);
     u8g2.setFont(u8g2_font_logisoso28_tn);  // u8g2_font_u8glib_4_tf
   } else {
     u8g2.setPowerSave(1);
@@ -640,7 +638,7 @@ uint8_t oneWireSearch(int pin) {
   OneWire ow(pin);
 
   uint8_t address[8];
-  uint8_t count = 0;
+  uint8_t count = ZERO;
 
   if (ow.search(address)) {
     Serial.print("DT pin: ");
@@ -648,7 +646,7 @@ uint8_t oneWireSearch(int pin) {
     do {
       count++;
       Serial.print("   { ");
-      for (uint8_t i = 0; i < 8; i++) {
+      for (i = ZERO; i < 8; i++) {
         Serial.print("0x");
         if (address[i] < 0x10) Serial.print("0");
         Serial.print(address[i], HEX);
@@ -723,4 +721,79 @@ String print_wakeup_reason() {
     default: wakeupReasonString = /*String(wake_up_source) + " " + */ getResetReason(); break;
   }
   return wakeupReasonString;
+}
+
+
+
+// Templates
+
+String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
+
+  char buffer[9];
+  sprintf(buffer, "%02d%c%02d%c%02d", value1, seperator, value2, seperator, value3);
+
+  return buffer;
+}
+
+
+template<typename T>
+T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
+  if (pass_sec == 0) {
+    throw std::invalid_argument("Invalid seconds value");
+  }
+  char buffer[9];
+  int hours = pass_sec / 3600;
+  int minutes = (pass_sec % 3600) / MINUTES_IN_HOUR;
+  int seconds = pass_sec % SECONDS_IN_MINUTE;
+
+  sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
+
+  return T(buffer);
+}
+
+
+template<typename T, size_t N>
+T findSmallestValue(const T (&array)[N]) {  // find smalles value in a 1D Array
+  if (N <= ZERO) {
+    throw std::out_of_range("Array index out of bounds");
+  }
+
+  T smallestValue = array[0];  // Initialize with the first element
+
+  for (size_t i = 1; i < N; ++i) {
+    if (array[i] < smallestValue) {
+      smallestValue = array[i];
+    }
+  }
+
+  return smallestValue;
+}
+
+
+
+template<typename T, size_t Rows, size_t Columns>
+void empty2DArray(T (&array)[Rows][Columns]) {
+  if (Rows == ZERO || Columns == ZERO) {
+    throw std::invalid_argument("Invalid array dimensions");
+  }
+
+  for (size_t row = ZERO; row < Rows; ++row) {
+    for (size_t column = ZERO; column < Columns; ++column) {
+      array[row][column] = T();  // Use default constructor if available
+    }
+  }
+}
+
+
+template<size_t Rows, size_t Columns>
+void empty2DArray(String (&array)[Rows][Columns]) {
+  if (Rows == ZERO || Columns == ZERO) {
+    throw std::invalid_argument("Invalid array dimensions");
+  }
+
+  for (size_t row = ZERO; row < Rows; ++row) {
+    for (size_t column = ZERO; column < Columns; ++column) {
+      array[row][column] = String();  // Use String's default constructor
+    }
+  }
 }
