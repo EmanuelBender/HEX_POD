@@ -256,7 +256,6 @@ void setupWebInterface() {  // in setup()
 
     offsetDelta = consoleLine = repeater = ZERO;
     initTM();
-    std::fill_n(bme_resistance, numProfiles, 0);
 
     server.send(200, "text/plain", "Logging interval updated");
   });
@@ -270,7 +269,6 @@ void setupWebInterface() {  // in setup()
 
     offsetDelta = consoleLine = repeater = ZERO;
     initTM();
-    std::fill_n(bme_resistance, numProfiles, 0);
 
     server.send(200, "text/plain", "BME samples updated");
   });
@@ -282,7 +280,6 @@ void setupWebInterface() {  // in setup()
     preferences.end();
 
     initTM();
-    std::fill_n(bme_resistance, numProfiles, 0);
 
     server.send(200, "text/plain", "LOGGING toggled");
   });

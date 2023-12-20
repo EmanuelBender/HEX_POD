@@ -69,12 +69,12 @@ void initAirSensorTasks() {
     if (LOGGING != pastLOGGINGstate) {  // initialize after LOGGING toggle
       pastLOGGINGstate = LOGGING;
       conditioning_duration = 30;
-      taskManager.schedule(onceSeconds(1), pollBME);  // conditioning testing
-                                                      // taskManager.schedule(onceSeconds(5), pollBME);
-      taskManager.schedule(onceSeconds(10), pollBME);
-      // taskManager.schedule(onceSeconds(20), pollBME);
+      std::fill_n(bme_resistance, numProfiles, 0);
+
+      taskManager.schedule(onceSeconds(1), pollBME);  // 1, 15, 35 seems good - balance between initial startup and LOGGING toggle while running
+      // taskManager.schedule(onceSeconds(10), pollBME);
+      taskManager.schedule(onceSeconds(15), pollBME);
       taskManager.schedule(onceSeconds(35), pollBME);
-      // taskManager.schedule(onceSeconds(50), pollBME);
       taskManager.schedule(onceSeconds(10), pollSCD30);
       taskManager.schedule(onceSeconds(20), pollSCD30);
       taskManager.schedule(onceSeconds(30), pollSCD30);

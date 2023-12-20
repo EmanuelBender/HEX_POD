@@ -75,7 +75,7 @@ void logging() {
   loggingTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (!conditioning_duration) {
+  if (!conditioning_duration && printTime != "") {
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
     std::ostringstream airLog;
@@ -85,7 +85,7 @@ void logging() {
       airLog << resistance << ", ";
     }
 
-    airLog.precision(2);                               // Set precision
+    airLog.precision(2);                                    // Set precision
     airLog << std::fixed << bme1_data.temperature << ", ";  // set precision for temperature
     airLog << std::fixed << bme1_data.humidity << ", ";
     airLog << std::fixed << bme1_data.pressure << ", ";
@@ -241,32 +241,26 @@ void writeFile(fs::FS &fs, const char *path, const char *message) {
 void appendFile(fs::FS &fs, const char *path, const char *message) {
   // Serial.printf("Appending to file: %s\n", path);
 
-  if (percentLeftLFS <= 0.05) {
+  if (percentLeftLFS <= 0.10) {
     Serial.println("SPIFFS full.");
     return;
   }
 
-
-  File file = fs.open(path, FILE_APPEND);
-  if (!fs.exists(path)) {
-    createDir(fs, rootHexPath.c_str());  // create system root Dir for safety
-    if (LOGGING) {
-      writeFile(fs, logFilePath.c_str(), logHeader.c_str());
-      if (!fs.open(path, FILE_APPEND)) {
-        file = fs.open(path, FILE_APPEND);
-      }
-      // file.print(logHeader.c_str());
+  if (printDate != "") {
+    if (!fs.exists(path)) {
+      createDir(fs, rootHexPath.c_str());  // create system root Dir for safety
     }
+
+    if (LOGGING) {
+      File file = fs.open(path, FILE_APPEND);
+
+      if (!file.print(message)) {
+        Serial.println("Append failed");
+      }
+      file.close();
+    }
+    getSPIFFSsizes();
   }
-
-  // writeFile(fs, path, message);
-
-  if (!file.print(message)) {
-    Serial.println("Append failed");
-  }
-
-  getSPIFFSsizes();
-  file.close();
 }
 
 
