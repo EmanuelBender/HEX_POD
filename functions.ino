@@ -396,7 +396,7 @@ void pollBME() {
 
   repeater++;
 
-  for (bmeProfile = 0; bmeProfile < numProfiles; bmeProfile++) {
+  for (bmeProfile = ZERO; bmeProfile < numProfiles; bmeProfile++) {
     duration = durProf_1[bmeProfile];
     heaterTemp = heatProf_1[bmeProfile];
 
@@ -424,7 +424,7 @@ void pollBME() {
       bme_gas_avg = (bme_gas_avg / numProfiles);
 
 
-      std::fill_n(bme_resistance, numProfiles, 0);  // empty resistance array
+      std::fill_n(bme_resistance, numProfiles, ZERO);  // empty resistance array
     }
     repeater = ZERO;
   }
@@ -461,8 +461,7 @@ void pollSGP() {
     sgp41.turnHeaterOff();
   } else if (conditioning_duration > conditioning_duration / 3) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
-    voc_algorithm.process(srawVoc);
-    nox_algorithm.process(srawNox = 16500);
+    voc_algorithm.process(srawVoc); 
   }
 
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
@@ -569,7 +568,7 @@ void debugF(uint32_t tracker) {
     }
 
     consoleLine++;
-    if (consoleLine >= consoleRows) consoleLine = 0;
+    if (consoleLine >= consoleRows) consoleLine = ZERO;
   }
 
   if (carousel == 4 && blockMenu) {
@@ -738,7 +737,7 @@ String formatTime(const int value1, const int value2, const int value3, const ch
 
 template<typename T>
 T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
-  if (pass_sec == 0) {
+  if (pass_sec == ZERO) {
     throw std::invalid_argument("Invalid seconds value");
   }
   char buffer[9];
