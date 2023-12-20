@@ -504,7 +504,6 @@ void pollTemp() {
   if (tempSens.isConversionComplete()) {
     for (auto &probe : DTprobe) {
       probe.temperature = tempSens.getTempC(probe.address);
-      yield();
     }
     tempSens.requestTemperatures();
   }

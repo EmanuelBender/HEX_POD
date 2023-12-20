@@ -52,31 +52,16 @@ uint16_t webServerPollMs = 80;
 #include <TimeLib.h>
 #include <time.h>
 
-BLEDevice peripheral;
-struct BLEData {
-  String result;
-  int rssi;
-};
-const byte BLEresults = 40;
-BLEData scanData[BLEresults];
 
-const char* wifiStatusChar[] = {
-  "Idle",
-  "No SSID",
-  "Scan Done",
-  "Connected",
-  "Connect Failed",
-  "Connection Lost",
-  "Disconnected",
-};
-
-
+const uint16_t ONEMILLION = 1000000;
+const uint16_t ONETHOUSAND = 1000;
+const double KILOBYTE = 1024.0;
+const double ONEMILLIONB = KILOBYTE * KILOBYTE;
+const int ZERO = 0;  // compiler help
 
 // ___________________________________  TIME  ________________________________
-const char* hostname = "[HEX]POD";
-const int WiFiTimeout = 5000;
+const int WiFiTimeout = 8000;
 String WiFiIP;
-String webHost, webPw;
 const char* ntpServer1 = "0.pool.ntp.org";  // NTP Time server
 const char* ntpServer2 = "time.nist.gov";   // fallback
 const char* ntpServer3 = "1.pool.ntp.org";  // fallback
@@ -102,16 +87,19 @@ Preferences preferences;
 // #define ENABLE_I2C_DEBUG_BUFFER
 bool DEBUG = false;
 bool LOGGING = true;
-bool pastLOGGINGstate = !LOGGING;
-bool SLEEPENABLE;
-bool serialPrintLOG;
-bool serialPrintBME1;
 
-SPIClass sdSPI = SPIClass(HSPI);
-#define SD_MISO 13
+// !! Enter Credentials before very first upload !! once entered, they will be stored in preferences
+String wifiSSID = "";                   // your WiFi SSID
+String wifiPW = "";                     // your WiFi Password
+String hostname = "[HEX]POD - Center";  // web server Title
+String webHost = "hexpod";              // web server IP: hexpod.local
+String webPw = "";                      // web server password
+
+#define SD_MISO 13  // SPI pins for SD card
 #define SD_MOSI 14
 #define SD_SCLK 12
 #define SD_CS 21
+SPIClass sdSPI = SPIClass(HSPI);  // VSPI used by TFT
 // #define SPI_FREQUENCY 60000000       // 80000000 tested ok
 // #define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
 
@@ -119,21 +107,11 @@ SPIClass sdSPI = SPIClass(HSPI);
 #define scl GPIO_NUM_17
 #define I2C_SPEED 200000  // 800k tested ok, max 200k(100k) with SCD30
 
-uint32_t loggingInterval = 60000;  // stored in Prefs
-uint16_t getNTPInterval = 1800;    // 600 = 10 mins, 1800 = 30 mins
-
-const byte consoleColumns = 20;
-const byte consoleRows = 54;
-const byte menuRowM = 26;
-
-uint8_t consoleLine;
-String console[consoleRows][consoleColumns];
-
-const uint32_t ONEMILLION = 1000000;
-const uint16_t ONETHOUSAND = 1000;
-const double KILOBYTE = 1024.0;
-const double ONEMILLIONB = KILOBYTE * KILOBYTE;
-const int ZERO = 0;  // compiler help
+uint16_t loggingInterval = 60000;                // in ms, stored in Prefs as well
+uint16_t getNTPInterval = 1800;                  // in ms, 600 = 10 mins, 1800 = 30 mins
+uint32_t idleDelay = 30000 * ONETHOUSAND;        // in us
+uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // in us, 3 min
+// uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
 
 // LOG & Chart & Data
 String TAG = "ESP";
@@ -144,11 +122,22 @@ String wakeupReasonString;
 
 uint32_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free;
 double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
-long int cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
+uint16_t cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
 bool LEDon, FANon, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
 String logFilePath, rootHexPath = "/.sys";
+
+uint8_t consoleLine;
+const byte consoleColumns = 20;
+const byte consoleRows = 54;
+const byte menuRowM = 26;
+String console[consoleRows][consoleColumns];
+
+bool pastLOGGINGstate = !LOGGING;
+bool SLEEPENABLE;
+bool serialPrintLOG;
+bool serialPrintBME1;
 
 const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX, SCD_CO2, SCD_T, SCD_H\n";
 const String logColumns[] = { "Time", "BME_0", "BME_1", "BME_2", "BME_3", "BME_4", "BME_5", "BME_6", "BME_7", "BME_8", "BME_9", "BME_10", "BME_11", "BME_12", "BME_13", "BME_T", "BME_H", "BME_P", "SGP_VOC", "SGP_NOX", "SGP_rVOC", "SGP_rNOX", "SCD_CO2", "SCD_T", "SCD_H" };
@@ -193,9 +182,23 @@ const char* menuOptions[] = {
   "System",
 };
 
-uint32_t idleDelay = 30000 * ONETHOUSAND;
-uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // 3 min
-// uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
+BLEDevice peripheral;
+struct BLEData {
+  String result;
+  int rssi;
+};
+const byte BLEresults = 40;
+BLEData scanData[BLEresults];
+
+const char* wifiStatusChar[] = {
+  "Idle",
+  "No SSID",
+  "Scan Done",
+  "Connected",
+  "Connect Failed",
+  "Connection Lost",
+  "Disconnected",
+};
 
 const float pi = 3.14159265358979323846264338327950;
 uint16_t i;
@@ -259,7 +262,7 @@ Bme68x bme1;
 String BME_ERROR, lastBMEpoll;
 const byte numProfiles = 14;
 uint32_t bme_resistance[numProfiles], bme_resistance_avg[numProfiles];
-uint32_t bmeInterval, bme_gas_avg;
+uint16_t bmeInterval, bme_gas_avg;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 double Altitude, samplingDelta;
@@ -347,8 +350,7 @@ bool INA2_iscalibrated;
 
 // Task Manager _______________________________________________________________________
 taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID, SCDID;  // task IDs
-double bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker;
-uint32_t tmTracker;
+double tmTracker, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker;
 
 const byte slotsSize = 24;
 char taskFreeSlots[slotsSize];  // TaskManagerIO slots & status
@@ -404,17 +406,16 @@ void setup() {  // ________________ SETUP ___________________
   //_________________ INITIALIZE Preferences & WiFi ____________________
 
   // Credential Prefs
-  preferences.begin("credentials", true);      // true : read only
-  webHost = preferences.getString("webHost");  // hexpod
-  webPw = preferences.getString("webPw");      //
-  WiFi.setHostname(hostname);                  //define hostname
-  WiFi.begin(preferences.getString("ssid", "NaN"), preferences.getString("pw", "NaN"));
+  preferences.begin("credentials", false);              // true: read-only,  false: read-write
+  webHost = preferences.getString("webHost", webHost);  // hexpod
+  webPw = preferences.getString("webPw", webPw);
+  // WiFi.setHostname(hostname);
+  WiFi.begin(preferences.getString("ssid", wifiSSID), preferences.getString("pw", wifiPW));
   preferences.end();
 
   // Sensor Prefs
-  preferences.begin("my - app", false);                        // read-only bool
-  loggingInterval = preferences.getUInt("logItvl", 30000);     // in millis
-  conditioning_duration = (loggingInterval / ONEMILLION) * 3;  // in sec
+  preferences.begin("my - app", false);                               // false: read-write
+  loggingInterval = preferences.getUInt("logItvl", loggingInterval);  // in millis
   serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
   bmeFilter = preferences.getUInt("bmeFilter", 0);
@@ -422,9 +423,10 @@ void setup() {  // ________________ SETUP ___________________
 
   // System Prefs
   LOGGING = preferences.getBool("logging", false);
-  DEBUG = preferences.getBool("debug", 1);
+  DEBUG = preferences.getBool("debug", 0);
   SLEEPENABLE = preferences.getBool("sleep", 0);
   OLEDon = preferences.getBool("oled", 1);
+
   restarts = preferences.getUInt("restarts", 0);
   restarts++;
   preferences.putUInt("restarts", restarts);
@@ -454,7 +456,7 @@ void setup() {  // ________________ SETUP ___________________
   pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
   attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
   pinMode(GPIO_NUM_1, OUTPUT);                 // FAN_CTL
-  pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 12);  // BLK, 1KHz, 12 bit
+  pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 10);  // BLK, 1KHz, 12 bit
   pwm.writeScaled(TFTbrightness = 1.0);
   // pinMode(GPIO_NUM_3, INPUT);
   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT

@@ -535,7 +535,7 @@ String generateCommonPageStructure(String content) {
   pageC += "<html lang='en'>";
   pageC += "<head>";
   pageC += "<meta charset='UTF-8' http-equiv='refresh' content='" + String(loggingInterval / ONETHOUSAND) + "' >";
-  pageC += "<title>[HEX]POD Center</title>";
+  pageC += "<title>" + hostname + "</title>";
   pageC += "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>";
   pageC += generateJavaScriptFunctions();
   pageC += generateCSSstyles();
