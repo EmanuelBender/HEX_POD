@@ -133,7 +133,7 @@ String wakeupReasonString;
 Preferences preferences;
 
 size_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, total_heap, free_heap, min_free_heap, min_free_int_heap;
-double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP, free_RAM_p;
+double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP, free_RAM_p, used_RAM_p;
 uint32_t cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
 bool LEDon, FANon, OLEDon, SDinserted;

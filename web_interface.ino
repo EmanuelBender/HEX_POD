@@ -530,20 +530,20 @@ String generateCSSstyles() {
          "@import url('https://fonts.cdnfonts.com/css/din-alternate');"
          "@import url('https://fonts.cdnfonts.com/css/demon-cubic-block-nkp');"  // font-family: 'DemonCubicBlock NKP Black', sans-serif;    font-family: 'DemonCubicBlock NKP Dark', sans-serif;    font-family: 'DemonCubicBlock NKP Shade', sans-serif;    font-family: 'DemonCubicBlock NKP Tile', sans-serif;
          "@import url('https://fonts.cdnfonts.com/css/barcode-font');"           // font-family: 'barcode font', sans-serif;
-         "body { font-family: 'Helvetica Neue', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
+         "body { font-family: 'DIN Alternate', sans-serif; background-color: #303030; display: block; margin-left: auto; margin-right: auto; }"
          "table { width: 710px; margin: 15px; padding: 20px; background-color: #D8D8D8; border-radius: 20px; display: block; table-layout: fixed; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
-         "th, td { white-space: nowrap; border-radius: 10px; padding-top: 1px;  padding-bottom: 1px; color: #050505; text-align: left;}"
+         "th, td { font-family: 'Helvetica Neue', sans-serif; white-space: nowrap; border-radius: 10px; padding-top: 1px;  padding-bottom: 1px; color: #050505; text-align: left;}"
          "h2, h3 { font-family: 'DIN Alternate', sans-serif; color: #303030; text-align: left; margin-bottom: 5px; }"
-         "p { font-family: 'DIN Alternate', sans-serif; margin: 3px 5px; } "
+         "p {  font-family: 'DIN Alternate', sans-serif; margin: 3px 5px; } "
          "a.button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 4px; padding: 8px; text-decoration: none; border: none; color: white; background-color: #008080; border: solid 1px #009090; border-radius: 8px; font-size: 17px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; border-radius: 9px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
-         "div { color: white; }"
+         "div { font-family: 'DIN Alternate', sans-serif; color: white; }"
          "#navbar { background-color: transparent; text-align: center; justify-content: center;  }"
          "#sidebar { height: 870px; background-color: #353535; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 20px; padding: 2px; margin: 15px; padding-top: 20px; text-align:center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "#blocksFont { font-family: 'DemonCubicBlock NKP Shade', sans-serif; }"
          "#barcodeFont { font-family: 'barcode font', sans-serif; }"
-         "#subhead { padding: 3px 8px; color: white; text-align: center; background-color: #757575; }"
-         "#toggle_sw { color: #707070; text-align: center; font-family: 'DIN Alternate', sans-serif; display: flex; align-items: center;}"
+         "#subhead { padding: 4px 6px; color: white; text-align: center; background-color: #757575; }"
+         "#toggle_sw { font-family: 'DIN Alternate', sans-serif; color: #707070; text-align: center; display: flex; align-items: center;}"
          ".toggle-switch { display: inline-block; width: 42px; height: 24px; background-color: #505050; border-radius: 15px; position: relative; cursor: pointer; box-sizing: border-box;}"
          ".toggle-slider { position: absolute; top: 1px; left: 1px; width: 22px; height: 22px; background-color: #D8D8D8; border: solid 2px #E4E4E4; border-radius: 50%; transition: 0.4s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); box-sizing: border-box;}"
          "</style>";
@@ -660,7 +660,9 @@ String generateHomePage() {
   // Device Controls
   page += generateDeviceControlsTable();
 
+
   page += generateDeviceOverviewTable();
+
 
   page += "</div>";
 
@@ -679,11 +681,14 @@ String generateHomePage() {
 
   page += "</table>";
 */
-  page += "<table style='min-height: 300px; width: 908px; padding: 30px;'>";
-  page += "<tr><td><h2>Web Console</h2></td></tr>";
-  page += "<tr><td><pre>" + generateConsole() + "</pre>";
-  page += "<td></tr></table>";
-
+  if (DEBUG) {
+    String page = "<div style='display: flex;'>";
+    page += "<table style='min-height: 300px; width: 908px; padding: 30px;'>";
+    page += "<tr><td><h2>Web Console</h2></td></tr>";
+    page += "<tr><td><pre>" + generateConsole() + "</pre>";
+    page += "<td></tr></table>";
+    page += "</div>";
+  }
 
   return generateCommonPageStructure(page);
 }

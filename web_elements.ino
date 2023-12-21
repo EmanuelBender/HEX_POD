@@ -417,9 +417,9 @@ String generateDeviceControlsTable() {
   output += "<div id='slider' class='toggle-slider' style='left: " + String(LEDon ? "19px;" : "1px;") + "'></div>";
   output += "</div></td></tr>";
 
-  output += "<tr><td id='toggle_sw' >FAN </td><td><div id='loggingToggle' onclick='toggleFAN()' class='toggle-switch' " + String(FANon ? "style='background-color: #3fba70;'" : "") + ">";
+  /* output += "<tr><td id='toggle_sw' >FAN </td><td><div id='loggingToggle' onclick='toggleFAN()' class='toggle-switch' " + String(FANon ? "style='background-color: #3fba70;'" : "") + ">";
   output += "<div id='slider' class='toggle-slider' style='left: " + String(FANon ? "19px;" : "1px;") + "'></div>";
-  output += "</div></td></tr>";
+  output += "</div></td></tr>"; */
 
   output += "<tr><td id='toggle_sw' >OLED </td><td><div id='loggingToggle' onclick='toggleOLED()' class='toggle-switch' " + String(OLEDon ? "style='background-color: #3fba70;'" : "") + ">";
   output += "<div id='slider' class='toggle-slider' style='left: " + String(OLEDon ? "19px;" : "1px;") + "'></div>";
@@ -443,15 +443,18 @@ String generateDeviceControlsTable() {
 String generateDeviceOverviewTable() {
 
   String output = "<table style='width: 746px; background-color: #303030; box-shadow: none; border: solid 1px #505050;'>";
-  output += "<tr><td style='font-size:11px; color: #707070'>" + String(CONFIG_IDF_TARGET) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
+  output += "<tr style='height:30px; '>";
   output += "<td id='subhead' style='width: 45px;'> " + String(powerStateNames[currentPowerState]) + "</td>";
-  output += "<td id='subhead' style='min-width: 180px;'>" + resetReasonString + "</td>";
-  output += "<td id='subhead' >" + String(free_RAM_p, 1) + "% RAM</td>";
-  output += "<td id='subhead' >" + String(flash_LeftP, 1) + "% HDD</td>";
+  output += "<td id='subhead' style='min-width: 220px;'>" + resetReasonString + "</td>";
+  output += "<td id='subhead' >" + String(used_RAM_p, 1) + "% RAM</td>";
+  output += "<td id='subhead' >" + String(flash_UsedP, 1) + "% HDD</td>";
   output += "<td id='subhead' style='width: 45px;'>" + String(RSSIsymbol) + "</td>";
+  output += "</tr><br><tr>";
 
-  output += "</tr>";
-  output += "</table>";
+  output += "<td style='color: #707070;' colspan='6'>TFT Brightness: <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'>";
+  output += "(FAN Speed): <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td>";
+
+  output += "</tr></table>";
   return output;
 }
 
