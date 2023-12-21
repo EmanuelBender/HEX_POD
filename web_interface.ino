@@ -92,7 +92,7 @@ void streamToServer(String filePath) {
 
 void setupWebInterface() {  // in setup()
 
-  if (!MDNS.begin("HEX")) {  //  http://HEX.local
+  if (!MDNS.begin(local_domain)) {
     Serial.println("Error setting up MDNS responder!");
     while (1) {
       delay(1000);
@@ -254,7 +254,7 @@ void setupWebInterface() {  // in setup()
     preferences.end();
     bmeInterval = loggingInterval;
 
-    offsetDelta = consoleLine = repeater = ZERO;
+    consoleLine = repeater = ZERO;
     initTM();
 
     server.send(200, "text/plain", "Logging interval updated");
@@ -267,22 +267,12 @@ void setupWebInterface() {  // in setup()
     preferences.putUInt("bmeSpls", bmeSamples);
     preferences.end();
 
-    offsetDelta = consoleLine = repeater = ZERO;
+    consoleLine = repeater = ZERO;
     initTM();
 
     server.send(200, "text/plain", "BME samples updated");
   });
 
-  server.on("/toggleLOGGING", []() {
-    LOGGING = !LOGGING;
-    preferences.begin("my - app", false);
-    preferences.putBool("logging", LOGGING);
-    preferences.end();
-
-    initTM();
-
-    server.send(200, "text/plain", "LOGGING toggled");
-  });
 
   server.on("/updateBMEfilter", HTTP_GET, []() {
     bmeFilter = server.arg("value").toInt();
@@ -303,9 +293,13 @@ void setupWebInterface() {  // in setup()
   });
 
   server.on("/restart", []() {
-    ESP.restart();
     server.send(200, "text/plain", "Restart");
+    server.close();
+    server.stop();
+    WiFi.disconnect();
+    ESP.restart();
   });
+
   server.on("/updateTFTbrightness", []() {
     String value = server.arg("value");
     TFTbrightness = value.toFloat();
@@ -321,6 +315,17 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "Sleep Enabled");
   });
 
+
+  server.on("/toggleLOGGING", []() {
+    LOGGING = !LOGGING;
+    preferences.begin("my - app", false);
+    preferences.putBool("logging", LOGGING);
+    preferences.end();
+
+    initTM();
+
+    server.send(200, "text/plain", "LOGGING toggled");
+  });
 
   server.on("/toggleDEBUG", []() {
     DEBUG = !DEBUG;
@@ -385,126 +390,138 @@ void setupWebInterface() {  // in setup()
 
 
 String generateJavaScriptFunctions() {
-  return "<script>\n"
-         "function updateLoggingInterval() { \n"
-         "var intervalSelect = document.getElementById('loggingInterval');\n"
-         "var selectedValue = intervalSelect.options[intervalSelect.selectedIndex].value;\n"
-         "fetch('/updateLoggingInterval?value=' + selectedValue);\n"
-         "}\n"
-         "function updateBMEsamples() { "
-         "var sampleSelect = document.getElementById('bmeSamples');"
-         "var selectedValue = sampleSelect.options[sampleSelect.selectedIndex].value;"
-         "fetch('/updateBMEsamples?value=' + selectedValue);"
-         "}"
-         "function updateBMEfilter() { "
-         "var filter = document.getElementById('bmeFilter');"
-         "var selectedValue = filter.options[filter.selectedIndex].value;"
-         "fetch('/updateBMEfilter?value=' + selectedValue);"
-         "}"
-         "function updateBMEpause() { "
-         "var pauseMs = document.getElementById('bmePause');"
-         "var selectedValue = pauseMs.options[pauseMs.selectedIndex].value;"
-         "fetch('/updateBMEpause?value=' + selectedValue);"
-         "}"
-         "function toggleLED() { fetch('/toggleLED'); }"
-         "function toggleLightSleep() { fetch('/toggleLS'); }"
-         "function toggleLOGGING() { fetch('/toggleLOGGING'); }"
-         "function deletePath() { "
-         "  var pathToDelete = prompt('Please enter the path to delete:');"
-         "  if (pathToDelete !== null) {"
-         "    fetch('/deletePath?path=' + encodeURIComponent(pathToDelete));"
-         "  }"
-         "}"
-         "function createFile() { "
-         "  var pathToCreate = prompt('Please enter filename (path):');"
-         "  if (pathToCreate !== null) {"
-         "    fetch('/createFile?path=' + encodeURIComponent(pathToCreate));"
-         "  }"
-         "}"
-         "function createDir() { "
-         "  var pathToCreate = prompt('Please enter folder name (path):');"
-         "  if (pathToCreate !== null) {"
-         "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
-         "  }"
-         "}"
-         "function LOGMarker() { "
-         "  var note = prompt('LOG Marker. Please enter marker Note:');"
-         "  if (note !== null) {"
-         "    fetch('/LOGMarker?markerText=' + encodeURIComponent(note));"
-         "  }"
-         "}"
-         "function download() {"
-         "  var pathToDownload = prompt('Please enter path to download:');"
-         "  if (pathToDownload !== null) {"
-         "     window.location.href = '/download?path=' + encodeURIComponent(pathToDownload);"
-         "  }"
-         "}"
-         "function uploadFile() { "
-         "  var input = document.getElementById('fileInput');"
-         "  var file = input.files[0];"
-         "  if (file) {"
-         "    var allowedFormats = ['.csv', '.txt'];"
-         "    var fileFormat = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();"
-         "    if (allowedFormats.includes(fileFormat)) {"
-         "      var formData = new FormData();"
-         "      formData.append('upload', file);"
-         "      fetch('/upload', { method: 'POST', body: formData });"
-         "    } else {"
-         "      alert('Invalid file format. Please upload a file with one of the following formats: .csv, .txt');"
-         "    }"
-         "  }"
-         "}"
+  String script = "<script>\n";
+  // script += "var LOGGING = <?php echo " + String(LOGGING) + "? 'true' : 'false'; ?>;";
+  // script += "var DEBUG = ";
+  // script += String(DEBUG) + ";\n";
+  script += "function updateLoggingInterval() { \n"
+            "var intervalSelect = document.getElementById('loggingInterval');\n"
+            "var selectedValue = intervalSelect.options[intervalSelect.selectedIndex].value;\n"
+            "fetch('/updateLoggingInterval?value=' + selectedValue);\n"
+            "  location.reload();"
+            "}\n"
+            "function updateBMEsamples() { "
+            "var sampleSelect = document.getElementById('bmeSamples');"
+            "var selectedValue = sampleSelect.options[sampleSelect.selectedIndex].value;"
+            "fetch('/updateBMEsamples?value=' + selectedValue);"
+            "  location.reload();"
+            "}"
+            "function updateBMEfilter() { "
+            "var filter = document.getElementById('bmeFilter');"
+            "var selectedValue = filter.options[filter.selectedIndex].value;"
+            "fetch('/updateBMEfilter?value=' + selectedValue);"
+            "  location.reload();"
+            "}"
+            "function updateBMEpause() { "
+            "var pauseMs = document.getElementById('bmePause');"
+            "var selectedValue = pauseMs.options[pauseMs.selectedIndex].value;"
+            "fetch('/updateBMEpause?value=' + selectedValue);"
+            "  location.reload();"
+            "}"
 
-         "function toggleDEBUG() { fetch('/toggleDEBUG'); }"
-         // "function toggleLOGBME() { fetch('/toggleLOGBME'); }"
-         "function toggleOLED() { fetch('/toggleOLED'); }"
-         "function triggerUP() { fetch('/triggerUP'); }"
-         "function triggerDOWN() { fetch('/triggerDOWN'); }"
-         "function triggerLEFT() { fetch('/triggerLEFT'); }"
-         "function triggerRIGHT() { fetch('/triggerRIGHT'); }"
-         "function triggerCTR() { fetch('/triggerCTR'); }"
-         "function toggleFAN() { fetch('/toggleFAN'); }"
-         "function restartESP() { fetch('/restart'); }"
-         "function updateNTP() { fetch('/updateNTP'); }"
+            "function toggleDEBUG() { fetch('/toggleDEBUG').then(() => location.reload()); }"
+            "function toggleLOGGING() { fetch('/toggleLOGGING').then(() => location.reload()); }"
 
-         "function updateTFTbrightness(value) {\n"
-         "  document.getElementById('TFTslider').value = value;\n"
-         "  var xhr = new XMLHttpRequest();\n"
-         "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);\n"
-         "  xhr.send();\n"
-         "}\n"
-         "document.addEventListener('keydown', function(event) {\n"
-         "  switch(event.key) {\n"
-         "    case 'ArrowUp':\n"
-         "      fetch('/triggerUP');\n"
-         "      break;\n"
-         "    case 'ArrowDown':\n"
-         "      fetch('/triggerDOWN');\n"
-         "      break;\n"
-         "    case 'ArrowLeft':\n"
-         "      fetch('/triggerLEFT');\n"
-         "      break;\n"
-         "    case 'ArrowRight':\n"
-         "      fetch('/triggerRIGHT');\n"
-         "      break;\n"
-         "    case 'Enter':\n"
-         "      fetch('/triggerCTR');\n"
-         "      break;\n"
-         "  }\n"
-         "});\n"
-         "function calculateMaxValue(data) {"
-         "  var max = 0;"
-         "  for (var i = 0; i < data.getNumberOfRows(); i++) {"
-         "    for (var j = 1; j < data.getNumberOfColumns(); j++) {"
-         "      var value = data.getValue(i, j);"
-         "      if (value > max) {"
-         "        max = value;"
-         "      }"
-         "    }"
-         "  }"
-         "  return max;"
-         "}\n"
-         "</script>\n";
+            "function deletePath() { "
+            "  var pathToDelete = prompt('Please enter the path to delete:');"
+            "  if (pathToDelete !== null) {"
+            "    fetch('/deletePath?path=' + encodeURIComponent(pathToDelete));"
+            "    location.reload();"
+            "  }"
+            "}"
+            "function createFile() { "
+            "  var pathToCreate = prompt('Please enter filename (path):');"
+            "  if (pathToCreate !== null) {"
+            "    fetch('/createFile?path=' + encodeURIComponent(pathToCreate));"
+            "    location.reload();"
+            "  }"
+            "}"
+            "function createDir() { "
+            "  var pathToCreate = prompt('Please enter folder name (path):');"
+            "  if (pathToCreate !== null) {"
+            "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
+            "    location.reload();"
+            "  }"
+            "}"
+            "function LOGMarker() { "
+            "  var note = prompt('LOG Marker. Please enter marker Note:');"
+            "  if (note !== null) {"
+            "    fetch('/LOGMarker?markerText=' + encodeURIComponent(note));"
+            "  }"
+            "}"
+            "function download() {"
+            "  var pathToDownload = prompt('Please enter path to download:');"
+            "  if (pathToDownload !== null) {"
+            "     window.location.href = '/download?path=' + encodeURIComponent(pathToDownload);"
+            "  }"
+            "}"
+            "function uploadFile() { "
+            "  var input = document.getElementById('fileInput');"
+            "  var file = input.files[0];"
+            "  if (file) {"
+            "    var allowedFormats = ['.csv', '.txt'];"
+            "    var fileFormat = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();"
+            "    if (allowedFormats.includes(fileFormat)) {"
+            "      var formData = new FormData();"
+            "      formData.append('upload', file);"
+            "      fetch('/upload', { method: 'POST', body: formData });"
+            "    } else {"
+            "      alert('Invalid file format. Please upload a file with one of the following formats: .csv, .txt');"
+            "    }"
+            "  }"
+            "}"
+
+            "function toggleLED() { fetch('/toggleLED').then(() => location.reload()); }"
+            "function toggleOLED() { fetch('/toggleOLED').then(() => location.reload()); }"
+            "function toggleFAN() { fetch('/toggleFAN').then(() => location.reload()); }"
+            "function toggleLightSleep() { fetch('/toggleLS').then(() => location.reload()); }"
+            "function updateNTP() { fetch('/updateNTP'); }"
+            "function triggerUP() { fetch('/triggerUP'); }"
+            "function triggerDOWN() { fetch('/triggerDOWN'); }"
+            "function triggerLEFT() { fetch('/triggerLEFT'); }"
+            "function triggerRIGHT() { fetch('/triggerRIGHT'); }"
+            "function triggerCTR() { fetch('/triggerCTR'); }"
+            "function restartESP() { fetch('/restart'); }"
+
+            "function updateTFTbrightness(value) {\n"
+            "  document.getElementById('TFTslider').value = value;\n"
+            "  var xhr = new XMLHttpRequest();\n"
+            "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);\n"
+            "  xhr.send();\n"
+            "}\n"
+            "document.addEventListener('keydown', function(event) {\n"
+            "  switch(event.key) {\n"
+            "    case 'ArrowUp':\n"
+            "      fetch('/triggerUP');\n"
+            "      break;\n"
+            "    case 'ArrowDown':\n"
+            "      fetch('/triggerDOWN');\n"
+            "      break;\n"
+            "    case 'ArrowLeft':\n"
+            "      fetch('/triggerLEFT');\n"
+            "      break;\n"
+            "    case 'ArrowRight':\n"
+            "      fetch('/triggerRIGHT');\n"
+            "      break;\n"
+            "    case 'Enter':\n"
+            "      fetch('/triggerCTR');\n"
+            "      break;\n"
+            "  }\n"
+            "});\n"
+            "function calculateMaxValue(data) {"
+            "  var max = 0;"
+            "  for (var i = 0; i < data.getNumberOfRows(); i++) {"
+            "    for (var j = 1; j < data.getNumberOfColumns(); j++) {"
+            "      var value = data.getValue(i, j);"
+            "      if (value > max) {"
+            "        max = value;"
+            "      }"
+            "    }"
+            "  }"
+            "  return max;"
+            "}\n"
+            "</script>\n";
+  return script;
 }
 
 
@@ -519,18 +536,22 @@ String generateCSSstyles() {
          "h2, h3 { font-family: 'DIN Alternate', sans-serif; color: #303030; text-align: left; margin-bottom: 5px; }"
          "p { font-family: 'DIN Alternate', sans-serif; margin: 3px 5px; } "
          "a.button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 4px; padding: 8px; text-decoration: none; border: none; color: white; background-color: #008080; border: solid 1px #009090; border-radius: 8px; font-size: 17px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
-         "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; border-radius: 8px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
+         "button { font-family: 'DIN Alternate', sans-serif; display: inline-block; margin: 2px; padding: 5px 10px; text-decoration: none; border: 1px #505050; color: white; border-radius: 9px; font-size: 11px; cursor: pointer; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); }"
          "div { color: white; }"
-         "#navbar { background-color: transparent; text-align: center; justify-content: center; }"
-         "#sidebar { height: 850px; background-color: #353535; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 20px; padding: 2px; margin: 15px; padding-top: 20px; text-align:center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
+         "#navbar { background-color: transparent; text-align: center; justify-content: center;  }"
+         "#sidebar { height: 870px; background-color: #353535; display: inline-block; justify-content: center; border: solid 1px #505050; border-radius: 20px; padding: 2px; margin: 15px; padding-top: 20px; text-align:center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);}"
          "#blocksFont { font-family: 'DemonCubicBlock NKP Shade', sans-serif; }"
          "#barcodeFont { font-family: 'barcode font', sans-serif; }"
-         "#subhead { padding: 3px 10px; color: #FFFFFF; text-align: center; background-color: #757575; }"
+         "#subhead { padding: 3px 8px; color: white; text-align: center; background-color: #757575; }"
+         "#toggle_sw { color: #707070; text-align: center; font-family: 'DIN Alternate', sans-serif; display: flex; align-items: center;}"
+         ".toggle-switch { display: inline-block; width: 42px; height: 24px; background-color: #505050; border-radius: 15px; position: relative; cursor: pointer; box-sizing: border-box;}"
+         ".toggle-slider { position: absolute; top: 1px; left: 1px; width: 22px; height: 22px; background-color: #D8D8D8; border: solid 2px #E4E4E4; border-radius: 50%; transition: 0.4s; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); box-sizing: border-box;}"
          "</style>";
 }
 
 
 String generateCommonPageStructure(String content) {
+
   String pageC = "<!DOCTYPE html>";
   pageC += "<html lang='en'>";
   pageC += "<head>";
@@ -543,7 +564,7 @@ String generateCommonPageStructure(String content) {
   pageC += "<body>";
   pageC += "<div style='display: flex; padding: 15px; '>";
   pageC += "<div id='sidebar'>";
-  pageC += generateNavBar();
+  pageC += generateSideBar();
   pageC += "</div>";
   pageC += "<div style='display: block; justify-content:center;'>";
   pageC += content;
@@ -555,12 +576,13 @@ String generateCommonPageStructure(String content) {
 
 
 
-String generateNavBar() {
+String generateSideBar() {
   // HTML for the navigation bar
 
-  String page = "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>"
-                "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>"
-                "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
+  String page;
+  page += "<img src='https://i.ibb.co/RDjzjYV/Hex-Logo-transp-2-copy.png' onclick='download()' alt='Hex-Logo' border='0' style='width: 75px; height: auto;'></img>"
+          "<p id='blocksFont' style='color:#C0C0C0; font-size:40px; text-align: center; '>loy</p><br>"
+          "<hr style='border: 2px solid #303030; padding: 0px; margin: 0px;'><br>";
 
   page += "<div style='text-align:center; '>"
           "<a class='button' href='/'>MAIN</a> <br>"
@@ -581,15 +603,24 @@ String generateNavBar() {
           "<table style='max-width: 160px; max-height:160px; text-align:center; justify-content: center; display: flex; background-color: transparent; box-shadow: none;'>"
           "<tr><td></td><td><button onclick='triggerUP()' style='background-color:#008080;'>&#8593;</button></td><td></td></tr>"
           "<tr><td><button onclick='triggerLEFT()' style='background-color:#008080;' >&#8592;</button></td><td>&nbsp;</td><td><button onclick='triggerRIGHT()' style='background-color:#008080' ;>&#8594;</button></td></tr>"
-          "<tr><td><button onclick='restartESP()' style='background-color:#008080;' >&#8634;</button></td><td><button onclick='triggerDOWN()' style='background-color:#008080' ;>&#8595;</button></td><td></td></tr>"
+          "<tr><td><button onclick='restartESP()' style='background-color:#008080;' >&#9099;</button></td><td><button onclick='triggerDOWN()' style='background-color:#008080' ;>&#8595;</button></td><td></td></tr>"
           "</table></div>"
           "<hr style='border: 2px solid #303030; padding: 0px; margin 0px;'>";
 
   // Toggles
-  page += "<div style='text-align:center; max-width: 150px; padding: 10px; margin: 10px; background-color: transparent;'>";
-  page += "<button onclick='toggleLOGGING()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LOGGING ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>LOGGING</button>";
-  page += "<button onclick='toggleDEBUG()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(DEBUG ? "#008080; border: none;" : "transparent; border: solid 1px #505050;") + "'>DEBUG</button>";
-  page += "<p id='barcodeFont' style='font-size:30px; color:#b0b0b0; '><br></br>HEX-POD " + String(codeRevision) + "<br></p>";
+  page += "<tr><td><div style='text-align:center; max-width: 150px; padding: 10px; margin: 5px; background-color: transparent; align-items: center;'>";
+
+  page += "<table style='max-width: 150px; background-color: #707070; padding: 10px; margin: 5px; align-items: center; '>";
+  page += "<tr><td>&nbsp;</td><td><div id='toggle_sw' style='font-size: 12px; color: #D8D8D8;'>Logging </td><td><div id='loggingToggle' onclick='toggleLOGGING()' class='toggle-switch' " + String(LOGGING ? "style='background-color: #3fba70;'" : "") + ">";
+  page += "<div id='slider' class='toggle-slider' style='left: " + String(LOGGING ? "19px;" : "1px;") + "'></div>";
+  page += "</div></div></td></tr>";
+
+  page += "<tr><td>&nbsp;</td><td><div id='toggle_sw' style='font-size: 12px; color: #D8D8D8;'>Debug </td><td> <div id='loggingToggle' onclick='toggleDEBUG()' class='toggle-switch' " + String(DEBUG ? "style='background-color: #3fba70;'" : "") + ">";
+  page += "<div id='slider' class='toggle-slider' style='left: " + String(DEBUG ? "19px;" : "1px;") + "'></div>";
+  page += "</div></div></td></tr>";
+  page += "</table>";
+
+  page += "<p id='barcodeFont' style='font-size:30px; color:#b0b0b0; '><br>HEX-POD " + String(codeRevision) + "<br><br>&#8982;</p>";
   page += "</div>";
 
   return page;
@@ -620,8 +651,20 @@ String generateConsole() {
 
 
 
+
 String generateHomePage() {
 
+  getDeviceInfo();
+
+  String page = "<div style='display: flex;'>";
+  // Device Controls
+  page += generateDeviceControlsTable();
+
+  page += generateDeviceOverviewTable();
+
+  page += "</div>";
+
+  /*
   String page = "<table min-width: 70%; '>";
 
   page += "<tr><td><h2>[HEX]POD " + String(codeRevision) + "</h2></td></tr>";
@@ -635,8 +678,8 @@ String generateHomePage() {
   // page += "<tr><td><button onclick='toggleLOGBME()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(serialPrintBME1 ? "#008080; border: none;" : "#505050; border: solid 1px #505050;") + "'>BME Web Console</button></td></tr>";
 
   page += "</table>";
-
-  page += "<table style='min-height: 300px; min-width: 50%; padding: 40px;'>";
+*/
+  page += "<table style='min-height: 300px; width: 908px; padding: 30px;'>";
   page += "<tr><td><h2>Web Console</h2></td></tr>";
   page += "<tr><td><pre>" + generateConsole() + "</pre>";
   page += "<td></tr></table>";
@@ -644,6 +687,8 @@ String generateHomePage() {
 
   return generateCommonPageStructure(page);
 }
+
+
 
 
 String generateSensorsPage() {
@@ -814,12 +859,7 @@ String generateUtilityPage() {
 
   getDeviceInfo();
 
-  String page = "<div style='display: flex;'>";
-  // Device Controls
-  page += generateDeviceControlsTable();
-  page += "</div>";
-
-
+  String page;
   page += "<div style='display: flex;'>";
   // Device Stats
   page += generateDeviceStatsTable();

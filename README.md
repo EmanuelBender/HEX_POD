@@ -1,5 +1,4 @@
 
-<!-- HTML comment -->
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1><br>
 

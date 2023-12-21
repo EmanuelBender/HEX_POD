@@ -577,10 +577,6 @@ void debugF(uint32_t tracker) {
 
 
 
-
-
-
-
 void pollMultiplexer() {
   PCABITS = io.read();
   for (int m = 0; m <= 17; m++) {

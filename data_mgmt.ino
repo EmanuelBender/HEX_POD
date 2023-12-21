@@ -18,6 +18,7 @@ void getProgramInfo() {
   program_free = program_size - program_used;
   program_UsedP = (program_used * 100.0) / program_size;
   program_LeftP = 100.0 - program_UsedP;
+  total_heap = ESP.getHeapSize();
 }
 
 void getFlashInfo() {
@@ -33,6 +34,14 @@ void getFlashInfo() {
 
 
 void getDeviceInfo() {
+
+  switch (RSSI = WiFi.RSSI()) {
+    case -99 ... - 71: RSSIsymbol = "&#10095;   "; break;
+    case -70 ... - 61: RSSIsymbol = "&#10095;&#10095;  "; break;
+    case -60 ... - 56: RSSIsymbol = "&#10095;&#10095;&#10095; "; break;
+    case -55 ... - 1: RSSIsymbol = "&#10095;&#10095;&#10095;&#10095;"; break;
+    default: RSSIsymbol = ""; break;
+  }
 
   SDinserted = !digitalRead(GPIO_NUM_47);
   resetReasonString = print_wakeup_reason();
@@ -50,6 +59,10 @@ void getDeviceInfo() {
   cpu_xtal_mhz = getXtalFrequencyMhz();
   cpu_abp_hz = getApbFrequency();
 
+  free_heap = esp_get_free_heap_size();
+  min_free_heap = esp_get_minimum_free_heap_size();
+  min_free_int_heap = esp_get_free_internal_heap_size();
+  free_RAM_p = (double(min_free_heap) / double(free_heap)) * 100.0;
 
   if (psramFound()) {                                   // PSRAM
     heap_caps_get_info(&deviceInfo, MALLOC_CAP_SPIRAM); /*

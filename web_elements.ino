@@ -406,6 +406,107 @@ String generateSCDchart() {
 
 
 
+
+
+String generateDeviceControlsTable() {
+
+  String output = "<table style='width:130px; background-color: #303030; box-shadow: none; border: solid 1px #505050;'>";
+  //  "<tr><th colspan='6'><h2>Device Controls</h2></th></tr>";
+
+  output += "<tr><td id='toggle_sw' >LED </td><td><div id='loggingToggle' onclick='toggleLED()' class='toggle-switch' " + String(LEDon ? "style='background-color: #3fba70;'" : "") + ">";
+  output += "<div id='slider' class='toggle-slider' style='left: " + String(LEDon ? "19px;" : "1px;") + "'></div>";
+  output += "</div></td></tr>";
+
+  output += "<tr><td id='toggle_sw' >FAN </td><td><div id='loggingToggle' onclick='toggleFAN()' class='toggle-switch' " + String(FANon ? "style='background-color: #3fba70;'" : "") + ">";
+  output += "<div id='slider' class='toggle-slider' style='left: " + String(FANon ? "19px;" : "1px;") + "'></div>";
+  output += "</div></td></tr>";
+
+  output += "<tr><td id='toggle_sw' >OLED </td><td><div id='loggingToggle' onclick='toggleOLED()' class='toggle-switch' " + String(OLEDon ? "style='background-color: #3fba70;'" : "") + ">";
+  output += "<div id='slider' class='toggle-slider' style='left: " + String(OLEDon ? "19px;" : "1px;") + "'></div>";
+  output += "</div></td></tr>";
+
+  output += "<tr><td id='toggle_sw' >SLEEP </td><td><div id='loggingToggle' onclick='toggleLightSleep()' class='toggle-switch' " + String(SLEEPENABLE ? "style='background-color: #3fba70;'" : "") + ">";
+  output += "<div id='slider' class='toggle-slider' style='left: " + String(SLEEPENABLE ? "19px;" : "1px;") + "'></div>";
+  output += "</div></td></tr>";
+
+  //  output += "<tr style='margin: 1px;'>";
+  // output += "<td colspan='2'><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:#505050; border: solid 1px #505050;'>Update Time</button></td>";
+  // output += "</tr>";
+  output += "</table>";
+
+
+  return output;
+}
+
+
+
+String generateDeviceOverviewTable() {
+
+  String output = "<table style='width: 746px; background-color: #303030; box-shadow: none; border: solid 1px #505050;'>";
+  output += "<tr><td style='font-size:11px; color: #707070'>" + String(CONFIG_IDF_TARGET) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
+  output += "<td id='subhead' style='width: 45px;'> " + String(powerStateNames[currentPowerState]) + "</td>";
+  output += "<td id='subhead' style='min-width: 180px;'>" + resetReasonString + "</td>";
+  output += "<td id='subhead' >" + String(free_RAM_p, 1) + "% RAM</td>";
+  output += "<td id='subhead' >" + String(flash_LeftP, 1) + "% HDD</td>";
+  output += "<td id='subhead' style='width: 45px;'>" + String(RSSIsymbol) + "</td>";
+
+  output += "</tr>";
+  output += "</table>";
+  return output;
+}
+
+
+
+
+String generateDeviceStatsTable() {
+  String output = "<table>"
+                  "<tr><th colspan='2'><h2> Device Stats </h2></th></tr>";
+  output += "<tr><td style='font-size:11px;'>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
+  output += "<td id='subhead' colspan='2'> " + String(powerStateNames[currentPowerState]) + "</td>";
+  output += "<td id='subhead' colspan='2'>" + resetReasonString + "</td></tr>";
+  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  output += "<tr><td id='subhead'><b> CPU </td><td>" + String(cpu_freq_mhz) + "MHz</td><td>" + String(flash_speed / ONEMILLION) + "MHz flash</td><td>" + String(chip_info.cores) + "Core</td>";
+  output += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
+  output += "<tr><td id='subhead'><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> T: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> F: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>U: " + String(flash_used / ONEMILLIONB) + "Mb</td><td>" + String(flash_UsedP) + "%</td></tr>";
+  if (program_size > 0) output += "<tr><td id='subhead'><b>Program</td><td> T: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> F: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> U: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
+  if (deviceInfo.total_allocated_bytes > 0) output += "<tr><td id='subhead'><b>PSRAM</td><td> T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  F: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
+  if (SPIFFS_size > 0) output += "<tr><td id='subhead'><b>SPIFFS</td><td> T: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  F: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  U: " + String(SPIFFS_used / ONEMILLIONB) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
+
+  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  output += "<tr><td id='subhead'><b> RAM </td><td><b> Free Heap </td><td><b> Free Int Heap </td><td><b> Min Free Heap </td><td><b> Total Heap </td><td><b>  </td>";
+  output += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
+  output += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
+  output += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
+  output += "<td>" + String(total_heap / KILOBYTE) + "Kb</td> ";
+  output += "</tr>";
+  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  output += "<tr><td id='subhead'><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
+  output += "<tr><td>&nbsp;</td>";
+  output += "<td>" + String(WiFi.SSID()) + "</td>";
+  output += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
+  output += "<td>" + String(WiFi.RSSI()) + "db</td>";
+  output += "<td>" + String(WiFi.channel()) + "</td>";
+  output += "</tr>";
+  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
+
+  output += "<tr><td>&nbsp;</td><td><b> SD Card </td><td><b> </td><td><b> Last NTP </td><td><b> Last Reset </td><td></td></tr>";
+  output += "<tr><td>&nbsp;</td><td>";
+  output += SDinserted ? "Present" : "None";
+  output += "</td>";
+  output += "<td>&nbsp;</td>";
+  output += "<td>" + String(lastNTPtime) + "</td>";
+  output += "<td>" + lastRestart + "</td>";
+  output += "</tr>";
+  output += "</table>";
+
+  return output;
+}
+
+
+
 String generateSensorSettingsTable() {
 
   // Sensor Settings Table
@@ -452,71 +553,6 @@ String generateSensorSettingsTable() {
   for (i = 0; i < numProfiles; i++) {
     output += "<td><b>D" + String(i) + "</b></br>" + String(durProf_1[i]) + "ms</td>";
   }
-  output += "</tr>";
-  output += "</table>";
-
-  return output;
-}
-
-
-String generateDeviceControlsTable() {
-
-  String output = "<table>"
-                  "<tr><th colspan='6'><h2>Device Controls</h2></th></tr>";
-
-  output += "<tr>";
-  output += "<td><button onclick='toggleLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(LEDon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>LED</button></td>";
-  output += "<td><button onclick='toggleFAN()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(FANon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>FAN</button></td>";
-  output += "<td><button onclick='toggleOLED()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(OLEDon ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>OLED</button></td>";
-  output += "<td><button onclick='toggleLightSleep()' style='padding: 10px 15px; font-size: 14px; background-color: " + String(SLEEPENABLE ? "#008080; border: none;" : "#505050; border: solid 1px #808080;") + "'>SLEEP</button></td>";
-  output += "<td><button onclick='updateNTP()' style='padding: 10px 15px; font-size: 14px; background-color:#505050; border: solid 1px #505050;'>Update Time</button></td>";
-  output += "</tr>";
-  output += "</table>";
-
-  return output;
-}
-
-
-String generateDeviceStatsTable() {
-  String output = "<table>"
-                  "<tr><th colspan='2'><h2> Device Stats </h2></th></tr>";
-  output += "<tr><td style='font-size:11px;'>" + String(CONFIG_IDF_TARGET) + "<br> Model " + String(chip_info.model) + "<br> Rev " + String(chip_info.full_revision) + "." + String(chip_info.revision) + "</td>";
-  output += "<td id='subhead' colspan='2'> " + String(powerStateNames[currentPowerState]) + "</td>";
-  output += "<td id='subhead' colspan='2'>" + resetReasonString + "</td></tr>";
-  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  output += "<tr><td id='subhead'><b> CPU </td><td>" + String(cpu_freq_mhz) + "MHz</td><td>" + String(flash_speed / ONEMILLION) + "MHz flash</td><td>" + String(chip_info.cores) + "Core</td>";
-  output += "<td>" + String((chip_info.features & CHIP_FEATURE_WIFI_BGN) ? "WiFi | " : "") + String((chip_info.features & CHIP_FEATURE_BT) ? "BT " : "") + String((chip_info.features & CHIP_FEATURE_BLE) ? "BLE " : "") + "</td></tr>";
-  output += "<tr><td id='subhead'><b>Flash " + String((chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embed" : "ext") + "</td><td> T: " + String(flash_size / ONEMILLIONB) + "Mb</td><td> F: " + String(free_flash_size / ONEMILLIONB) + "Mb</td><td>U: " + String(flash_used / ONEMILLIONB) + "Mb</td><td>" + String(flash_UsedP) + "%</td></tr>";
-  if (program_size > 0) output += "<tr><td id='subhead'><b>Program</td><td> T: " + String(program_size / ONEMILLIONB, 2) + "Mb</td><td> F: " + String(program_free / ONEMILLIONB, 2) + "Mb</td><td> U: " + String(program_used / ONEMILLIONB, 2) + "Mb</td><td>" + String(program_UsedP) + "%</td></tr>";
-  if (deviceInfo.total_allocated_bytes > 0) output += "<tr><td id='subhead'><b>PSRAM</td><td> T: " + String(deviceInfo.total_allocated_bytes / KILOBYTE) + "Kb</td><td>  F: " + String(deviceInfo.total_free_bytes / KILOBYTE) + /*"Mb</td><td>  T Blocks: " + String(deviceInfo.total_blocks) + "</td><td>  F Blocks: " + String(deviceInfo.free_blocks) + */ "</td></tr>";
-  if (SPIFFS_size > 0) output += "<tr><td id='subhead'><b>SPIFFS</td><td> T: " + String(SPIFFS_size / ONEMILLIONB) + "Mb</td><td>  F: " + String(SPIFFS_free / ONEMILLIONB) + "Mb</td><td>  U: " + String(SPIFFS_used / ONEMILLION) + "Mb</td><td>" + String(percentUsedLFS) + "%</td></tr>";
-
-  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  output += "<tr><td id='subhead'><b> RAM </td><td><b> Free Heap </td><td><b> Free Int Heap </td><td><b> Min Free Heap </td><td><b> </td><td><b>  </td>";
-  output += "<tr><td></td><td>" + String(esp_get_free_heap_size() / KILOBYTE) + "Kb</td>";
-  output += "<td>" + String(esp_get_free_internal_heap_size() / KILOBYTE) + "Kb</td>";
-  output += "<td>" + String(esp_get_minimum_free_heap_size() / KILOBYTE) + "Kb</td> ";
-  output += "</tr>";
-  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  output += "<tr><td id='subhead'><b> Comms </td><td><b> WiFi SSID </td><td><b> Local IP </td><td><b> RSSI </td><td><b> Channel </td>";
-  output += "<tr><td>&nbsp;</td>";
-  output += "<td>" + String(WiFi.SSID()) + "</td>";
-  output += "<td>" + String(WiFiIP) + "</td>";  // wifiStatusChar[WiFi.status()]
-  output += "<td>" + String(WiFi.RSSI()) + "db</td>";
-  output += "<td>" + String(WiFi.channel()) + "</td>";
-  output += "</tr>";
-  output += "<tr><td colspan='6'><hr style='border: 1px solid #808080;'></td></tr>";
-
-  output += "<tr><td>&nbsp;</td><td><b> SD Card </td><td><b> </td><td><b> Last NTP </td><td><b> Last Reset </td><td></td></tr>";
-  output += "<tr><td>&nbsp;</td><td>";
-  output += SDinserted ? "Present" : "None";
-  output += "</td>";
-  output += "<td>&nbsp;</td>";
-  output += "<td>" + String(lastNTPtime) + "</td>";
-  output += "<td>" + lastRestart + "</td>";
   output += "</tr>";
   output += "</table>";
 

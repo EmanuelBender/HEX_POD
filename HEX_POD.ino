@@ -1,5 +1,10 @@
 
-#define codeRevision "a11.3"
+/*                                               */ #define codeRevision "a11.3" /*                                                    */
+/*                                                       [HEX]POD | DevKit                                                             */
+/*                                                         Emanuel Bender                                                              */
+/*                                                                                                                                     */
+/*                                                                                                                                     */
+/*                                                                                                                                     */
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -15,8 +20,6 @@
 #include <TFT_eSPI.h>
 #include <U8g2lib.h>
 #include <PCA95x5.h>
-#include <ESP32Servo.h>
-
 #include <Adafruit_Sensor.h>
 #include "INA219.h"
 #include "bme68xLibrary.h"
@@ -28,14 +31,8 @@
 #include "Adafruit_LIS3DH.h"
 #include "SparkFun_SCD30_Arduino_Library.h"
 
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include <esp_sntp.h>
-WebServer server(80);
-uint16_t webServerPollMs = 80;
 
 // ________________  ESP32 UTILITY  ____________________
-
 #include "stdio.h"
 #include "sdkconfig.h"
 #include "esp_chip_info.h"
@@ -51,23 +48,68 @@ uint16_t webServerPollMs = 80;
 #include "TaskManagerIO.h"
 #include <TimeLib.h>
 #include <time.h>
+#include <ESP32Servo.h>
 
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <esp_sntp.h>
+  WebServer server(80);
+uint16_t webServerPollMs = 80;
 
-const uint16_t ONEMILLION = 1000000;
-const uint16_t ONETHOUSAND = 1000;
+uint16_t i;
+#define pi 3.14159265358979323846264338327950
+#define ONEMILLION 1000000
+#define ONETHOUSAND 1000
 const double KILOBYTE = 1024.0;
 const double ONEMILLIONB = KILOBYTE * KILOBYTE;
-const int ZERO = 0;  // compiler help
+#define ZERO 0
 
-// ___________________________________  TIME  ________________________________
-const int WiFiTimeout = 8000;
+
+
+//___________________________________  GENERAL::USER  ______________________________
+
+// #define ENABLE_I2C_DEBUG_BUFFER
+bool DEBUG = false;   // stored in prefs
+bool LOGGING = true;  // stored in prefs
+
+// !! Enter Credentials before very first upload !! once entered, they will be stored in preferences.
+String wifiSSID = "";                   // your WiFi SSID
+String wifiPW = "";                     // your WiFi Password
+String hostname = "[HEX]POD - Center";  // web server Title
+String local_domain = "hex";            // web server MDNS IP: hex.local
+String webHost = "hexpod";              // web server host admin name
+String webPw = "";                      // web server password
+
+#define SD_MISO 13  // SPI pins for SD card
+#define SD_MOSI 14
+#define SD_SCLK 12
+#define SD_CS 21
+SPIClass sdSPI = SPIClass(HSPI);
+// #define SPI_FREQUENCY 60000000       // 80000000 tested ok
+// #define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
+
+#define sda GPIO_NUM_18
+#define scl GPIO_NUM_17
+#define I2C_SPEED 200000  // 800k tested ok, max 200k(100k) with SCD30
+
+uint16_t loggingInterval = 60000;                // in ms, stored in Prefs
+uint16_t getNTPInterval = 1800;                  // in ms, 600 = 10 mins, 1800 = 30 mins
+uint32_t idleDelay = 30000 * ONETHOUSAND;        // in us
+uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // in us, 3 min
+// uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
+
+
+// ___________________________________  TIME & WiFi  ________________________________
+#define WiFiTimeout 8000  // in ms
 String WiFiIP;
+int RSSI;
+String RSSIsymbol;
 const char* ntpServer1 = "0.pool.ntp.org";  // NTP Time server
 const char* ntpServer2 = "time.nist.gov";   // fallback
 const char* ntpServer3 = "1.pool.ntp.org";  // fallback
-const byte SECONDS_IN_MINUTE = 60;
-const byte MINUTES_IN_HOUR = 60;
-const byte HOURS_IN_DAY = 24;
+#define SECONDS_IN_MINUTE 60
+#define MINUTES_IN_HOUR 60
+#define HOURS_IN_DAY 24
 const char* time_zone = "CET-1CEST,M3.5.0,M10.5.0/3";  // CET-1CEST,M3.5.0,M10.5.0/3  ,  CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00  ,  WEST-1DWEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00
 
 struct tm timeinfo;
@@ -81,81 +123,48 @@ uint32_t timeTracker;
 double elapsedTime;
 uint16_t lastSDInterrupt;
 
-//___________________________________  GENERAL  ______________________________
-Preferences preferences;
 
-// #define ENABLE_I2C_DEBUG_BUFFER
-bool DEBUG = false;
-bool LOGGING = true;
-
-// !! Enter Credentials before very first upload !! once entered, they will be stored in preferences
-String wifiSSID = "";                   // your WiFi SSID
-String wifiPW = "";                     // your WiFi Password
-String hostname = "[HEX]POD - Center";  // web server Title
-String webHost = "hexpod";              // web server IP: hexpod.local
-String webPw = "";                      // web server password
-
-#define SD_MISO 13  // SPI pins for SD card
-#define SD_MOSI 14
-#define SD_SCLK 12
-#define SD_CS 21
-SPIClass sdSPI = SPIClass(HSPI);  // VSPI used by TFT
-// #define SPI_FREQUENCY 60000000       // 80000000 tested ok
-// #define SPI_READ_FREQUENCY 30000000  // 40000000 tested ok
-
-#define sda GPIO_NUM_18
-#define scl GPIO_NUM_17
-#define I2C_SPEED 200000  // 800k tested ok, max 200k(100k) with SCD30
-
-uint16_t loggingInterval = 60000;                // in ms, stored in Prefs as well
-uint16_t getNTPInterval = 1800;                  // in ms, 600 = 10 mins, 1800 = 30 mins
-uint32_t idleDelay = 30000 * ONETHOUSAND;        // in us
-uint32_t powersaveDelay = 240000 * ONETHOUSAND;  // in us, 3 min
-// uint32_t lightsleepDelay = 600000 * ONETHOUSAND; // 10 min
-
-// LOG & Chart & Data
+// ___________________________   LOG & Chart & Data _______________________________
 String TAG = "ESP";
 multi_heap_info_t deviceInfo;
 esp_chip_info_t chip_info;
 String resetReasonString;
 String wakeupReasonString;
+Preferences preferences;
 
-uint32_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free;
-double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP;
-uint16_t cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
+size_t free_flash_size, flash_size, flash_used, program_size, program_free, program_used, SPIFFS_size, SPIFFS_used, SPIFFS_free, total_heap, free_heap, min_free_heap, min_free_int_heap;
+double percentLeftLFS, percentUsedLFS, program_UsedP, program_LeftP, flash_UsedP, flash_LeftP, CPUTEMP, free_RAM_p;
+uint32_t cpu_freq_mhz, cpu_xtal_mhz, cpu_abp_hz, flash_speed;
 int chiprevision;
 bool LEDon, FANon, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
 String logFilePath, rootHexPath = "/.sys";
 
 uint8_t consoleLine;
-const byte consoleColumns = 20;
-const byte consoleRows = 54;
-const byte menuRowM = 26;
+#define consoleColumns 20
+#define consoleRows 54
+#define menuRowM 26
 String console[consoleRows][consoleColumns];
 
 bool pastLOGGINGstate = !LOGGING;
 bool SLEEPENABLE;
 bool serialPrintLOG;
-bool serialPrintBME1;
 
 const String logHeader = "Time, BME_0, BME_1, BME_2, BME_3, BME_4, BME_5, BME_6, BME_7, BME_8, BME_9, BME_10, BME_11, BME_12, BME_13, BME_T, BME_H, BME_P, SGP_VOC, SGP_NOX, SGP_rVOC, SGP_rNOX, SCD_CO2, SCD_T, SCD_H\n";
 const String logColumns[] = { "Time", "BME_0", "BME_1", "BME_2", "BME_3", "BME_4", "BME_5", "BME_6", "BME_7", "BME_8", "BME_9", "BME_10", "BME_11", "BME_12", "BME_13", "BME_T", "BME_H", "BME_P", "SGP_VOC", "SGP_NOX", "SGP_rVOC", "SGP_rNOX", "SCD_CO2", "SCD_T", "SCD_H" };
-const byte log_idx_bme1_temp = 15;   // index in log file
-const byte log_idx_bme1_humid = 16;  // index in log file
-const byte log_idx_bme1_press = 17;  // index in log file
-const byte log_idx_sgp_voc = 18;
-const byte log_idx_sgp_nox = 19;
-const byte log_idx_scd_co2 = 22;
-const byte log_idx_scd_temp = 23;
-const byte log_idx_scd_humid = 24;
+#define log_idx_bme1_temp 15   // index in log file
+#define log_idx_bme1_humid 16  // index in log file
+#define log_idx_bme1_press 17  // index in log file
+#define log_idx_sgp_voc 18
+#define log_idx_sgp_nox 19
+#define log_idx_scd_co2 22
+#define log_idx_scd_temp 23
+#define log_idx_scd_humid 24
 
 uint16_t chart_data_range = 3600;  // in seconds from now
-const int COLOR_TEAL = 0x66cce8;
-const int COLOR_ORANGE = 0xff7f17;
-const int COLOR_BLUE = 0x5496ff;
-
-String restartHeader;
+#define COLOR_TEAL 0x66cce8
+#define COLOR_ORANGE 0xff7f17
+#define COLOR_BLUE 0x5496ff
 
 enum PowerState { NORMAL,
                   IDLE,
@@ -164,12 +173,13 @@ enum PowerState { NORMAL,
                   DEEP_SLEEP };
 
 const char* powerStateNames[] = {
-  "NORMAL",
-  "IDLE",
-  "POWER_SAVE",
-  "LIGHT_SLEEP",
+  "&#9655;&#9655;&#9655;",  // NORMAL
+  "&#9655;&#9655;",         // IDLE
+  "&#9655;",                // POWER SAVE
+  "&#9214;",
   "DEEP_SLEEP"
 };
+
 
 PowerState currentPowerState = NORMAL;
 PowerState previousPowerState = NORMAL;
@@ -200,8 +210,6 @@ const char* wifiStatusChar[] = {
   "Disconnected",
 };
 
-const float pi = 3.14159265358979323846264338327950;
-uint16_t i;
 
 //PCA9585__________________________________________________________________
 PCA9555 io;
@@ -215,12 +223,8 @@ ESP32PWM pwm;
 float TFTbrightness;
 
 bool menuTrigger, blockMenu;
-const byte menuItems = 5;
-byte carousel = 1, lastCarousel = 0, highlightIndex = 0, lastHighlightIndex = 1;
-byte sysIndex = 0;
-byte utilIndex = 1;
-const byte tmIndexY = 60;
-const byte radius = 5;
+const byte tmIndexY = 60, radius = 5, menuItems = 5;
+byte carousel = 1, lastCarousel = 0, highlightIndex = 0, lastHighlightIndex = 1, sysIndex = 0, utilIndex = 1;
 String label, value;
 
 //OLED______________________________________________________________________
@@ -242,15 +246,15 @@ DallasTemperature tempSens(&oneWire);
 byte DTdevice;
 
 struct probeStruct {
-  const byte index;
+  // const byte index;
   const char* name;
   float temperature;
   DeviceAddress address;
 };
 
 probeStruct DTprobe[] = {
-  { 0, "ESP32_prox", float(), { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
-  { 1, "PCB#1_prox", float(), { 0x28, 0x30, 0x14, 0x75, 0xD0, 0x01, 0x3C, 0x79 } }
+  { "ESP32_prox", float(), { 0x28, 0x12, 0xEF, 0x75, 0xD0, 0x01, 0x3C, 0x77 } },
+  { "PCB#1_prox", float(), { 0x28, 0x30, 0x14, 0x75, 0xD0, 0x01, 0x3C, 0x79 } }
 };
 
 
@@ -266,7 +270,7 @@ uint16_t bmeInterval, bme_gas_avg;
 uint8_t bmeProfile, bmeSamples, repeater, bmeProfilePause, bmeFilter;
 uint16_t duration, heaterTemp;
 double Altitude, samplingDelta;
-uint16_t offsetDelta = 5684;
+#define offsetDelta 5684
 
 const uint16_t heatProf_1[numProfiles] = {
   90,   // 0
@@ -333,8 +337,8 @@ SCD30 scd30;
 
 String lastSCDpoll;
 float tempSCD, humidSCD, dewPoint;
-int scdInterval = 60;  // in ms
-int co2SCD;
+uint16_t scdInterval = 60 * ONETHOUSAND;  // in s, stored in prefs
+uint16_t co2SCD;
 const float Da = 17.271, Db = 237.7;
 
 
@@ -352,7 +356,7 @@ bool INA2_iscalibrated;
 taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID, SCDID;  // task IDs
 double tmTracker, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker;
 
-const byte slotsSize = 24;
+#define slotsSize 24
 char taskFreeSlots[slotsSize];  // TaskManagerIO slots & status
 String taskArray[slotsSize];    // converted String status of tasks
 
@@ -416,7 +420,7 @@ void setup() {  // ________________ SETUP ___________________
   // Sensor Prefs
   preferences.begin("my - app", false);                               // false: read-write
   loggingInterval = preferences.getUInt("logItvl", loggingInterval);  // in millis
-  serialPrintBME1 = preferences.getBool("bmelog", 0);
+  // serialPrintBME1 = preferences.getBool("bmelog", 0);
   bmeSamples = preferences.getUInt("bmeSpls", 1);
   bmeFilter = preferences.getUInt("bmeFilter", 0);
   bmeProfilePause = preferences.getUInt("bmePause", 0);
@@ -507,8 +511,8 @@ void setup() {  // ________________ SETUP ___________________
   io.write(PCA95x5::Port::P07, OLEDon ? PCA95x5::Level::H : PCA95x5::Level::L);  // OLED
   io.write(PCA95x5::Port::P14, PCA95x5::Level::H);                               // led off
   io.write(PCA95x5::Port::P15, PCA95x5::Level::H);                               // led off
-  // io.write(PCA95x5::Port::P16, PCA95x5::Level::L);  // PER_PWR On
-  // io.write(PCA95x5::Port::P17, PCA95x5::Level::L);  // SNS_PWR On
+  // io.write(PCA95x5::Port::P16, PCA95x5::Level::L);  // free
+  // io.write(PCA95x5::Port::P17, PCA95x5::Level::L);  // free
 
   //___________________________ INITIALIZE LIS3DH ______________________
 
