@@ -3,8 +3,7 @@
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1><br>
 
 <p align=center font-size=10px > by eBender <br>
-⚠️ This project is in development.<br>
-  Watch this space.</p>
+  If you like what i do, please consider <a href="https://www.buymeacoffee.com/ebender">sponsoring this project.</a></p>
   
   <p align=center><b><a href="https://hackaday.io/project/177083-h6x-pod">Hackaday</a> <br>
 <a href="https://www.instagram.com/zen.diy/">Instagram</a><br>
