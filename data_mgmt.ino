@@ -95,6 +95,8 @@ void logging() {
   if (!conditioning_duration && printTime != "") {
     logFilePath = rootHexPath + "/LOG_" + printDate + ".csv";
 
+    if (logFilePath == "/LOG_.csv") return;
+
     std::ostringstream airLog;
     airLog << printTime.c_str() << ", ";
 
@@ -296,6 +298,7 @@ void deleteFile(fs::FS &fs, const char *path) {
   Serial.printf("Deleting file: %s\n", path);
   if (fs.remove(path)) {
     Serial.println("File deleted");
+    blinkSTATUS(DBL);
   } else {
     Serial.println("Delete failed");
   }
@@ -305,6 +308,7 @@ void createDir(fs::FS &fs, const char *path) {
   Serial.printf("Creating Dir: %s\n", path);
   if (fs.mkdir(path)) {
     Serial.println("Dir created");
+    blinkSTATUS(DBL);
   } else {
     Serial.println("mkdir failed");
   }
@@ -314,6 +318,7 @@ void removeDir(fs::FS &fs, const char *path) {
   Serial.printf("Removing Dir: %s\n", path);
   if (fs.rmdir(path)) {
     Serial.println("Dir removed");
+    blinkSTATUS(DBL);
   } else {
     Serial.println("rmdir failed");
   }

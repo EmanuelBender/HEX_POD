@@ -32,57 +32,6 @@ void IRAM_ATTR SD_ISR() {
   }
 }
 
-void powerOFF() {
-  digitalWrite(GPIO_NUM_3, LOW);
-  delay(100);
-  digitalWrite(GPIO_NUM_3, HIGH);
-  delay(300);
-  digitalWrite(GPIO_NUM_3, LOW);
-  delay(100);
-  digitalWrite(GPIO_NUM_3, HIGH);
-}
-
-void triggerPSwatchdog() {  // power supply board watchdog timer. triggers every 20s to keep it alive when requested current is <50mA
-  TAG = "triggerPSwatchdog()";
-  psTracker = micros();
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-
-  digitalWrite(GPIO_NUM_3, LOW);
-  delay(25);
-  digitalWrite(GPIO_NUM_3, HIGH);
-
-  taskManager.schedule(onceSeconds(1), pollBatteryLEDS);
-
-  debugF(psTracker);
-  psTracker = (micros() - psTracker) / double(ONETHOUSAND);
-}
-
-
-void pollBatteryLEDS() {
-  batteryStateByte = digitalRead(GPIO_NUM_39) << 3 | digitalRead(GPIO_NUM_40) << 2 | digitalRead(GPIO_NUM_41) << 1 | digitalRead(GPIO_NUM_42);
-
-  switch (batteryStateByte) {  // Convert the battery state byte to percentage
-    case B0000:
-      batteryCharge = 0;
-      break;
-    case B0001:
-      batteryCharge = 25;
-      break;
-    case B0011:
-      batteryCharge = 50;
-      break;
-    case B0111:
-      batteryCharge = 75;
-      break;
-    case B1111:
-      batteryCharge = 100;
-      break;
-  }
-
-  if (DEBUG) {
-    ESP_LOGI("POWER", "Bat: %d%, Current: %f", batteryCharge, BUS2_Current);
-  }
-}
 
 
 
@@ -512,22 +461,21 @@ void pollSGP() {
   lastSGPpoll = printTime;
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  auto compensationT = static_cast<uint16_t>((DTprobe[1].temperature + 45) * 65535 / 175);
+  auto compensationT = static_cast<uint16_t>((bme1_data.temperature + 45) * 65535 / 175);
   auto compensationRh = static_cast<uint16_t>(bme1_data.humidity * 65535 / 100);
 
   if (conditioning_duration) conditioning_duration--;
 
   if (!conditioning_duration) {
     sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);  // throw away conditioning
-    // yield();
     delay(142);
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
     if (srawVoc) VOC = voc_algorithm.process(srawVoc);
     if (srawNox) NOX = nox_algorithm.process(srawNox);
     sgp41.turnHeaterOff();
-  } else if (conditioning_duration > conditioning_duration / 3) {
+  } else if (bme1_data.temperature) {
     error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);  // defaultRh, defaultT
-    voc_algorithm.process(srawVoc);
+    // voc_algorithm.process(srawVoc);
   }
 
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
@@ -537,7 +485,7 @@ void pollSGP() {
 
 
 void configSGP() {
-  // error = sgp41.turnHeaterOff();
+  error = sgp41.turnHeaterOff();
   error = sgp41.executeSelfTest(sgpError);
   if (error) errorToString(error, sgpErrorMsg, sizeof(sgpErrorMsg));
 
@@ -553,10 +501,48 @@ void configSGP() {
     gating_max_duration_minutes, std_initial, gain_factor);
 
   nox_algorithm.set_tuning_parameters(
-    index_offset, learning_time_offset_hours, learning_time_gain_hours,
+    25, learning_time_offset_hours, learning_time_gain_hours,
     gating_max_duration_minutes, std_initial, gain_factor);
 }
 
+
+
+
+void pollSCD30() {
+  lastSCDpoll = printTime;
+  timeTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+  if (scd30.dataAvailable() && LOGGING) {
+    scd30.readMeasurement();
+    humidSCD = scd30.getHumidity();
+    tempSCD = scd30.getTemperature();
+    co2SCD = scd30.getCO2();
+
+    scd30.setAltitudeCompensation(int(Altitude));               // meters
+    scd30.setAmbientPressure(int(bme1_data.pressure / 100.0));  // mBar
+    scdInterval = loggingInterval / ONETHOUSAND;
+    scd30.setMeasurementInterval(scdInterval);
+
+    double scdTempOffset = tempSCD - bme1_data.temperature;
+    if (scdTempOffset && bme1_data.temperature) scd30.setTemperatureOffset(scdTempOffset);
+  }
+
+  if (!LOGGING) {
+    scd30.StopMeasurement();
+  } else {
+    scd30.setMeasurementInterval(scdInterval);
+  }
+
+  debugF(timeTracker);
+  scdTracker = (micros() - timeTracker) / double(ONETHOUSAND);
+}
+
+
+float calcDewPoint(double celsius, double humidity) {
+  float temp = (Da * celsius) / (Db + celsius) + log(humidity * 0.01);
+  return (Db * temp) / (Da - temp);
+}
 
 
 
@@ -579,42 +565,6 @@ void pollTemp() {
 
   debugF(timeTracker);
   tempTracker = (micros() - timeTracker) / double(ONETHOUSAND);
-}
-
-
-
-
-void pollSCD30() {
-  lastSCDpoll = printTime;
-  timeTracker = micros();
-  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
-
-  if (scd30.dataAvailable() && LOGGING) {
-    scd30.readMeasurement();
-    humidSCD = scd30.getHumidity();
-    tempSCD = scd30.getTemperature();
-    co2SCD = scd30.getCO2();
-
-    scd30.setAltitudeCompensation(int(Altitude));               // meters
-    scd30.setAmbientPressure(int(bme1_data.pressure / 100.0));  // mBar
-    scdInterval = loggingInterval / ONETHOUSAND;
-    scd30.setMeasurementInterval(scdInterval);
-
-    double scdTempOffset = tempSCD - ((bme1_data.temperature + DTprobe[1].temperature) / 2);
-    if (scdTempOffset) scd30.setTemperatureOffset(scdTempOffset);
-  }
-
-  if (!LOGGING) { scd30.StopMeasurement(); }
-
-
-  debugF(timeTracker);
-  scdTracker = (micros() - timeTracker) / double(ONETHOUSAND);
-}
-
-
-float calcDewPoint(double celsius, double humidity) {
-  float temp = (Da * celsius) / (Db + celsius) + log(humidity * 0.01);
-  return (Db * temp) / (Da - temp);
 }
 
 
@@ -680,10 +630,6 @@ void toggleOLED() {
   }
 }
 
-void statusLED(bool LEDon) {
-  io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
-  io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
-}
 
 
 void addLOGmarker(String lead, String markerText) {
@@ -772,6 +718,71 @@ String getResetReason() {
   return resetReasonString;
 }
 
+
+
+
+
+
+void powerOFF() {
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(100);
+  digitalWrite(GPIO_NUM_3, HIGH);
+  delay(300);
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(100);
+  digitalWrite(GPIO_NUM_3, HIGH);
+}
+
+void triggerPSwatchdog() {  // power supply board watchdog timer. triggers every 20s to keep it alive when requested current is <50mA
+  TAG = "triggerPSwatchdog()";
+  psTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(25);
+  digitalWrite(GPIO_NUM_3, HIGH);
+
+  taskManager.schedule(onceSeconds(2), pollBattery);
+
+  debugF(psTracker);
+  psTracker = (micros() - psTracker) / double(ONETHOUSAND);
+}
+
+
+void pollBattery() {
+  batteryStateByte = digitalRead(GPIO_NUM_39) << 3 | digitalRead(GPIO_NUM_40) << 2 | digitalRead(GPIO_NUM_41) << 1 | digitalRead(GPIO_NUM_42);
+
+  switch (batteryStateByte) {  // Convert the battery state byte to percentage
+    case B0000:
+      batteryChargeGauge = 0;
+      break;
+    case B0001:
+      batteryChargeGauge = 25;
+      break;
+    case B0011:
+      batteryChargeGauge = 50;
+      break;
+    case B0111:
+      batteryChargeGauge = 75;
+      break;
+    case B1111:
+      batteryChargeGauge = 100;
+      break;
+  }
+
+
+  batteryVoltage = float(analogRead(GPIO_NUM_12) * 1.099) / ONETHOUSAND;
+  batteryCharge = int((batteryVoltage - 3.075) / (4.2 - 3.075) * 100.0);
+
+  if (DEBUG) {
+    ESP_LOGI("POWER", "Bat: %f%, Current: %f", batteryVoltage, BUS2_Current);
+  }
+}
+
+
+
+
+
 String print_wakeup_reason() {
   esp_sleep_wakeup_cause_t wake_up_source;
 
@@ -786,10 +797,14 @@ String print_wakeup_reason() {
 }
 
 
+void statusLED(bool LEDon) {
+  io.write(PCA95x5::Port::P14, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
+  io.write(PCA95x5::Port::P15, LEDon ? PCA95x5::Level::L : PCA95x5::Level::H);
+}
 
 void blinkSTATUS(int input) {
 
-  if (LEDenable && timeTracker > 10000 * ONETHOUSAND) {
+  if (LEDenable) {
 
     if (input == SHRT) {
       io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
@@ -801,25 +816,31 @@ void blinkSTATUS(int input) {
     if (input == LNG) {
       io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
       io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
-      delay(800);
+      delay(500);
       io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
       io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off
     }
     if (input == DBL) {
       io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
       io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
-      delay(30);
+      delay(5);
       io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
       io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off
-      delay(150);
+      delay(160);
       io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
       io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
-      delay(30);
+      delay(5);
       io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
       io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off}
     }
+
+    statusLED(LEDon);  // restore previous LED state
   }
 }
+
+
+
+
 
 
 

@@ -417,10 +417,6 @@ String generateDeviceControlsTable() {
   output += "<div id='slider' class='toggle-slider' style='left: " + String(LEDon ? "19px;" : "1px;") + "'></div>";
   output += "</div></td></tr>";
 
-  /* output += "<tr><td id='toggle_sw' >FAN </td><td><div id='loggingToggle' onclick='toggleFAN()' class='toggle-switch' " + String(FANon ? "style='background-color: #3fba70;'" : "") + ">";
-  output += "<div id='slider' class='toggle-slider' style='left: " + String(FANon ? "19px;" : "1px;") + "'></div>";
-  output += "</div></td></tr>"; */
-
   output += "<tr><td id='toggle_sw' >OLED </td><td><div id='loggingToggle' onclick='toggleOLED()' class='toggle-switch' " + String(OLEDon ? "style='background-color: #3fba70;'" : "") + ">";
   output += "<div id='slider' class='toggle-slider' style='left: " + String(OLEDon ? "19px;" : "1px;") + "'></div>";
   output += "</div></td></tr>";
@@ -442,17 +438,21 @@ String generateDeviceControlsTable() {
 
 String generateDeviceOverviewTable() {
 
-  String output = "<table style='width: 746px; background-color: #303030; box-shadow: none; border: solid 1px #505050;'>";
+  String output = "<table style='width: 900px; background-color: #303030; box-shadow: none; border: solid 1px #505050;'>";
   output += "<tr style='height:30px; '>";
   output += "<td id='subhead' style='width: 45px;'> " + String(powerStateNames[currentPowerState]) + "</td>";
   output += "<td id='subhead' style='min-width: 220px;'>" + resetReasonString + "</td>";
   output += "<td id='subhead' >" + String(used_RAM_p, 1) + "% RAM</td>";
   output += "<td id='subhead' >" + String(flash_UsedP, 1) + "% HDD</td>";
+  output += "<td id='subhead' >" + String(batteryCharge) + "% BAT</td>";
   output += "<td id='subhead' style='width: 45px;'>" + String(RSSIsymbol) + "</td>";
   output += "</tr><br><tr>";
 
-  output += "<td style='color: #707070;' colspan='6'>TFT Brightness: <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'>";
-  output += "FAN Speed: <input style='cursor:ew-resize;' type='range' id='FANslider' min='0' max='1' step='0.05' FANvalue='" + String(FANvalue) + "' oninput='updateFANvalue(this.FANvalue)'></td>";
+  output += "<td style='color: #707070;'>TFT Brightness: <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td>";
+  output += "<td style='color: #707070;'>FAN Speed: <input style='cursor:ew-resize;' type='range' id='FANslider' min='0' max='1' step='0.05' FANvalue='" + String(FANvalue, 2) + "' oninput='updateFANvalue(this.value)'></td>";
+  output += "<td id='toggle_sw'><div id='toggleFAN' onclick='toggleFAN()' class='toggle-switch' " + String(FANvalue ? "style='background-color: #3fba70;'" : "") + ">";
+  output += "<div id='slider' class='toggle-slider' style='left: " + String(FANvalue ? "19px;" : "1px;") + "'></div>";
+  output += "</div></td>";
 
   output += "</tr></table>";
   return output;
@@ -567,7 +567,9 @@ String generateSystemSensorsTable() {
   String output = "<table>";
   output += "<tr><th colspan='5'><h2>System Sensors</h2></th></tr>";
 
-  output += "<tr><td id='subhead'><b>Battery</b><br>" + String(batteryCharge) + "%</td></tr>";
+  output += "<tr><td id='subhead'><b>Bat V</b><br>" + String(batteryVoltage, 2) + "V</td>";
+  output += "<td id='subhead'><b>Bat Charge</b><br>" + String(batteryCharge) + "%</td>";
+  output += "<td id='subhead'><b>Bat Gauge</b><br>" + String(batteryChargeGauge) + "%</td></tr>";
   output += "<tr><td id='subhead'><b>INA2</b></br> " + String(INA2.isConnected() ? "&check;" : "&cross;") + " " + String(INA2_iscalibrated ? "&check;" : "&cross;") + "</br>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</td>";
   // output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 

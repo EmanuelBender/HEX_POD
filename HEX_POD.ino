@@ -140,7 +140,8 @@ bool LEDon, FANon, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
 String logFilePath, rootHexPath = "/.sys";
 
-uint8_t batteryCharge;
+int batteryCharge, batteryChargeGauge;
+float batteryVoltage;
 uint8_t batteryStateByte = B0000;
 float FANvalue;
 bool LEDenable = true;
@@ -471,14 +472,16 @@ void setup() {  // ________________ SETUP ___________________
 
   pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
   attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
-  pinMode(GPIO_NUM_1, OUTPUT);                 // FAN_CTL
-  pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 10);  // BLK, 1KHz, 12 bit
+  pwm.attachPin(GPIO_NUM_1, ONETHOUSAND, 10);  // FAN, 1KHz, 10 bit
+  pwm.writeScaled(FANvalue = 0.0);
+  pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 10);  // BLK, 1KHz, 10 bit
   pwm.writeScaled(TFTbrightness = 1.0);
   pinMode(GPIO_NUM_3, OUTPUT);     // Key trigger for Power supply module workaround
   digitalWrite(GPIO_NUM_3, HIGH);  // set key to default state
-  // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
-  // attachInterrupt(GPIO_NUM_7, CTR_ISR, RISING);
-  // pinMode(GPIO_NUM_8, INPUT);   // free
+                                   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
+                                   // attachInterrupt(GPIO_NUM_7, CTR_ISR, RISING);
+                                   // pinMode(GPIO_NUM_8, INPUT);   // temp
+  pinMode(GPIO_NUM_12, INPUT);     // free
   // pinMode(GPIO_NUM_14, INPUT);  // free
   // pinMode(GPIO_NUM_21, INPUT);  // free
   pinMode(GPIO_NUM_38, INPUT_PULLUP);  // PCA_INT
@@ -491,7 +494,7 @@ void setup() {  // ________________ SETUP ___________________
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
   pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
   attachInterrupt(GPIO_NUM_47, SD_ISR, CHANGE);
-
+  pinMode(GPIO_NUM_48, INPUT);  // Battery Charge PIN
 
 
   //___________________________ INITIALIZE SD _________________________
@@ -597,7 +600,7 @@ void setup() {  // ________________ SETUP ___________________
   if (scd30.begin(Wire, false, true)) {
     scdInterval = loggingInterval / ONETHOUSAND;
     if (DEBUG) { scd30.enableDebugging(Serial); }
-    scd30.setMeasurementInterval(5);
+    scd30.setMeasurementInterval(scdInterval);
     scd30.readMeasurement();
   } else {
     Serial.println("SCD30 not detected. Please check wiring.");

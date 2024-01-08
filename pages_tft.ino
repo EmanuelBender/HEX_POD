@@ -196,8 +196,12 @@ void utilPage() {
           toggleOLED();
           break;
         case 7:
-          FANon = !FANon;
-          FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
+          if (!FANvalue) {
+            FANvalue = 1.0;
+          } else {
+            FANvalue = 0.0;
+          }
+          pwm.writeScaled(FANvalue);
           break;
         case 8:
           tft.fillScreen(TFT_BLACK);

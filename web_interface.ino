@@ -194,8 +194,14 @@ void setupWebInterface() {  // in setup()
     server.send(200, "text/plain", "OLED toggled");
   });
   server.on("/toggleFAN", []() {
-    FANon = !FANon;
-    FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
+    if (!FANvalue) {
+      FANvalue = 1.0;
+    } else {
+      FANvalue = 0.0;
+    }
+
+    pwm.writeScaled(FANvalue);
+    // FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
     server.send(200, "text/plain", "FAN toggled");
   });
 
@@ -241,6 +247,7 @@ void setupWebInterface() {  // in setup()
     String markerText = server.arg("markerText");
     addLOGmarker("[M]", markerText);
     server.send(200, "text/plain", "LOG Marker set");
+    blinkSTATUS(DBL);
   });
 
 
@@ -267,7 +274,7 @@ void setupWebInterface() {  // in setup()
 
     consoleLine = repeater = ZERO;
     initTM();
-
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "BME samples updated");
   });
 
@@ -277,7 +284,7 @@ void setupWebInterface() {  // in setup()
     preferences.begin("my - app", false);
     preferences.putUInt("bmeFilter", bmeFilter);
     preferences.end();
-
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "BME filter updated");
   });
 
@@ -286,7 +293,7 @@ void setupWebInterface() {  // in setup()
     preferences.begin("my - app", false);
     preferences.putUInt("bmePause", bmeProfilePause);
     preferences.end();
-
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "BME pause updated");
   });
 
@@ -295,6 +302,7 @@ void setupWebInterface() {  // in setup()
     server.close();
     // server.stop();
     // WiFi.disconnect();
+    blinkSTATUS(LNG);
     ESP.restart();
   });
 
@@ -317,6 +325,7 @@ void setupWebInterface() {  // in setup()
     preferences.begin("my - app", false);
     preferences.putBool("sleep", SLEEPENABLE);
     preferences.end();
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "Sleep Enabled");
   });
 
@@ -326,9 +335,10 @@ void setupWebInterface() {  // in setup()
     preferences.begin("my - app", false);
     preferences.putBool("logging", LOGGING);
     preferences.end();
+    conditioning_duration = 30;
 
     initTM();
-
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "LOGGING toggled");
   });
 
@@ -341,50 +351,48 @@ void setupWebInterface() {  // in setup()
     preferences.putBool("debug", DEBUG);
     preferences.end();
     empty2DArray(console);
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "DEBUG mode enabled");
   });
-  /*server.on("/toggleLOGBME", []() {
-    serialPrintBME1 = !serialPrintBME1;
-    consoleLine = 0;
-    preferences.begin("my - app", false);
-    preferences.putBool("bmelog", serialPrintBME1);
-    preferences.end();
-    empty2DArray(console);
-    server.send(200, "text/plain", "BME LOG enabled");
-  });*/
   server.on("/triggerUP", []() {
     UP = true;
     pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "UP");
   });
   server.on("/triggerDOWN", []() {
     DOWN = true;
     pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "DOWN");
   });
   server.on("/triggerLEFT", []() {
     LEFT = true;
     pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "LEFT");
   });
   server.on("/triggerRIGHT", []() {
     RIGHT = true;
     pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "RIGHT");
   });
   server.on("/triggerCTR", []() {
     BUTTON = true;
     pwm.writeScaled(TFTbrightness = 1.0);
     taskManager.schedule(onceMicros(10), pollButtons);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "CTR");
   });
 
   server.on("/updateNTP", []() {
     taskManager.schedule(onceMicros(15), getNTP);
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "NTP Time updated");
   });
 
@@ -817,7 +825,7 @@ String generateSensorsPage() {
   page += "</tr>";
   page += "<tr style='font-size: 14px;'>";
   page += "<td><b>NOX</td>";
-  page += "<td>" + String(index_offset) + "</td>";
+  page += "<td>" + String(0) + "</td>";
   page += "<td>" + String(learning_time_offset_hours) + "</td>";
   page += "<td>" + String(learning_time_gain_hours) + "</td>";
   page += "<td>" + String(gating_max_duration_minutes) + "</td>";
