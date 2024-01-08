@@ -33,11 +33,11 @@
 
 
 // ________________  ESP32 UTILITY  ____________________
-#include "stdio.h"
-#include "sdkconfig.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h"
-#include "driver/i2c.h"
+#include <stdio.h>
+#include <sdkconfig.h>
+#include <esp_chip_info.h>
+#include <esp_flash.h>
+#include <driver/i2c.h>
 #include <esp_log.h>
 #include <esp_cpu.h>
 #include <stdexcept>
@@ -45,7 +45,7 @@
 #include <inttypes.h>
 #include <sstream>
 
-#include "TaskManagerIO.h"
+#include <TaskManagerIO.h>
 #include <TimeLib.h>
 #include <time.h>
 #include <ESP32Servo.h>
@@ -140,11 +140,20 @@ bool LEDon, FANon, OLEDon, SDinserted;
 uint8_t filesCount, directoryCount, fileId;
 String logFilePath, rootHexPath = "/.sys";
 
+uint8_t batteryCharge;
+uint8_t batteryStateByte = B0000;
+float FANvalue;
+bool LEDenable = true;
+
 uint8_t consoleLine;
 #define consoleColumns 20
 #define consoleRows 54
 #define menuRowM 26
 String console[consoleRows][consoleColumns];
+
+#define SHRT 0
+#define LNG 1
+#define DBL 2
 
 bool pastLOGGINGstate = !LOGGING;
 bool SLEEPENABLE;
@@ -353,8 +362,8 @@ bool BUS2_CNVR;
 bool INA2_iscalibrated;
 
 // Task Manager _______________________________________________________________________
-taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID, SCDID;  // task IDs
-double tmTracker, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker;
+taskid_t LOG, ST1, STATID, IMUID, TEMPID, INA2ID, BMEID, SGPID, SECID, NTPID, BTNID, CLKID, MENUID, WIFIID, SNSID, HOMEID, UTILID, TMID, SYSID, WEB, CUBEID, BLEID, SCDID, PSID;  // task IDs
+double tmTracker, bmeTracker, sgpTracker, ina2Tracker, tempTracker, uTimeTracker, powerStTracker, loggingTracker, ntpTracker, clientTracker, statBaTracker, imuTracker, systemPageTracker, homePageTracker, sensorPageTracker, scdTracker, psTracker;
 
 #define slotsSize 24
 char taskFreeSlots[slotsSize];  // TaskManagerIO slots & status
@@ -367,6 +376,8 @@ struct TaskData {
 };
 
 TaskData tasks[] = {
+  // System Tasks
+  { "psWD", &psTracker, &PSID },
   { "updateTime", &uTimeTracker, &SECID },
   { "updateStat", &statBaTracker, &STATID },
   { "powerStates", &powerStTracker, &ST1 },
@@ -456,13 +467,15 @@ void setup() {  // ________________ SETUP ___________________
   void IRAM_ATTR CTR_ISR();
   void IRAM_ATTR SD_ISR();
   ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
 
   pinMode(GPIO_NUM_0, INPUT_PULLUP);  // BUTTON
   attachInterrupt(GPIO_NUM_0, CTR_ISR, FALLING);
   pinMode(GPIO_NUM_1, OUTPUT);                 // FAN_CTL
   pwm.attachPin(GPIO_NUM_2, ONETHOUSAND, 10);  // BLK, 1KHz, 12 bit
   pwm.writeScaled(TFTbrightness = 1.0);
-  // pinMode(GPIO_NUM_3, INPUT);
+  pinMode(GPIO_NUM_3, OUTPUT);     // Key trigger for Power supply module workaround
+  digitalWrite(GPIO_NUM_3, HIGH);  // set key to default state
   // pinMode(GPIO_NUM_7, INPUT_PULLDOWN);  // LIS3_INT
   // attachInterrupt(GPIO_NUM_7, CTR_ISR, RISING);
   // pinMode(GPIO_NUM_8, INPUT);   // free
@@ -470,11 +483,15 @@ void setup() {  // ________________ SETUP ___________________
   // pinMode(GPIO_NUM_21, INPUT);  // free
   pinMode(GPIO_NUM_38, INPUT_PULLUP);  // PCA_INT
   attachInterrupt(GPIO_NUM_38, UDLR_ISR, FALLING);
+  pinMode(GPIO_NUM_39, INPUT_PULLDOWN);  // bat indicator lines - 25%
+  pinMode(GPIO_NUM_40, INPUT_PULLDOWN);  // bat indicator lines - 50%
+  pinMode(GPIO_NUM_41, INPUT_PULLDOWN);  // bat indicator lines - 75%
+  pinMode(GPIO_NUM_42, INPUT_PULLDOWN);  // bat indicator lines - 100%
   // pinMode(GPIO_NUM_45, INPUT);  // free, bootstrap
   //pinMode(GPIO_NUM_46, INPUT);  // free, bootstrap
   pinMode(GPIO_NUM_47, INPUT_PULLUP);  // SD present
   attachInterrupt(GPIO_NUM_47, SD_ISR, CHANGE);
-  // pinMode(GPIO_NUM_48, INPUT);  // free
+
 
 
   //___________________________ INITIALIZE SD _________________________
@@ -536,10 +553,10 @@ void setup() {  // ________________ SETUP ___________________
   //___________________________ INITIALIZE INA219 _____________________
 
   if (INA2.begin()) {
-    INA2.setMaxCurrentShunt(1, 0.001);  //  maxCurrent, shunt
-    INA2.setBusVoltageRange(16);        // 16,32
-    INA2.setGain(2);                    // 1,2,4,8
-    INA2.setMode(7);                    // 3 setModeShuntBusTrigger()
+    INA2.setMaxCurrentShunt(1.0, 0.001);  //  maxCurrent, shunt
+    INA2.setBusVoltageRange(16);          // 16,32
+    INA2.setGain(4);                      // 1,2,4,8
+    INA2.setMode(7);                      // 3 setModeShuntBusTrigger()
     INA2_iscalibrated = INA2.isCalibrated();
 
     // INA2.setModeADCOff();
@@ -572,18 +589,20 @@ void setup() {  // ________________ SETUP ___________________
 
   sgp41.begin(Wire);
   configSGP();  //  /funct.ino -> bottom
+  sgp41.turnHeaterOff();
 
 
   //___________________________ INITIALIZE SCD30 _____________________
 
   if (scd30.begin(Wire, false, true)) {
     scdInterval = loggingInterval / ONETHOUSAND;
-    if (DEBUG) scd30.enableDebugging(Serial);
+    if (DEBUG) { scd30.enableDebugging(Serial); }
     scd30.setMeasurementInterval(5);
     scd30.readMeasurement();
   } else {
-    Serial.println("Air sensor not detected. Please check wiring.");
+    Serial.println("SCD30 not detected. Please check wiring.");
   }
+  if (!LOGGING) { scd30.StopMeasurement(); }
 
   //___________________________ INITIALIZE OLED ________________________
 
@@ -607,6 +626,8 @@ void setup() {  // ________________ SETUP ___________________
   esp_chip_info(&chip_info);
   getDeviceInfo();
   initTM();  // setup task Manager Tasks
+
+  triggerPSwatchdog();
 
   lastInputTime = micros();
   lastRestart = printTime + " " + printDate;

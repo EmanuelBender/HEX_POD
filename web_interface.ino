@@ -200,13 +200,11 @@ void setupWebInterface() {  // in setup()
   });
 
   server.on("/deletePath", HTTP_GET, []() {
-    String pathToDelete = "/" + server.arg("path");
+    String pathToDelete = server.arg("path");
     if (pathToDelete.length() > 0) {
       LittleFS.begin();
       removeDir(LittleFS, pathToDelete.c_str());
       deleteFile(LittleFS, pathToDelete.c_str());
-      // createDir(LittleFS, pathToDelete.c_str());
-      // LittleFS.remove(pathToDelete.c_str());
       LittleFS.end();
 
       server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
@@ -295,8 +293,8 @@ void setupWebInterface() {  // in setup()
   server.on("/restart", []() {
     server.send(200, "text/plain", "Restart");
     server.close();
-    server.stop();
-    WiFi.disconnect();
+    // server.stop();
+    // WiFi.disconnect();
     ESP.restart();
   });
 
@@ -306,6 +304,13 @@ void setupWebInterface() {  // in setup()
     pwm.writeScaled(TFTbrightness);
     lastInputTime = micros();
     server.send(200, "text/plain", "Display Brightness");
+  });
+  server.on("/updateFANvalue", []() {
+    String value = server.arg("FANvalue");
+    FANvalue = value.toFloat();
+    pwm.writeScaled(FANvalue);
+    lastInputTime = micros();
+    server.send(200, "text/plain", "Fan speed");
   });
   server.on("/toggleLS", []() {
     SLEEPENABLE = !SLEEPENABLE;
@@ -398,25 +403,25 @@ String generateJavaScriptFunctions() {
             "var intervalSelect = document.getElementById('loggingInterval');\n"
             "var selectedValue = intervalSelect.options[intervalSelect.selectedIndex].value;\n"
             "fetch('/updateLoggingInterval?value=' + selectedValue);\n"
-            "  location.reload();"
+            // "  location.reload();"
             "}\n"
             "function updateBMEsamples() { "
             "var sampleSelect = document.getElementById('bmeSamples');"
             "var selectedValue = sampleSelect.options[sampleSelect.selectedIndex].value;"
             "fetch('/updateBMEsamples?value=' + selectedValue);"
-            "  location.reload();"
+            // "  location.reload();"
             "}"
             "function updateBMEfilter() { "
             "var filter = document.getElementById('bmeFilter');"
             "var selectedValue = filter.options[filter.selectedIndex].value;"
             "fetch('/updateBMEfilter?value=' + selectedValue);"
-            "  location.reload();"
+            // "  location.reload();"
             "}"
             "function updateBMEpause() { "
             "var pauseMs = document.getElementById('bmePause');"
             "var selectedValue = pauseMs.options[pauseMs.selectedIndex].value;"
             "fetch('/updateBMEpause?value=' + selectedValue);"
-            "  location.reload();"
+            // "  location.reload();"
             "}"
 
             "function toggleDEBUG() { fetch('/toggleDEBUG').then(() => location.reload()); }"
@@ -426,21 +431,21 @@ String generateJavaScriptFunctions() {
             "  var pathToDelete = prompt('Please enter the path to delete:');"
             "  if (pathToDelete !== null) {"
             "    fetch('/deletePath?path=' + encodeURIComponent(pathToDelete));"
-            "    location.reload();"
+            // "    location.reload();"
             "  }"
             "}"
             "function createFile() { "
             "  var pathToCreate = prompt('Please enter filename (path):');"
             "  if (pathToCreate !== null) {"
             "    fetch('/createFile?path=' + encodeURIComponent(pathToCreate));"
-            "    location.reload();"
+            // "    location.reload();"
             "  }"
             "}"
             "function createDir() { "
             "  var pathToCreate = prompt('Please enter folder name (path):');"
             "  if (pathToCreate !== null) {"
             "    fetch('/createDir?path=' + encodeURIComponent(pathToCreate));"
-            "    location.reload();"
+            // "    location.reload();"
             "  }"
             "}"
             "function LOGMarker() { "
@@ -487,6 +492,12 @@ String generateJavaScriptFunctions() {
             "  document.getElementById('TFTslider').value = value;\n"
             "  var xhr = new XMLHttpRequest();\n"
             "  xhr.open('GET', '/updateTFTbrightness?value=' + value, true);\n"
+            "  xhr.send();\n"
+            "}\n"
+            "function updateFANvalue(FANvalue) {\n"
+            "  document.getElementById('FANslider').FANvalue = FANvalue;\n"
+            "  var xhr = new XMLHttpRequest();\n"
+            "  xhr.open('GET', '/updateFANvalue?value=' + FANvalue, true);\n"
             "  xhr.send();\n"
             "}\n"
             "document.addEventListener('keydown', function(event) {\n"

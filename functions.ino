@@ -9,7 +9,7 @@ void pollServer() {
 
   server.handleClient();
 
-  taskManager.yieldForMicros(ONETHOUSAND);
+  // taskManager.yieldForMicros(ONETHOUSAND);
 
   debugF(timeTracker);
   clientTracker = (micros() - timeTracker) / double(ONETHOUSAND);
@@ -28,22 +28,76 @@ void IRAM_ATTR SD_ISR() {
   if (millis() - lastSDInterrupt > 110) {
     lastSDInterrupt = millis();
     SDinserted = !digitalRead(GPIO_NUM_47);
-    if (DEBUG) ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed");
+    if (DEBUG) { ESP_LOGI("SD", "%s", SDinserted ? "Inserted" : "Removed"); }
   }
 }
+
+void powerOFF() {
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(100);
+  digitalWrite(GPIO_NUM_3, HIGH);
+  delay(300);
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(100);
+  digitalWrite(GPIO_NUM_3, HIGH);
+}
+
+void triggerPSwatchdog() {  // power supply board watchdog timer. triggers every 20s to keep it alive when requested current is <50mA
+  TAG = "triggerPSwatchdog()";
+  psTracker = micros();
+  taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+
+  digitalWrite(GPIO_NUM_3, LOW);
+  delay(25);
+  digitalWrite(GPIO_NUM_3, HIGH);
+
+  taskManager.schedule(onceSeconds(1), pollBatteryLEDS);
+
+  debugF(psTracker);
+  psTracker = (micros() - psTracker) / double(ONETHOUSAND);
+}
+
+
+void pollBatteryLEDS() {
+  batteryStateByte = digitalRead(GPIO_NUM_39) << 3 | digitalRead(GPIO_NUM_40) << 2 | digitalRead(GPIO_NUM_41) << 1 | digitalRead(GPIO_NUM_42);
+
+  switch (batteryStateByte) {  // Convert the battery state byte to percentage
+    case B0000:
+      batteryCharge = 0;
+      break;
+    case B0001:
+      batteryCharge = 25;
+      break;
+    case B0011:
+      batteryCharge = 50;
+      break;
+    case B0111:
+      batteryCharge = 75;
+      break;
+    case B1111:
+      batteryCharge = 100;
+      break;
+  }
+
+  if (DEBUG) {
+    ESP_LOGI("POWER", "Bat: %d%, Current: %f", batteryCharge, BUS2_Current);
+  }
+}
+
+
 
 
 
 void initTM() {
   TAG = "initTM()    ";
   taskManager.reset();
-  if (DEBUG) ESP_LOGI(TAG, "%s", "taskManager Reset");
 
   lis.setDataRate(LIS3DH_DATARATE_POWERDOWN);
 
-  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = ZERO;
-  bmeTracker = sgpTracker = ina2Tracker = tempTracker = uTimeTracker = powerStTracker = loggingTracker = ntpTracker = clientTracker = statBaTracker = imuTracker = systemPageTracker = homePageTracker = sensorPageTracker = scdTracker = ZERO;
+  LOG = ST1 = STATID = IMUID = TEMPID = INA2ID = BMEID = SGPID = SECID = NTPID = BTNID = CLKID = MENUID = WIFIID = SNSID = HOMEID = UTILID = TMID = SYSID = WEB = BLEID = CUBEID = SCDID = PSID = 0;
+  bmeTracker = sgpTracker = ina2Tracker = tempTracker = uTimeTracker = powerStTracker = loggingTracker = ntpTracker = clientTracker = statBaTracker = imuTracker = systemPageTracker = homePageTracker = sensorPageTracker = scdTracker = psTracker = 0.0;
 
+  PSID = taskManager.schedule(repeatSeconds(25), triggerPSwatchdog);
   SECID = taskManager.schedule(repeatMillis(994), updateTime);
   STATID = taskManager.schedule(repeatMillis(996), statusBar);
   ST1 = taskManager.schedule(repeatSeconds(1), PowerStates);
@@ -55,6 +109,7 @@ void initTM() {
   initAirSensorTasks();
 
   if (!blockMenu) taskManager.schedule(onceMicros(1), reloadMenu);
+  if (DEBUG) { ESP_LOGI(TAG, "%s", "taskManager Reset"); }
 }
 
 
@@ -80,6 +135,10 @@ void initAirSensorTasks() {
       taskManager.schedule(onceSeconds(30), pollSCD30);
       taskManager.schedule(onceSeconds(50), pollSCD30);
     }
+  } else {
+    scd30.StopMeasurement();
+    sgp41.turnHeaterOff();
+    bme1.setOpMode(BME68X_SLEEP_MODE);
   }
 }
 
@@ -105,6 +164,8 @@ void PowerStates() {
 
 
   if (currentPowerState != previousPowerState) {
+
+    blinkSTATUS(SHRT);
 
     if (currentPowerState == LIGHT_SLEEP) {
       Wire.end();
@@ -280,7 +341,7 @@ void updateTime() {
   if (getLocalTime(&timeinfo)) {
     printTime = formatTime(timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, ':');
     printDate = formatTime(timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year - 100, '.');
-    uptimeString = convertSecToTimestamp<String>(millis() / ONETHOUSAND);
+    uptimeString = convertSecToTimestamp(millis() / ONETHOUSAND);
 
     printToOLED(printTime);
   }
@@ -288,7 +349,6 @@ void updateTime() {
   debugF(timeTracker);
   uTimeTracker = (micros() - timeTracker) / double(ONETHOUSAND);
 }
-
 
 
 
@@ -387,16 +447,16 @@ void pollBME() {
     BME_ERROR = "[W] " + bme1.statusString();
   }
 
-  bme1.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);
+  bme1.setTPH(BME68X_OS_NONE, BME68X_OS_NONE, BME68X_OS_NONE);  // BME68X_OS_2X
   bme1.setFilter(bmeFilter);
-  bme1.setAmbientTemp(DTprobe[1].temperature);
+  if (DTprobe[1].temperature > 0) bme1.setAmbientTemp(DTprobe[1].temperature);
 
   dewPoint = calcDewPoint(bme1_data.temperature, bme1_data.humidity);
-  // Altitude = ((((((10 * log10((data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
+  Altitude = ((((((10 * log10((bme1_data.pressure / 100.0) / 1013.25)) / 5.2558797) - 1) / (-6.8755856 * pow(10, -6))) / ONETHOUSAND) * 0.30);  // approx, far from accurate
 
   repeater++;
 
-  for (bmeProfile = ZERO; bmeProfile < numProfiles; bmeProfile++) {
+  for (bmeProfile = 0; bmeProfile < numProfiles; bmeProfile++) {
     duration = durProf_1[bmeProfile];
     heaterTemp = heatProf_1[bmeProfile];
 
@@ -405,7 +465,7 @@ void pollBME() {
     bme1.setOpMode(BME68X_FORCED_MODE);
 
     while (!bme1.fetchData()) {
-      taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
+      // taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
       delay(3);
     }
     bme1.getData(bme1_data);
@@ -414,10 +474,10 @@ void pollBME() {
 
 
   if (repeater == bmeSamples) {
-    bme_gas_avg = ZERO;
+    bme_gas_avg = 0;
     if (!conditioning_duration) {
       // offsetDelta = findSmallestValue(bme_resistance_avg);
-      for (i = ZERO; i < numProfiles; ++i) {
+      for (i = 0; i < numProfiles; ++i) {
         bme_resistance_avg[i] = (bme_resistance[i] / bmeSamples) - offsetDelta;
         bme_gas_avg += bme_resistance_avg[i];
       }
@@ -426,9 +486,15 @@ void pollBME() {
 
       std::fill_n(bme_resistance, numProfiles, ZERO);  // empty resistance array
     }
-    repeater = ZERO;
+    repeater = 0;
   }
 
+  bme1.setTPH(BME68X_OS_4X, BME68X_OS_8X, BME68X_OS_4X);  // BME68X_OS_2X
+  bme1.setOpMode(BME68X_FORCED_MODE);
+  while (!bme1.fetchData()) {
+    delay(3);
+  }
+  bme1.getData(bme1_data);
   bme1.setOpMode(BME68X_SLEEP_MODE);
 
   debugF(timeTracker);
@@ -453,7 +519,7 @@ void pollSGP() {
 
   if (!conditioning_duration) {
     sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);  // throw away conditioning
-    yield();
+    // yield();
     delay(142);
     error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc, srawNox);
     if (srawVoc) VOC = voc_algorithm.process(srawVoc);
@@ -502,13 +568,13 @@ void pollTemp() {
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
   if (tempSens.isConversionComplete()) {
-    for (auto &probe : DTprobe) {
+    for (auto& probe : DTprobe) {
       probe.temperature = tempSens.getTempC(probe.address);
     }
     tempSens.requestTemperatures();
   }
 
-  if (DEBUG) oneWireSearch(GPIO_NUM_8);
+  if (DEBUG) { oneWireSearch(GPIO_NUM_8); }
   CPUTEMP = temperatureRead();
 
   debugF(timeTracker);
@@ -523,7 +589,7 @@ void pollSCD30() {
   timeTracker = micros();
   taskManager.checkAvailableSlots(taskFreeSlots, slotsSize);
 
-  if (scd30.dataAvailable()) {
+  if (scd30.dataAvailable() && LOGGING) {
     scd30.readMeasurement();
     humidSCD = scd30.getHumidity();
     tempSCD = scd30.getTemperature();
@@ -537,6 +603,9 @@ void pollSCD30() {
     double scdTempOffset = tempSCD - ((bme1_data.temperature + DTprobe[1].temperature) / 2);
     if (scdTempOffset) scd30.setTemperatureOffset(scdTempOffset);
   }
+
+  if (!LOGGING) { scd30.StopMeasurement(); }
+
 
   debugF(timeTracker);
   scdTracker = (micros() - timeTracker) / double(ONETHOUSAND);
@@ -718,6 +787,42 @@ String print_wakeup_reason() {
 
 
 
+void blinkSTATUS(int input) {
+
+  if (LEDenable && timeTracker > 10000 * ONETHOUSAND) {
+
+    if (input == SHRT) {
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
+      // delayMicroseconds(10);
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off
+    }
+    if (input == LNG) {
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
+      delay(800);
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off
+    }
+    if (input == DBL) {
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
+      delay(30);
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off
+      delay(150);
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::L);  // led on
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::L);  // led on
+      delay(30);
+      io.write(PCA95x5::Port::P14, PCA95x5::Level::H);  // led off
+      io.write(PCA95x5::Port::P15, PCA95x5::Level::H);  // led off}
+    }
+  }
+}
+
+
+
 // Templates
 
 String formatTime(const int value1, const int value2, const int value3, const char seperator) {  // format values into Time or date String with seperator
@@ -729,8 +834,8 @@ String formatTime(const int value1, const int value2, const int value3, const ch
 }
 
 
-template<typename T>
-T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
+
+String convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value to HH:MM:SS
   if (pass_sec == ZERO) {
     throw std::invalid_argument("Invalid seconds value");
   }
@@ -741,7 +846,7 @@ T convertSecToTimestamp(const uint32_t pass_sec) {  // Convert a seconds value t
 
   sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
 
-  return T(buffer);
+  return buffer;
 }
 
 

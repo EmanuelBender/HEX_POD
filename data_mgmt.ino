@@ -117,6 +117,7 @@ void logging() {
     if (!LittleFS.begin()) return;  // Ensure file system initialization succeeds
     appendFile(LittleFS, logFilePath.c_str(), airLog.str().c_str());
     LittleFS.end();
+    blinkSTATUS(DBL);
   }
 
   debugF(loggingTracker);

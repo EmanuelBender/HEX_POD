@@ -452,7 +452,7 @@ String generateDeviceOverviewTable() {
   output += "</tr><br><tr>";
 
   output += "<td style='color: #707070;' colspan='6'>TFT Brightness: <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'>";
-  output += "(FAN Speed): <input style='cursor:ew-resize;' type='range' id='TFTslider' min='0' max='1' step='0.05' value='" + String(TFTbrightness) + "' oninput='updateTFTbrightness(this.value)'></td>";
+  output += "FAN Speed: <input style='cursor:ew-resize;' type='range' id='FANslider' min='0' max='1' step='0.05' FANvalue='" + String(FANvalue) + "' oninput='updateFANvalue(this.FANvalue)'></td>";
 
   output += "</tr></table>";
   return output;
@@ -566,6 +566,8 @@ String generateSystemSensorsTable() {
 
   String output = "<table>";
   output += "<tr><th colspan='5'><h2>System Sensors</h2></th></tr>";
+
+  output += "<tr><td id='subhead'><b>Battery</b><br>" + String(batteryCharge) + "%</td></tr>";
   output += "<tr><td id='subhead'><b>INA2</b></br> " + String(INA2.isConnected() ? "&check;" : "&cross;") + " " + String(INA2_iscalibrated ? "&check;" : "&cross;") + "</br>" + String(BUS2_OVF ? "OverflowMath!" : "") + "</td>";
   // output += "<tr><td colspan='4'><hr style='border: 1px solid #808080;'></td></tr>";
 
@@ -603,7 +605,7 @@ String generateTaskManagerTable() {
   table += "<tr><th colspan='2'><h2>Task Manager</h2></th></tr>";
 
   for (const auto& task : tasks) {
-    if (taskFreeSlots[*task.taskId] != 'F' && *task.tracker > 0.00 && *task.taskId != 0) {
+    if (taskFreeSlots[*task.taskId] != char('F') && *task.tracker > 0.00 || *task.taskId != 0) {
       table += "<tr><td id='subhead' style='padding: 5px 15px; text-align: right; width: 120px; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-top-right-radius: 0px; border-bottom-right-radius: 10px;'><b>" + String(task.taskName) + " </b>[" + String(*task.taskId) + "]</td>"
                + "<td id='subhead' style='padding: 5px; text-align: left; width: 15px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 1px; border-bottom-right-radius: 10px;'>[" + String(taskFreeSlots[*task.taskId]) + "]</td>"
                + "<td id='subhead' style='padding: 5px 15px; text-align: left; min-width: 120px; border-top-left-radius: 0px; border-bottom-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px;'>" + String(*task.tracker) + "ms</td>"
