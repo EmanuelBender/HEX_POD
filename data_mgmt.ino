@@ -98,7 +98,10 @@ void logging() {
     if (logFilePath == "/LOG_.csv") return;
 
     std::ostringstream airLog;
-    airLog << printTime.c_str() << ", ";
+
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::string utf8Time = converter.to_bytes(printTime);
+    airLog << utf8Time.c_str() << ", ";
 
     for (const auto &resistance : bme_resistance_avg) {
       airLog << resistance << ", ";
