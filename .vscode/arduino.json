@@ -1,6 +1,5 @@
 {
     "configuration": "PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=debug",
     "board": "espressif:esp32:esp32",
-    "sketch": "HEX_POD.ino",
-    "port": "/dev/tty.Bluetooth-Incoming-Port"
+    "sketch": "HEX_POD.cpp"
 }

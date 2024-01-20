@@ -12,6 +12,7 @@
           "${default}",
           "/Users/DriftStatic/Documents/Arduino/hardware/espressif/esp32",
           "/Users/DriftStatic/Documents/Arduino/libraries",
+          "/Users/DriftStatic/Documents/GitHub/HEX_POD",
           "/Users/DriftStatic/esp-idf/components"
         ],
         "limitSymbolsToIncludedHeaders": true

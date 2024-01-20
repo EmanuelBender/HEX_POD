@@ -6,12 +6,14 @@
 /*                                                                                                                                     */
 /*                                                                                                                                     */
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <WiFi.h>
 #include <ArduinoBLE.h>
 #include <Preferences.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include <FS.h>
 #include <LITTLEFS.h>
