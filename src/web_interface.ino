@@ -46,9 +46,9 @@ time_t convertTimestampToTime(const String& timestamp) {
   info.tm_hour = hours;
   info.tm_min = minutes;
   info.tm_sec = seconds;
-  info.tm_year = year;  // Year is not provided, set it to 0
-  info.tm_mon = month;  // Month is not provided, set it to 0
-  info.tm_mday = day;   // Day is not provided, set it to 0
+  info.tm_year = year; 
+  info.tm_mon = month;
+  info.tm_mday = day;  
   info.tm_isdst = -1;   // DST information is not available
   return mktime(&info);
 }
@@ -191,6 +191,7 @@ void setupWebInterface() {  // in setup()
   server.on("/toggleOLED", []() {
     OLEDon = !OLEDon;
     toggleOLED();
+    blinkSTATUS(DBL);
     server.send(200, "text/plain", "OLED toggled");
   });
   server.on("/toggleFAN", []() {
@@ -199,8 +200,8 @@ void setupWebInterface() {  // in setup()
     } else {
       FANvalue = 0.0;
     }
-
     pwm.writeScaled(FANvalue);
+    blinkSTATUS(DBL);
     // FANon ? digitalWrite(GPIO_NUM_1, true) : digitalWrite(GPIO_NUM_1, false);
     server.send(200, "text/plain", "FAN toggled");
   });
@@ -212,7 +213,7 @@ void setupWebInterface() {  // in setup()
       removeDir(LittleFS, pathToDelete.c_str());
       deleteFile(LittleFS, pathToDelete.c_str());
       LittleFS.end();
-
+      blinkSTATUS(LNG);
       server.send(200, "text/plain", "File or directory deleted: " + pathToDelete);
     } else {
       server.send(400, "text/plain", "Invalid or missing path parameter");
@@ -224,7 +225,7 @@ void setupWebInterface() {  // in setup()
       LittleFS.begin();
       writeFile(LittleFS, pathToCreate.c_str(), "");
       LittleFS.end();
-
+      blinkSTATUS(DBL);
       server.send(200, "text/plain", "File created: " + pathToCreate);
     } else {
       server.send(400, "text/plain", "Invalid or missing path parameter");
@@ -236,7 +237,7 @@ void setupWebInterface() {  // in setup()
       LittleFS.begin();
       createDir(LittleFS, pathToCreate.c_str());
       LittleFS.end();
-
+      blinkSTATUS(DBL);
       server.send(200, "text/plain", "Directory created: " + pathToCreate);
     } else {
       server.send(400, "text/plain", "Invalid or missing path parameter");
@@ -261,7 +262,7 @@ void setupWebInterface() {  // in setup()
 
     consoleLine = repeater = ZERO;
     initTM();
-
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "Logging interval updated");
   });
 
@@ -311,6 +312,7 @@ void setupWebInterface() {  // in setup()
     TFTbrightness = value.toFloat();
     pwm.writeScaled(TFTbrightness);
     lastInputTime = micros();
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "Display Brightness");
   });
   server.on("/updateFANvalue", []() {
@@ -318,6 +320,7 @@ void setupWebInterface() {  // in setup()
     FANvalue = value.toFloat();
     pwm.writeScaled(FANvalue);
     lastInputTime = micros();
+    blinkSTATUS(SHRT);
     server.send(200, "text/plain", "Fan speed");
   });
   server.on("/toggleLS", []() {

@@ -1,5 +1,5 @@
 {
-    "configuration": "PSRAM=disabled,PartitionScheme=huge_app,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,DebugLevel=debug",
-    "board": "espressif:esp32:esp32",
+    "configuration": "JTAGAdapter=default,PSRAM=disabled,FlashMode=qio120,FlashSize=4M,LoopCore=1,EventsCore=0,USBMode=hwcdc,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,PartitionScheme=huge_app,CPUFreq=240,UploadSpeed=921600,DebugLevel=debug,EraseFlash=all",
+    "board": "esp32:esp32:esp32s3",
     "sketch": "HEX_POD.cpp"
 }

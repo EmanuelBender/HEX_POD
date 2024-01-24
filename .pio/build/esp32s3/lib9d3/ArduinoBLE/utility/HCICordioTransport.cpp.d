@@ -1,2 +1,0 @@
-.pio/build/esp32s3/lib9d3/ArduinoBLE/utility/HCICordioTransport.cpp.o: \
- .pio/libdeps/esp32s3/ArduinoBLE/src/utility/HCICordioTransport.cpp

@@ -2,6 +2,7 @@
 .DS_Store 
 images/.DS_Store
 .github/.DS_Store
-flow_menu.ino
+
 Credentials.h
-.vscode
+src/flow_menu.ino
+src/Credentials.h

@@ -16,7 +16,7 @@
 #include "freertos/task.h"
 
 #include <FS.h>
-#include <LITTLEFS.h>
+#include <LittleFS.h>
 #include <SD.h>
 
 #include <TFT_eSPI.h>
