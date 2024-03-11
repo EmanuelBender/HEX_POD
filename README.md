@@ -1,9 +1,8 @@
-
+  [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/R6R6UHSY5)
 
 <h1 style="font-family:Helvetica;", align=center>[HEX]POD</h1><br>
 
 <p align=center font-size=10px > by eBender <br>
-  [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/R6R6UHSY5)
   
   <p align=center><b><a href="https://hackaday.io/project/177083-h6x-pod">Hackaday</a> <br>
 <a href="https://www.instagram.com/zen.diy/">Instagram</a><br>
